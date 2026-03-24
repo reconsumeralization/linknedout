@@ -23,6 +23,7 @@ const AUTH_MESSAGES: Partial<Record<ActiveView, string>> = {
   fundraising: "Fundraising campaigns, donors, and donations require sign-in to manage data.",
   data: "Data hub and Supabase-backed areas require sign-in.",
   storage: "Files & assets (Supabase Storage) require sign-in.",
+  marketplace: "Labor of Love marketplace requires sign-in to list, buy, and trade human experiences.",
 }
 
 /**
@@ -46,4 +47,5 @@ export const PANEL_DEFINITIONS: Omit<PanelRegistration, "component" | "lazyImpor
   { view: "globe", label: "Globe", requiresAuth: false, authMessage: "" },
   { view: "sentinel", label: "SENTINEL", requiresAuth: true, authMessage: AUTH_MESSAGES.sentinel ?? "" },
   { view: "settings", label: "Settings", requiresAuth: false, authMessage: "" },
+  { view: "marketplace", label: "Marketplace", requiresAuth: true, authMessage: AUTH_MESSAGES.marketplace ?? "" },
 ]

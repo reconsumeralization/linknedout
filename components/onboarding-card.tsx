@@ -4,7 +4,7 @@ import type { ActiveView } from "@/app/page"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Progress } from "@/components/ui/progress"
-import { Check, ChevronRight, Linkedin, Mail, MessageSquare, Rocket, ShieldCheck, Sparkles, Upload } from "lucide-react"
+import { Check, ChevronRight, Heart, Linkedin, Mail, MessageSquare, Rocket, ShieldCheck, Sparkles, Upload } from "lucide-react"
 import Link from "next/link"
 import { useCallback, useEffect, useState } from "react"
 
@@ -251,6 +251,51 @@ export function OnboardingCard({
       actionView: "email",
       optional: true,
     },
+    {
+      id: "marketplace",
+      done: false,
+      label: "Explore the Marketplace",
+      description: "Trade non-scalable human experiences — mentorship, handcrafted art, philosophy sessions, and more.",
+      actionLabel: "Open Marketplace",
+      actionView: "marketplace",
+      optional: true,
+    },
+    {
+      id: "governance",
+      done: false,
+      label: "Try Tribal Governance",
+      description: "Propose decisions, delegate votes, and run consensus within your tribes.",
+      actionLabel: "Open Tribes",
+      actionView: "tribes",
+      optional: true,
+    },
+    {
+      id: "authenticity",
+      done: false,
+      label: "Set up content authenticity",
+      description: "Attest your content with provenance proofs and biological signals via the Authenticity Oracle.",
+      actionLabel: "Open SENTINEL",
+      actionView: "sentinel",
+      optional: true,
+    },
+    {
+      id: "handcuff-audit",
+      done: false,
+      label: "Run a Handcuff Audit",
+      description: "Analyze your golden handcuffs (salary, vesting, benefits) and calculate your break-even to sovereignty.",
+      actionLabel: "Open Settings",
+      actionView: "settings",
+      optional: true,
+    },
+    {
+      id: "auto-research",
+      done: false,
+      label: "Launch your first Auto Research",
+      description: "Coordinate overnight research across the tribal network to accelerate breakthroughs.",
+      actionLabel: "Open Tribes",
+      actionView: "tribes",
+      optional: true,
+    },
   ]
 
   const complete = coreSteps.every((step) => step.done)
@@ -298,7 +343,7 @@ export function OnboardingCard({
         eyebrow: "Core setup complete",
         title: "You are ready to use LinkedOut.",
         body:
-          "The required setup is done. If you want the richer version of the workspace next, connect LinkedIn and email, but you can already analyze profiles right now.",
+          "The required setup is done. Connect LinkedIn and email for richer integrations, or explore the Sovereign Economy — trade experiences in the Marketplace, govern your tribes, and verify content authenticity.",
         primaryAction: {
           kind: "navigate",
           label: "Open Profiles CRM",
@@ -321,7 +366,7 @@ export function OnboardingCard({
               </div>
               <CardTitle className="text-xl">Welcome to LinkedOut</CardTitle>
               <CardDescription>
-                I will help you get the workspace ready in three core steps, then you can layer on LinkedIn and email if you want more.
+                Your AI-powered Tribe Intelligence Platform. We&apos;ll discover your Human Alpha, build your first workflow, and connect you to a High-Bandwidth Intelligence Syndicate.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -335,14 +380,27 @@ export function OnboardingCard({
                   Import a LinkedIn CSV or profile PDF, or use live Supabase data
                 </li>
                 <li className="flex items-center gap-2">
-                  <Linkedin className="h-4 w-4 shrink-0 text-[#0077b5]" />
-                  Connect LinkedIn later in Settings if you want identity sync and Share on LinkedIn
+                  <Sparkles className="h-4 w-4 shrink-0 text-primary" />
+                  Ask the AI to run a Discovery Session &mdash; identify your Human Alpha and build your first reusable AI workflow
                 </li>
                 <li className="flex items-center gap-2">
                   <Rocket className="h-4 w-4 shrink-0 text-primary" />
-                  Explore the Dashboard, AI Assistant, and the rest of the workspace once your data is in
+                  Explore the Agent Lab, Tribe Builder, and 114 AI tools — from Cognitive Staking to the Quantum Oracle. How will you deploy your first 1,000 Agentic Tokens?
+                </li>
+                <li className="flex items-center gap-2">
+                  <Heart className="h-4 w-4 shrink-0 text-primary" />
+                  Trade human experiences in the Labor of Love marketplace, govern your tribes with liquid democracy, and verify content authenticity
                 </li>
               </ul>
+              <p className="text-[10px] text-muted-foreground text-center">
+                <a href="/terms" className="hover:text-foreground underline">Terms</a>
+                {" · "}
+                <a href="/privacy" className="hover:text-foreground underline">Privacy</a>
+                {" · "}
+                <a href="/sponsors" className="hover:text-foreground underline">Sponsors</a>
+                {" · "}
+                Powered by Hill &amp; Valley Gigastream
+              </p>
               <Button className="w-full gap-2" onClick={handleWelcomeClose}>
                 Start the walkthrough
                 <ChevronRight className="h-4 w-4" />

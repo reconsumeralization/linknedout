@@ -13,6 +13,8 @@ import type {
   SentinelSnapshot,
   ThreatSignature,
 } from "@/lib/sentinel/sentinel-types"
+import type { AuthenticityAttestation, AuthenticityChallenge } from "@/lib/shared/types"
+import { fetchAuthenticityAttestations, fetchAuthenticityChallenges, fetchHeartbeatLog } from "@/lib/supabase/supabase-data"
 import { cn } from "@/lib/shared/utils"
 import {
   AlertTriangle,
@@ -20,16 +22,20 @@ import {
   BarChart3,
   Bot,
   CheckCircle2,
+  FileSearch,
+  Fingerprint,
   Lock,
   RefreshCw,
+  Shield,
   ShieldCheck,
   ShieldAlert,
+  FlaskConical,
   XCircle,
   Zap,
 } from "lucide-react"
 import { useCallback, useEffect, useMemo, useState } from "react"
 
-type SentinelTab = "activity" | "chain" | "approvals" | "threats" | "incidents" | "guards"
+type SentinelTab = "activity" | "chain" | "approvals" | "threats" | "incidents" | "guards" | "authenticity" | "forensics"
 
 type ChatHealthDiagnostics = {
   status?: string
@@ -307,6 +313,11 @@ export function SentinelPanel() {
   const [selectedSessionId, setSelectedSessionId] = useState("")
   const [resolverNotes, setResolverNotes] = useState<Record<string, string>>({})
   const [integrityChecks, setIntegrityChecks] = useState<Record<string, "pass" | "fail" | "unknown">>({})
+  const [attestations, setAttestations] = useState<AuthenticityAttestation[]>([])
+  const [challenges, setChallenges] = useState<AuthenticityChallenge[]>([])
+  const [heartbeatLog, setHeartbeatLog] = useState<Array<{ id: string; signalSource: string; createdAt: string; isValid: boolean }>>([])
+  const [authenticityHashSearch, setAuthenticityHashSearch] = useState("")
+  const [isAuthenticityLoading, setIsAuthenticityLoading] = useState(false)
   const [incidentDraft, setIncidentDraft] = useState({
     title: "",
     summary: "",
@@ -428,6 +439,30 @@ export function SentinelPanel() {
     window.addEventListener("storage", onStorage)
     return () => window.removeEventListener("storage", onStorage)
   }, [loadGuardDiagnostics, loadSnapshot])
+
+  const loadAuthenticityData = useCallback(async (hash?: string) => {
+    setIsAuthenticityLoading(true)
+    try {
+      const [attData, chalData, hbData] = await Promise.all([
+        fetchAuthenticityAttestations(hash || undefined),
+        fetchAuthenticityChallenges("open"),
+        fetchHeartbeatLog(20),
+      ])
+      setAttestations(attData as AuthenticityAttestation[])
+      setChallenges(chalData as AuthenticityChallenge[])
+      setHeartbeatLog(hbData as Array<{ id: string; signalSource: string; createdAt: string; isValid: boolean }>)
+    } catch (err) {
+      console.error("loadAuthenticityData", err)
+    } finally {
+      setIsAuthenticityLoading(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    if (activeTab === "authenticity") {
+      void loadAuthenticityData()
+    }
+  }, [activeTab, loadAuthenticityData])
 
   const sessions = useMemo(
     () =>
@@ -942,6 +977,8 @@ export function SentinelPanel() {
             ["threats", "Threat Intel"],
             ["incidents", "Incidents"],
             ["guards", "Guard Diagnostics"],
+            ["authenticity", "Authenticity"],
+            ["forensics", "Forensics"],
           ] as Array<[SentinelTab, string]>).map(([id, label]) => (
             <Button
               key={id}
@@ -1889,6 +1926,260 @@ export function SentinelPanel() {
             </CardContent>
           </Card>
         ) : null}
+
+        {activeTab === "authenticity" ? (
+          <div className="space-y-4">
+            {/* Content Provenance Card */}
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm flex items-center gap-1.5">
+                  <FileSearch className="h-4 w-4" />
+                  Content Provenance
+                </CardTitle>
+                <CardDescription className="text-xs">
+                  Search attestations by content hash and review verification status.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div className="flex gap-2">
+                  <Input
+                    value={authenticityHashSearch}
+                    onChange={(e) => setAuthenticityHashSearch(e.target.value)}
+                    placeholder="Search by content hash..."
+                    className="h-8 text-xs font-mono"
+                  />
+                  <Button
+                    size="sm"
+                    className="h-8 text-xs"
+                    disabled={isAuthenticityLoading}
+                    onClick={() => void loadAuthenticityData(authenticityHashSearch || undefined)}
+                  >
+                    <FileSearch className="mr-1 h-3 w-3" />
+                    Search
+                  </Button>
+                </div>
+                <ScrollArea className="h-[260px]">
+                  <div className="space-y-2">
+                    {attestations.length === 0 ? (
+                      <p className="text-xs text-muted-foreground py-6 text-center">
+                        No attestations found
+                      </p>
+                    ) : (
+                      attestations.map((att) => (
+                        <div
+                          key={att.id}
+                          className="rounded-md border border-border/60 p-2.5 text-xs space-y-1.5"
+                        >
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <Badge variant="outline" className="text-[10px]">
+                              {att.contentType}
+                            </Badge>
+                            <Badge variant="outline" className="text-[10px]">
+                              {att.attestationMethod.replace(/_/g, " ")}
+                            </Badge>
+                            <span className="text-muted-foreground ml-auto text-[10px]">
+                              {formatTime(att.createdAt)}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span className="font-mono text-[10px] text-muted-foreground truncate max-w-[200px]">
+                              {att.contentHash}
+                            </span>
+                            <span className="text-[10px]">
+                              {att.verificationCount} verification{att.verificationCount !== 1 ? "s" : ""}
+                            </span>
+                            <Badge className={cn("text-[10px] ml-auto", statusClass(att.status))}>
+                              {att.status}
+                            </Badge>
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </ScrollArea>
+              </CardContent>
+            </Card>
+
+            {/* Biological Signal Status Card */}
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm flex items-center gap-1.5">
+                  <Fingerprint className="h-4 w-4" />
+                  Biological Signal Status
+                </CardTitle>
+                <CardDescription className="text-xs">
+                  Heartbeat pings and biological signal verification.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                {heartbeatLog.length === 0 ? (
+                  <p className="text-xs text-muted-foreground py-4 text-center">
+                    No heartbeat data recorded yet.
+                  </p>
+                ) : (
+                  <>
+                    <div className="grid grid-cols-3 gap-3">
+                      <div className="rounded-md border border-border/60 p-2.5 text-center">
+                        <p className="text-[10px] text-muted-foreground">Last Ping</p>
+                        <p className="text-xs font-medium mt-0.5">
+                          {formatTime(heartbeatLog[0].createdAt)}
+                        </p>
+                      </div>
+                      <div className="rounded-md border border-border/60 p-2.5 text-center">
+                        <p className="text-[10px] text-muted-foreground">Streak</p>
+                        <p className="text-xs font-medium mt-0.5">
+                          {heartbeatLog.filter((h) => h.isValid).length} / {heartbeatLog.length}
+                        </p>
+                      </div>
+                      <div className="rounded-md border border-border/60 p-2.5 text-center">
+                        <p className="text-[10px] text-muted-foreground">Signal Source</p>
+                        <Badge variant="outline" className="text-[10px] mt-0.5">
+                          {heartbeatLog[0].signalSource.replace(/_/g, " ")}
+                        </Badge>
+                      </div>
+                    </div>
+                    <ScrollArea className="h-[120px]">
+                      <div className="space-y-1">
+                        {heartbeatLog.map((hb) => (
+                          <div
+                            key={hb.id}
+                            className="flex items-center justify-between rounded-md border border-border/40 px-2 py-1 text-[10px]"
+                          >
+                            <span className="text-muted-foreground">{formatTime(hb.createdAt)}</span>
+                            <Badge variant="outline" className="text-[10px]">
+                              {hb.signalSource.replace(/_/g, " ")}
+                            </Badge>
+                            <Badge className={cn("text-[10px]", hb.isValid ? "bg-accent/15 text-accent" : "bg-destructive/15 text-destructive")}>
+                              {hb.isValid ? "valid" : "invalid"}
+                            </Badge>
+                          </div>
+                        ))}
+                      </div>
+                    </ScrollArea>
+                  </>
+                )}
+                <Button size="sm" variant="outline" className="w-full h-8 text-xs" disabled>
+                  <Fingerprint className="mr-1 h-3 w-3" />
+                  Record Heartbeat
+                </Button>
+              </CardContent>
+            </Card>
+
+            {/* Challenge Queue Card */}
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm flex items-center gap-1.5">
+                  <ShieldCheck className="h-4 w-4" />
+                  Challenge Queue
+                </CardTitle>
+                <CardDescription className="text-xs">
+                  Open authenticity challenges awaiting investigation.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <ScrollArea className="h-[220px]">
+                  <div className="space-y-2">
+                    {challenges.length === 0 ? (
+                      <p className="text-xs text-muted-foreground py-6 text-center">
+                        No open challenges
+                      </p>
+                    ) : (
+                      challenges.map((ch) => (
+                        <div
+                          key={ch.id}
+                          className="rounded-md border border-border/60 p-2.5 text-xs space-y-1.5"
+                        >
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <Badge variant="outline" className="text-[10px]">
+                              {ch.challengeType.replace(/_/g, " ")}
+                            </Badge>
+                            <Badge className={cn("text-[10px] ml-auto", statusClass(ch.status))}>
+                              {ch.status}
+                            </Badge>
+                          </div>
+                          <p className="text-[10px] text-muted-foreground line-clamp-2">
+                            {truncate(ch.evidence, 120)}
+                          </p>
+                          <div className="flex items-center justify-between">
+                            <span className="text-[10px] text-muted-foreground">
+                              {formatTime(ch.createdAt)}
+                            </span>
+                            <Button size="sm" variant="outline" className="h-6 text-[10px]" disabled>
+                              Investigate
+                            </Button>
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </ScrollArea>
+              </CardContent>
+            </Card>
+          </div>
+        ) : null}
+
+        {activeTab === "forensics" && (
+          <div className="space-y-4">
+            {/* Artifact Gallery */}
+            <Card className="bg-card border-border">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-semibold flex items-center gap-2">
+                  <FileSearch className="h-4 w-4 text-red-500" />
+                  Malware Artifact Gallery
+                </CardTitle>
+                <CardDescription className="text-xs">Mid-heist selfies and system logs from suspected infections</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="flex items-center gap-3 rounded-lg border border-border/60 bg-background/50 p-3">
+                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-red-500/15 text-red-500">
+                    <ShieldCheck className="h-4 w-4" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-xs font-medium text-foreground">No artifacts collected</p>
+                    <p className="text-[10px] text-muted-foreground">Submit suspicious screenshots or system logs for forensic analysis</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Tribal Herd Immunity */}
+            <Card className="bg-card border-border">
+              <CardHeader className="pb-2">
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-sm font-semibold flex items-center gap-2">
+                    <Shield className="h-4 w-4 text-emerald-500" />
+                    Tribal Herd Immunity
+                  </CardTitle>
+                  <Badge variant="outline" className="text-xs">0 active IOCs</Badge>
+                </div>
+                <CardDescription className="text-xs">Verified malicious indicators shared across the 30K tribal network</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <p className="text-xs text-muted-foreground">No IOCs in the tribal blacklist yet. Analyze artifacts and immunize the tribe to populate this list.</p>
+              </CardContent>
+            </Card>
+
+            {/* Sandbox Detonations */}
+            <Card className="bg-card border-border">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-semibold flex items-center gap-2">
+                  <FlaskConical className="h-4 w-4 text-amber-500" />
+                  Sandbox Detonation Lab
+                </CardTitle>
+                <CardDescription className="text-xs">Submit suspicious URLs for safe detonation in a quarantined environment</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-2">
+                <div className="flex gap-2">
+                  <Input placeholder="Paste suspicious URL..." className="text-xs" disabled />
+                  <Button variant="outline" size="sm" className="text-xs shrink-0" disabled>
+                    Detonate
+                  </Button>
+                </div>
+                <p className="text-[10px] text-muted-foreground">No detonations queued. Submit a URL to analyze it safely.</p>
+              </CardContent>
+            </Card>
+          </div>
+        )}
       </div>
     </div>
   )

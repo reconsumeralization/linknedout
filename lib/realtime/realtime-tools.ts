@@ -49,6 +49,7 @@ import {
 } from "@/lib/sentinel/sentinel-engine"
 import type { SupabaseAuthContext } from "@/lib/supabase/supabase-auth"
 import { createSupabaseLlmDbTools } from "@/lib/supabase/supabase-llm-db-tools"
+import { createSovereignTools } from "@/lib/sovereign/sovereign-tools"
 import { createWebSearchTools } from "@/lib/shared/web-search-tools"
 import { z } from "zod"
 
@@ -503,10 +504,14 @@ export function getRealtimeToolRegistry(
       ? (createSupabaseLlmDbTools(authContext) as Record<string, ToolLike>)
       : ({} as Record<string, ToolLike>)
   const webSearchTools = createWebSearchTools() as Record<string, ToolLike>
+  const sovereignTools = authContext?.isSupabaseSession === true
+    ? (createSovereignTools(authContext) as Record<string, ToolLike>)
+    : ({} as Record<string, ToolLike>)
   return {
     ...linkedinTools,
     ...supabaseTools,
     ...webSearchTools,
+    ...sovereignTools,
   } as Record<string, ToolLike>
 }
 

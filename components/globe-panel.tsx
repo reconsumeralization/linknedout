@@ -7,6 +7,7 @@ import type { MapViewState, PickingInfo } from "@deck.gl/core"
 import Map, { type MapRef } from "react-map-gl/maplibre"
 import { Check, Crosshair, MapPin, Pause, Play, Search, UserRound, Users, Wifi, WifiOff } from "lucide-react"
 
+import { EnterXRButton } from "@/components/spatial-cockpit"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -50,6 +51,16 @@ type LayerConfig = {
   projects: boolean
   friends: boolean
   connections: boolean
+  agenticPulse: boolean      // Sovereign: active workflow arcs
+  alphaBeacons: boolean      // Sovereign: Human Alpha brightness
+  tariffHeatmap: boolean     // Sovereign: refund activity regions
+  infrastructure: boolean    // Sovereign: basepower, orbital, lunar
+  governanceArcs: boolean
+  marketplaceHotspots: boolean
+  tradeRoutes: boolean
+  singularityPulse: boolean
+  imaginationArcs: boolean
+  surpriseMonitor: boolean
   opacity: number
   rotationPaused: boolean
 }
@@ -134,6 +145,16 @@ export function GlobePanel() {
     projects: true,
     friends: true,
     connections: true,
+    agenticPulse: false,
+    alphaBeacons: false,
+    tariffHeatmap: false,
+    infrastructure: false,
+    governanceArcs: false,
+    marketplaceHotspots: false,
+    tradeRoutes: false,
+    singularityPulse: false,
+    imaginationArcs: false,
+    surpriseMonitor: false,
     opacity: 92,
     rotationPaused: false,
   })
@@ -631,6 +652,7 @@ export function GlobePanel() {
                     {style}
                   </Button>
                 ))}
+                <EnterXRButton />
               </div>
 
               <div className="flex items-center justify-between gap-2">
@@ -740,6 +762,54 @@ export function GlobePanel() {
                     />
                   </div>
                 ))}
+              </div>
+              <div className="space-y-2">
+                <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">
+                  Sovereign layers
+                </p>
+                {([
+                  ["agenticPulse", "Agentic Pulse", "Active AI workflow arcs"],
+                  ["alphaBeacons", "Alpha Beacons", "Human Alpha brightness map"],
+                  ["tariffHeatmap", "Tariff Heatmap", "Refund activity by region"],
+                  ["infrastructure", "Infrastructure", "Basepower, orbital, lunar"],
+                ] as const).map(([key, label, desc]) => (
+                  <div key={key} className="flex items-center justify-between gap-2 rounded-md border border-border/60 bg-muted/30 px-2.5 py-2">
+                    <div className="min-w-0">
+                      <span className="text-sm font-medium">{label}</span>
+                      <p className="text-[10px] text-muted-foreground truncate">{desc}</p>
+                    </div>
+                    <Switch
+                      checked={layerConfig[key]}
+                      onCheckedChange={(checked) =>
+                        setLayerConfig((c) => ({ ...c, [key]: checked }))
+                      }
+                    />
+                  </div>
+                ))}
+                <div className="flex items-center justify-between">
+                  <label className="text-xs text-muted-foreground">Governance Arcs</label>
+                  <Switch checked={layerConfig.governanceArcs} onCheckedChange={(c) => setLayerConfig((prev) => ({ ...prev, governanceArcs: c }))} />
+                </div>
+                <div className="flex items-center justify-between">
+                  <label className="text-xs text-muted-foreground">Marketplace Hotspots</label>
+                  <Switch checked={layerConfig.marketplaceHotspots} onCheckedChange={(c) => setLayerConfig((prev) => ({ ...prev, marketplaceHotspots: c }))} />
+                </div>
+                <div className="flex items-center justify-between">
+                  <label className="text-xs text-muted-foreground">Trade Routes</label>
+                  <Switch checked={layerConfig.tradeRoutes} onCheckedChange={(c) => setLayerConfig((prev) => ({ ...prev, tradeRoutes: c }))} />
+                </div>
+                <div className="flex items-center justify-between">
+                  <label className="text-xs text-muted-foreground">Singularity Pulse</label>
+                  <Switch checked={layerConfig.singularityPulse} onCheckedChange={(c) => setLayerConfig((prev) => ({ ...prev, singularityPulse: c }))} />
+                </div>
+                <div className="flex items-center justify-between">
+                  <label className="text-xs text-muted-foreground">Imagination Arcs</label>
+                  <Switch checked={layerConfig.imaginationArcs} onCheckedChange={(c) => setLayerConfig((prev) => ({ ...prev, imaginationArcs: c }))} />
+                </div>
+                <div className="flex items-center justify-between">
+                  <label className="text-xs text-muted-foreground">Surprise Monitor</label>
+                  <Switch checked={layerConfig.surpriseMonitor} onCheckedChange={(c) => setLayerConfig((prev) => ({ ...prev, surpriseMonitor: c }))} />
+                </div>
               </div>
               <div className="space-y-1 pt-1">
                 <div className="flex items-center justify-between text-xs text-muted-foreground">

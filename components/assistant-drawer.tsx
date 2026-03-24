@@ -40,6 +40,7 @@ const VIEW_LABELS: Record<ActiveView, string> = {
   globe: "3D Globe",
   sentinel: "SENTINEL",
   settings: "Settings",
+  marketplace: "Marketplace",
 }
 
 const VIEW_ICONS: Partial<Record<ActiveView, string>> = {
@@ -59,6 +60,7 @@ const VIEW_ICONS: Partial<Record<ActiveView, string>> = {
   globe: "🌍",
   sentinel: "🛡️",
   settings: "⚙️",
+  marketplace: "❤️",
 }
 
 const VIEW_DESCRIPTIONS: Partial<Record<ActiveView, string>> = {
@@ -78,6 +80,7 @@ const VIEW_DESCRIPTIONS: Partial<Record<ActiveView, string>> = {
   globe: "Geographic view of network and locations",
   sentinel: "Security and compliance monitoring",
   settings: "System configuration and preferences",
+  marketplace: "Trade non-scalable human experiences, list offerings, and track fulfillment yield",
 }
 
 function getSuggestedPrompts(activeView: ActiveView, hasImportedProfiles: boolean): string[] {
@@ -170,6 +173,43 @@ function getSuggestedPrompts(activeView: ActiveView, hasImportedProfiles: boolea
       "How do we shift from activity metrics to impact metrics?",
       "What should we measure for resilience, not just maturity?",
       "Why might zero incidents be a red flag?",
+      "Analyze this suspicious screenshot for infostealer indicators",
+      "Check if a URL is in our tribal immunity blacklist",
+      "Detonate this suspicious link in a sandbox",
+      "Run a Sovereign Audit for cracked software risks",
+      "Audit port entropy for covert channel detection",
+      "Profile an adversary by their stylometric fingerprint",
+      "Cull zombie devices that missed their heartbeat",
+      "Sync new threat indicators to tribal herd immunity",
+    ],
+    marketplace: [
+      "What listings are available in the marketplace?",
+      "Help me create a listing for a mentorship session",
+      "Show my orders and fulfillment yield score",
+      "What types of experiences can I trade?",
+      "Explain how the Labor of Love marketplace works",
+      "Show me active bounties I could submit to",
+    ],
+    agents: [
+      "Discover agents with legal review capability across the network",
+      "Initiate an A2A handshake to sub-contract a security audit",
+      "Publish my agent as available for hire on the A2A network",
+      "Show my active A2A handshakes and their status",
+      "What agents are available in my tribe?",
+      "Run an Intelligence Tariff audit on my most expensive API calls",
+      "Evolve my agent harness to fix recent failures",
+      "Launch a tribal Auto Research campaign",
+      "Forge a world model for my environment",
+      "Simulate 1000 imaginary rollouts for this tribal mission",
+      "Check for surprise events in my sensor data",
+      "Execute a permissionless launch using deregulated policy sections",
+      "Stake tokens to a lunar build phase mission",
+      "Monitor supply chain vendors for slippage",
+    ],
+    globe: [
+      "Show me governance arcs for active proposals",
+      "Where are marketplace hotspots for in-person experiences?",
+      "Visualize trade routes between sovereign factories",
     ],
   }
   return byView[activeView] ?? [

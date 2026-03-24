@@ -3,8 +3,10 @@
 import type { ActiveView } from "@/app/page"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
+import { SponsorRow } from "@/components/sponsor-badge"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { OnboardingCard } from "@/components/onboarding-card"
+import { getDemoPulseMetrics } from "@/lib/sovereign/evolution-loop"
 import { Progress } from "@/components/ui/progress"
 import { buildSkillFrequency, parseLinkedInCsv } from "@/lib/csv/csv-parser"
 import {
@@ -15,7 +17,7 @@ import {
   subscribeToTribes,
 } from "@/lib/supabase/supabase-data"
 import { resolveSupabaseAccessToken } from "@/lib/supabase/supabase-client-auth"
-import { ArrowRight, FolderKanban, Layers, MessageSquare, Network, Star, TrendingUp, Upload, Users } from "lucide-react"
+import { ArrowRight, BookOpen, Brain, ChevronRight, FlaskConical, FolderKanban, Layers, MessageSquare, Network, Radio, Shield, Sparkles, Star, TrendingDown, TrendingUp, Upload, Users, Zap } from "lucide-react"
 import { useCallback, useEffect, useMemo, useState } from "react"
 import {
     Bar,
@@ -197,6 +199,51 @@ function AspirationBadge({ aspiration }: { aspiration: Aspiration }) {
       {aspiration.skill}
       <span className="opacity-60">x{aspiration.count}</span>
     </div>
+  )
+}
+
+function SingularityPulseCard({ onNavigate }: { onNavigate?: (view: ActiveView) => void }) {
+  const pulse = getDemoPulseMetrics()
+  return (
+    <Card className="bg-card border-border">
+      <CardHeader className="pb-2">
+        <div className="flex items-center justify-between">
+          <CardTitle className="text-sm font-semibold flex items-center gap-2">
+            <Zap className="h-4 w-4 text-yellow-500" />
+            Singularity Pulse
+          </CardTitle>
+          <Button variant="ghost" size="sm" className="text-xs gap-1" onClick={() => onNavigate?.("chat")}>
+            Run Evolution Loop
+            <ChevronRight className="h-3 w-3" />
+          </Button>
+        </div>
+        <CardDescription className="text-xs">Recursive self-improvement velocity across the Sovereign Factory</CardDescription>
+      </CardHeader>
+      <CardContent>
+        <div className="grid grid-cols-2 gap-3">
+          <div className="rounded-lg border border-border/60 bg-background/50 p-2.5">
+            <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Self-Improvement Rate</p>
+            <p className="text-lg font-bold text-foreground">{pulse.selfImprovementRate}</p>
+            <p className="text-[10px] text-muted-foreground">evolutions/week</p>
+          </div>
+          <div className="rounded-lg border border-border/60 bg-background/50 p-2.5">
+            <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Intelligence Tariff Savings</p>
+            <p className="text-lg font-bold text-emerald-500">${pulse.intelligenceTariffSavings.toLocaleString()}</p>
+            <p className="text-[10px] text-muted-foreground">monthly</p>
+          </div>
+          <div className="rounded-lg border border-border/60 bg-background/50 p-2.5">
+            <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Auto Research</p>
+            <p className="text-lg font-bold text-foreground">{pulse.activeAutoResearch}</p>
+            <p className="text-[10px] text-muted-foreground">active campaigns</p>
+          </div>
+          <div className="rounded-lg border border-border/60 bg-background/50 p-2.5">
+            <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Tribal Learning</p>
+            <p className="text-lg font-bold text-foreground">{pulse.tribalLearningVelocity}</p>
+            <p className="text-[10px] text-muted-foreground">experiments/week</p>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
   )
 }
 
@@ -405,6 +452,47 @@ export function DashboardPanel({ onNavigate, csvData }: DashboardPanelProps) {
           </Card>
         </div>
 
+        {/* Tribe Intelligence Summary */}
+        <Card className="bg-card border-border">
+          <CardHeader className="pb-3 flex-row items-center justify-between">
+            <div>
+              <CardTitle className="text-sm font-semibold flex items-center gap-2">
+                <Shield className="w-4 h-4 text-accent" />
+                Tribe Intelligence
+              </CardTitle>
+              <CardDescription className="text-xs">High-Bandwidth Intelligence Syndicate</CardDescription>
+            </div>
+            <Button variant="ghost" size="sm" onClick={() => onNavigate("tribes")} className="text-xs gap-1 h-7">
+              Open Tribes <ArrowRight className="w-3 h-3" />
+            </Button>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              <div className="rounded-lg border p-3 text-center">
+                <Brain className="h-4 w-4 mx-auto mb-1 text-blue-500" />
+                <p className="text-lg font-bold">{liveStats[1]?.value ?? "0"}</p>
+                <p className="text-[10px] text-muted-foreground">Active Tribes</p>
+              </div>
+              <div className="rounded-lg border p-3 text-center">
+                <Radio className="h-4 w-4 mx-auto mb-1 text-emerald-500" />
+                <p className="text-lg font-bold">0</p>
+                <p className="text-[10px] text-muted-foreground">Signals Posted</p>
+              </div>
+              <div className="rounded-lg border p-3 text-center">
+                <FlaskConical className="h-4 w-4 mx-auto mb-1 text-purple-500" />
+                <p className="text-lg font-bold">0</p>
+                <p className="text-[10px] text-muted-foreground">Active Sprints</p>
+              </div>
+              <div className="rounded-lg border p-3 text-center">
+                <TrendingDown className="h-4 w-4 mx-auto mb-1 text-red-500" />
+                <p className="text-lg font-bold">0</p>
+                <p className="text-[10px] text-muted-foreground">At Risk Members</p>
+              </div>
+            </div>
+            <SponsorRow sponsors={["CrowdStrike", "MongoDB", "Turbopuffer", "Lambda"]} className="mt-3 pt-3 border-t border-border/30" />
+          </CardContent>
+        </Card>
+
         {/* Bottom Row */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           {/* Active Projects */}
@@ -438,6 +526,39 @@ export function DashboardPanel({ onNavigate, csvData }: DashboardPanelProps) {
             </CardContent>
           </Card>
         </div>
+
+        {/* Weekly Wins & Echoes */}
+        <Card className="bg-card border-border">
+          <CardHeader className="pb-2">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-sm font-semibold flex items-center gap-2">
+                <BookOpen className="h-4 w-4 text-amber-500" />
+                Weekly Wins & Echoes
+              </CardTitle>
+              <Button variant="ghost" size="sm" className="text-xs gap-1" onClick={() => onNavigate?.("chat")}>
+                Share Your Experience
+                <ChevronRight className="h-3 w-3" />
+              </Button>
+            </div>
+            <CardDescription className="text-xs">Hard-won advice and verified experiences from your tribe</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2">
+              <div className="flex items-center gap-3 rounded-lg border border-border/60 bg-background/50 p-3">
+                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-amber-500/15 text-amber-500">
+                  <Sparkles className="h-4 w-4" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="text-xs font-medium text-foreground">No echoes yet</p>
+                  <p className="text-[10px] text-muted-foreground">Share a breakthrough, lesson, or career pivot to start the tribal wisdom archive</p>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Singularity Pulse — demo metrics from evolution loop */}
+        <SingularityPulseCard onNavigate={onNavigate} />
 
         {/* Aspirations Snapshot */}
         <Card className="bg-card border-border">

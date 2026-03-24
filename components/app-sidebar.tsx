@@ -19,6 +19,7 @@ import {
   Globe,
   HandCoins,
   HardDrive,
+  Heart,
   Layers,
   LayoutDashboard,
   Link2,
@@ -83,6 +84,12 @@ const navGroups: NavGroup[] = [
     items: [
       { id: "agents", label: "Agent Control", icon: Bot, description: "Manage AI agents" },
       { id: "sentinel", label: "SENTINEL", icon: ShieldAlert, badge: "SEC", badgeVariant: "default", description: "Security monitor" },
+    ],
+  },
+  {
+    label: "Sovereign Economy",
+    items: [
+      { id: "marketplace", label: "Labor of Love", icon: Heart, badge: "NEW", badgeVariant: "warning", description: "Trade human experiences" },
     ],
   },
 ]

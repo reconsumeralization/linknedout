@@ -18,6 +18,7 @@ import { SettingsPanel } from "@/components/settings-panel"
 import { StoragePanel } from "@/components/storage-panel"
 import { SentinelPanel } from "@/components/sentinel-panel"
 import { TribesPanel } from "@/components/tribes-panel"
+import MarketplacePanel from "@/components/marketplace-panel"
 import { AppProvider, useApp, isActiveView } from "@/lib/shared/app-context"
 import { PANEL_DEFINITIONS } from "@/lib/shared/panel-registry"
 import dynamic from "next/dynamic"
@@ -52,6 +53,7 @@ const PANEL_COMPONENTS: Record<string, ComponentType> = {
   globe: GlobePanel,
   sentinel: SentinelPanel,
   settings: SettingsPanelWrapper,
+  marketplace: MarketplacePanel,
 }
 
 // Wrapper components that bridge context to prop-based panels

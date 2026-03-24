@@ -37,11 +37,12 @@ export type ActiveView =
   | "globe"
   | "sentinel"
   | "settings"
+  | "marketplace"
 
 const ACTIVE_VIEW_SET: ReadonlySet<ActiveView> = new Set<ActiveView>([
   "dashboard", "chat", "profiles", "tribes", "projects", "fundraising",
   "data", "storage", "email", "analytics", "linkedout", "network",
-  "agents", "globe", "sentinel", "settings",
+  "agents", "globe", "sentinel", "settings", "marketplace",
 ])
 
 export function isActiveView(value: string | null): value is ActiveView {

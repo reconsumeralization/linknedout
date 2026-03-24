@@ -1,5 +1,5 @@
 import type { ParsedProfile } from "@/lib/csv/csv-parser"
-import type { Tribe, TribeMember } from "@/lib/shared/types"
+import type { Tribe, TribeMember, TribeKnowledgeEntry, TribeSignalPost, TribeSprint, AgentWorkflowState, UserDiscoveryProfile } from "@/lib/shared/types"
 import { createClient, type SupabaseClient } from "@supabase/supabase-js"
 import { getSupabaseClient } from "@/lib/supabase/supabase"
 
@@ -17,6 +17,11 @@ const TABLES = {
   fundraisingDonors: process.env.NEXT_PUBLIC_SUPABASE_FUNDRAISING_DONORS_TABLE || "fundraising_donors",
   fundraisingDonations: process.env.NEXT_PUBLIC_SUPABASE_FUNDRAISING_DONATIONS_TABLE || "fundraising_donations",
   fundraisingGoals: process.env.NEXT_PUBLIC_SUPABASE_FUNDRAISING_GOALS_TABLE || "fundraising_goals",
+  agentWorkflows: "agent_workflow_states",
+  userDiscovery: "user_discovery_profiles",
+  tribeKnowledgeBase: "tribe_knowledge_base",
+  tribeSignalFeed: "tribe_signal_feed",
+  tribeSprints: "tribe_sprints",
 }
 
 const DASHBOARD_ACTIVITY_LIMIT = 8
@@ -1860,4 +1865,751 @@ export async function fetchProjectsPaginated(
     : null
 
   return { data: mapped, nextCursor, hasMore }
+}
+
+// ---------------------------------------------------------------------------
+// Tribe Intelligence: Knowledge Base, Signal Feed, Sprints
+// ---------------------------------------------------------------------------
+
+function mapKnowledgeEntry(row: SupabaseRow): TribeKnowledgeEntry {
+  return {
+    id: String(row.id ?? ""),
+    tribeId: String(row.tribe_id ?? ""),
+    contributedBy: String(row.contributed_by ?? ""),
+    contentType: (row.content_type as TribeKnowledgeEntry["contentType"]) ?? "insight",
+    title: String(row.title ?? ""),
+    content: String(row.content ?? ""),
+    tags: Array.isArray(row.tags) ? row.tags.map(String) : [],
+    toolChain: row.tool_chain as TribeKnowledgeEntry["toolChain"] ?? undefined,
+    metrics: row.metrics as TribeKnowledgeEntry["metrics"] ?? undefined,
+    upvotes: Number(row.upvotes ?? 0),
+    createdAt: String(row.created_at ?? ""),
+    updatedAt: String(row.updated_at ?? ""),
+  }
+}
+
+function mapSignalPost(row: SupabaseRow): TribeSignalPost {
+  return {
+    id: String(row.id ?? ""),
+    tribeId: String(row.tribe_id ?? ""),
+    authorId: String(row.author_id ?? ""),
+    toolUsed: String(row.tool_used ?? ""),
+    taskDescription: String(row.task_description ?? ""),
+    promptChain: row.prompt_chain ? String(row.prompt_chain) : undefined,
+    resultSummary: String(row.result_summary ?? ""),
+    errorRate: row.error_rate != null ? Number(row.error_rate) : undefined,
+    timeSavedMinutes: row.time_saved_minutes != null ? Number(row.time_saved_minutes) : undefined,
+    validatedBy: Array.isArray(row.validated_by) ? row.validated_by.map(String) : [],
+    createdAt: String(row.created_at ?? ""),
+  }
+}
+
+function mapSprint(row: SupabaseRow): TribeSprint {
+  return {
+    id: String(row.id ?? ""),
+    tribeId: String(row.tribe_id ?? ""),
+    name: String(row.name ?? ""),
+    objective: String(row.objective ?? ""),
+    squadMemberIds: Array.isArray(row.squad_member_ids) ? row.squad_member_ids.map(String) : [],
+    status: (row.status as TribeSprint["status"]) ?? "forming",
+    durationHours: Number(row.duration_hours ?? 48),
+    skillRequirements: Array.isArray(row.skill_requirements) ? row.skill_requirements.map(String) : [],
+    outcomes: row.outcomes as Record<string, unknown> ?? undefined,
+    startedAt: row.started_at ? String(row.started_at) : undefined,
+    completedAt: row.completed_at ? String(row.completed_at) : undefined,
+    createdAt: String(row.created_at ?? ""),
+  }
+}
+
+export async function fetchTribeKnowledgeBase(tribeId: string): Promise<TribeKnowledgeEntry[]> {
+  const supabase = getSupabaseClient()
+  if (!supabase) return []
+  const { data } = await supabase
+    .from(TABLES.tribeKnowledgeBase).select("*")
+    .eq("tribe_id", tribeId).order("created_at", { ascending: false }).limit(200)
+  return (data ?? []).map((r) => mapKnowledgeEntry(r as SupabaseRow))
+}
+
+export async function createKnowledgeEntry(entry: {
+  tribeId: string; contributedBy: string; contentType: string; title: string; content: string
+  tags?: string[]; toolChain?: unknown; metrics?: unknown
+}): Promise<TribeKnowledgeEntry | null> {
+  const supabase = getSupabaseClient()
+  if (!supabase) return null
+  const { data, error } = await supabase
+    .from(TABLES.tribeKnowledgeBase)
+    .insert({ tribe_id: entry.tribeId, contributed_by: entry.contributedBy, content_type: entry.contentType, title: entry.title, content: entry.content, tags: entry.tags ?? [], tool_chain: entry.toolChain ?? null, metrics: entry.metrics ?? null })
+    .select().single()
+  if (error || !data) return null
+  return mapKnowledgeEntry(data as SupabaseRow)
+}
+
+export async function fetchTribeSignalFeed(tribeId: string): Promise<TribeSignalPost[]> {
+  const supabase = getSupabaseClient()
+  if (!supabase) return []
+  const { data } = await supabase
+    .from(TABLES.tribeSignalFeed).select("*")
+    .eq("tribe_id", tribeId).order("created_at", { ascending: false }).limit(100)
+  return (data ?? []).map((r) => mapSignalPost(r as SupabaseRow))
+}
+
+export async function createSignalPost(post: {
+  tribeId: string; authorId: string; toolUsed: string; taskDescription: string
+  resultSummary: string; promptChain?: string; errorRate?: number; timeSavedMinutes?: number
+}): Promise<TribeSignalPost | null> {
+  const supabase = getSupabaseClient()
+  if (!supabase) return null
+  const { data, error } = await supabase
+    .from(TABLES.tribeSignalFeed)
+    .insert({ tribe_id: post.tribeId, author_id: post.authorId, tool_used: post.toolUsed, task_description: post.taskDescription, prompt_chain: post.promptChain ?? null, result_summary: post.resultSummary, error_rate: post.errorRate ?? null, time_saved_minutes: post.timeSavedMinutes ?? null })
+    .select().single()
+  if (error || !data) return null
+  return mapSignalPost(data as SupabaseRow)
+}
+
+export async function fetchTribeSprints(tribeId: string): Promise<TribeSprint[]> {
+  const supabase = getSupabaseClient()
+  if (!supabase) return []
+  const { data } = await supabase
+    .from(TABLES.tribeSprints).select("*")
+    .eq("tribe_id", tribeId).order("created_at", { ascending: false }).limit(50)
+  return (data ?? []).map((r) => mapSprint(r as SupabaseRow))
+}
+
+export async function createTribeSprintRecord(sprint: {
+  tribeId: string; name: string; objective: string; squadMemberIds: string[]
+  durationHours?: number; skillRequirements?: string[]
+}): Promise<TribeSprint | null> {
+  const supabase = getSupabaseClient()
+  if (!supabase) return null
+  const { data, error } = await supabase
+    .from(TABLES.tribeSprints)
+    .insert({ tribe_id: sprint.tribeId, name: sprint.name, objective: sprint.objective, squad_member_ids: sprint.squadMemberIds, status: "forming", duration_hours: sprint.durationHours ?? 48, skill_requirements: sprint.skillRequirements ?? [] })
+    .select().single()
+  if (error || !data) return null
+  return mapSprint(data as SupabaseRow)
+}
+
+// ---------------------------------------------------------------------------
+// Agent Workflow States & User Discovery Profiles
+// ---------------------------------------------------------------------------
+
+function mapWorkflowState(row: SupabaseRow): AgentWorkflowState {
+  return {
+    id: String(row.id ?? ""),
+    ownerUserId: String(row.owner_user_id ?? ""),
+    workflowType: (row.workflow_type as AgentWorkflowState["workflowType"]) ?? "custom",
+    workflowName: String(row.workflow_name ?? ""),
+    status: (row.status as AgentWorkflowState["status"]) ?? "running",
+    currentStep: String(row.current_step ?? ""),
+    totalSteps: Number(row.total_steps ?? 1),
+    completedSteps: Number(row.completed_steps ?? 0),
+    aiAgentId: row.ai_agent_id ? String(row.ai_agent_id) : undefined,
+    aiModelUsed: row.ai_model_used ? String(row.ai_model_used) : undefined,
+    personaId: row.persona_id ? String(row.persona_id) : undefined,
+    context: (row.context as Record<string, unknown>) ?? {},
+    stepHistory: Array.isArray(row.step_history) ? row.step_history as AgentWorkflowState["stepHistory"] : [],
+    pendingInput: row.pending_input as Record<string, unknown> ?? undefined,
+    initiatedBy: (row.initiated_by as AgentWorkflowState["initiatedBy"]) ?? "user",
+    validatedBy: row.validated_by ? String(row.validated_by) : undefined,
+    validatedAt: row.validated_at ? String(row.validated_at) : undefined,
+    validationNotes: row.validation_notes ? String(row.validation_notes) : undefined,
+    startedAt: String(row.started_at ?? ""),
+    pausedAt: row.paused_at ? String(row.paused_at) : undefined,
+    completedAt: row.completed_at ? String(row.completed_at) : undefined,
+    failedAt: row.failed_at ? String(row.failed_at) : undefined,
+    errorMessage: row.error_message ? String(row.error_message) : undefined,
+    metadata: row.metadata as Record<string, unknown> ?? undefined,
+    createdAt: String(row.created_at ?? ""),
+    updatedAt: String(row.updated_at ?? ""),
+  }
+}
+
+export async function fetchUserWorkflows(userId: string, opts?: { status?: string }): Promise<AgentWorkflowState[]> {
+  const supabase = getSupabaseClient()
+  if (!supabase) return []
+  let query = supabase.from(TABLES.agentWorkflows).select("*")
+    .eq("owner_user_id", userId).order("created_at", { ascending: false }).limit(50)
+  if (opts?.status) query = query.eq("status", opts.status)
+  const { data } = await query
+  return (data ?? []).map((r) => mapWorkflowState(r as SupabaseRow))
+}
+
+export async function createWorkflow(workflow: {
+  ownerUserId: string; workflowType: string; workflowName: string; currentStep: string
+  totalSteps?: number; aiAgentId?: string; aiModelUsed?: string; personaId?: string
+  context?: Record<string, unknown>; initiatedBy?: string
+}): Promise<AgentWorkflowState | null> {
+  const supabase = getSupabaseClient()
+  if (!supabase) return null
+  const { data, error } = await supabase.from(TABLES.agentWorkflows).insert({
+    owner_user_id: workflow.ownerUserId,
+    workflow_type: workflow.workflowType,
+    workflow_name: workflow.workflowName,
+    current_step: workflow.currentStep,
+    total_steps: workflow.totalSteps ?? 1,
+    ai_agent_id: workflow.aiAgentId ?? null,
+    ai_model_used: workflow.aiModelUsed ?? null,
+    persona_id: workflow.personaId ?? null,
+    context: workflow.context ?? {},
+    initiated_by: workflow.initiatedBy ?? "user",
+  }).select().single()
+  if (error || !data) return null
+  return mapWorkflowState(data as SupabaseRow)
+}
+
+export async function updateWorkflowStep(workflowId: string, update: {
+  currentStep: string; completedSteps: number; context?: Record<string, unknown>
+  stepResult?: unknown; status?: string
+}): Promise<AgentWorkflowState | null> {
+  const supabase = getSupabaseClient()
+  if (!supabase) return null
+  const { data: existing } = await supabase.from(TABLES.agentWorkflows)
+    .select("step_history, context").eq("id", workflowId).single()
+  const prevHistory = Array.isArray((existing as SupabaseRow)?.step_history) ? (existing as SupabaseRow).step_history as unknown[] : []
+  const prevContext = (existing as SupabaseRow)?.context as Record<string, unknown> ?? {}
+  const newHistory = [...prevHistory, { step: update.currentStep, result: update.stepResult ?? null, timestamp: new Date().toISOString() }]
+  const mergedContext = { ...prevContext, ...update.context }
+
+  const { data, error } = await supabase.from(TABLES.agentWorkflows).update({
+    current_step: update.currentStep,
+    completed_steps: update.completedSteps,
+    step_history: newHistory,
+    context: mergedContext,
+    ...(update.status === "completed" ? { status: "completed", completed_at: new Date().toISOString() } : {}),
+    ...(update.status === "failed" ? { status: "failed", failed_at: new Date().toISOString() } : {}),
+    ...(update.status ? { status: update.status } : {}),
+  }).eq("id", workflowId).select().single()
+  if (error || !data) return null
+  return mapWorkflowState(data as SupabaseRow)
+}
+
+function mapDiscoveryProfile(row: SupabaseRow): UserDiscoveryProfile {
+  return {
+    id: String(row.id ?? ""),
+    userId: String(row.user_id ?? ""),
+    humanAlpha: (row.human_alpha as UserDiscoveryProfile["humanAlpha"]) ?? { uniqueStrengths: [], domainExpertise: [], decisionLayerSkills: [], craftOrientation: "" },
+    suggestedWorkflows: Array.isArray(row.suggested_workflows) ? row.suggested_workflows as UserDiscoveryProfile["suggestedWorkflows"] : [],
+    careerTrajectory: (row.career_trajectory as UserDiscoveryProfile["careerTrajectory"]) ?? { currentLayer: "execution", targetLayer: "", pivotRecommendations: [] },
+    engagementProfile: (row.engagement_profile as UserDiscoveryProfile["engagementProfile"]) ?? { passionSignals: [], curiosityIndex: 0, domainFit: "" },
+    firstWorkflowId: row.first_workflow_id ? String(row.first_workflow_id) : undefined,
+    firstWorkflowName: row.first_workflow_name ? String(row.first_workflow_name) : undefined,
+    discoveryAgentId: row.discovery_agent_id ? String(row.discovery_agent_id) : undefined,
+    discoveryModel: row.discovery_model ? String(row.discovery_model) : undefined,
+    discoveryCompletedAt: row.discovery_completed_at ? String(row.discovery_completed_at) : undefined,
+    rawInputs: (row.raw_inputs as Record<string, unknown>) ?? {},
+    createdAt: String(row.created_at ?? ""),
+    updatedAt: String(row.updated_at ?? ""),
+  }
+}
+
+export async function fetchUserDiscoveryProfile(userId: string): Promise<UserDiscoveryProfile | null> {
+  const supabase = getSupabaseClient()
+  if (!supabase) return null
+  const { data } = await supabase.from(TABLES.userDiscovery).select("*")
+    .eq("user_id", userId).single()
+  if (!data) return null
+  return mapDiscoveryProfile(data as SupabaseRow)
+}
+
+export async function upsertDiscoveryProfile(profile: {
+  userId: string; humanAlpha: unknown; suggestedWorkflows: unknown
+  careerTrajectory?: unknown; engagementProfile?: unknown
+  firstWorkflowId?: string; firstWorkflowName?: string
+  discoveryAgentId?: string; discoveryModel?: string; rawInputs?: unknown
+}): Promise<UserDiscoveryProfile | null> {
+  const supabase = getSupabaseClient()
+  if (!supabase) return null
+  const { data, error } = await supabase.from(TABLES.userDiscovery).upsert({
+    user_id: profile.userId,
+    human_alpha: profile.humanAlpha,
+    suggested_workflows: profile.suggestedWorkflows,
+    career_trajectory: profile.careerTrajectory ?? {},
+    engagement_profile: profile.engagementProfile ?? {},
+    first_workflow_id: profile.firstWorkflowId ?? null,
+    first_workflow_name: profile.firstWorkflowName ?? null,
+    discovery_agent_id: profile.discoveryAgentId ?? null,
+    discovery_model: profile.discoveryModel ?? null,
+    discovery_completed_at: new Date().toISOString(),
+    raw_inputs: profile.rawInputs ?? {},
+  }, { onConflict: "user_id" }).select().single()
+  if (error || !data) return null
+  return mapDiscoveryProfile(data as SupabaseRow)
+}
+
+// ---------------------------------------------------------------------------
+// Governance
+// ---------------------------------------------------------------------------
+
+export async function fetchGovernanceProposals(tribeId: string, status?: string) {
+  const supabase = getSupabaseClient()
+  if (!supabase) return []
+  let query = supabase.from("governance_proposals").select("*").eq("tribe_id", tribeId).order("created_at", { ascending: false })
+  if (status) query = query.eq("status", status)
+  const { data, error } = await query
+  if (error) { console.error("fetchGovernanceProposals", error); return [] }
+  return data ?? []
+}
+
+export async function fetchGovernanceVotes(proposalId: string) {
+  const supabase = getSupabaseClient()
+  if (!supabase) return []
+  const { data, error } = await supabase.from("governance_votes").select("*").eq("proposal_id", proposalId)
+  if (error) { console.error("fetchGovernanceVotes", error); return [] }
+  return data ?? []
+}
+
+export async function fetchGovernanceDelegations(tribeId: string) {
+  const supabase = getSupabaseClient()
+  if (!supabase) return []
+  const { data, error } = await supabase.from("governance_delegations").select("*").eq("tribe_id", tribeId).eq("is_active", true)
+  if (error) { console.error("fetchGovernanceDelegations", error); return [] }
+  return data ?? []
+}
+
+// ---------------------------------------------------------------------------
+// Marketplace
+// ---------------------------------------------------------------------------
+
+export async function fetchMarketplaceListings(filters?: { listingType?: string; limit?: number; offset?: number }) {
+  const supabase = getSupabaseClient()
+  if (!supabase) return []
+  let query = supabase.from("marketplace_listings").select("*").eq("status", "active").order("created_at", { ascending: false })
+  if (filters?.listingType) query = query.eq("listing_type", filters.listingType)
+  if (filters?.limit) query = query.limit(filters.limit)
+  if (filters?.offset) query = query.range(filters.offset, filters.offset + (filters.limit ?? 20) - 1)
+  const { data, error } = await query
+  if (error) { console.error("fetchMarketplaceListings", error); return [] }
+  return data ?? []
+}
+
+export async function fetchMyMarketplaceListings() {
+  const supabase = getSupabaseClient()
+  if (!supabase) return []
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return []
+  const { data, error } = await supabase.from("marketplace_listings").select("*").eq("seller_user_id", user.id).order("created_at", { ascending: false })
+  if (error) { console.error("fetchMyMarketplaceListings", error); return [] }
+  return data ?? []
+}
+
+export async function fetchMyMarketplaceOrders() {
+  const supabase = getSupabaseClient()
+  if (!supabase) return []
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return []
+  const { data, error } = await supabase.from("marketplace_orders").select("*").or(`buyer_user_id.eq.${user.id},seller_user_id.eq.${user.id}`).order("created_at", { ascending: false })
+  if (error) { console.error("fetchMyMarketplaceOrders", error); return [] }
+  return data ?? []
+}
+
+export async function fetchFulfillmentYieldScore() {
+  const supabase = getSupabaseClient()
+  if (!supabase) return null
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return null
+  const { data, error } = await supabase.from("fulfillment_yield_scores").select("*").eq("user_id", user.id).single()
+  if (error) { console.error("fetchFulfillmentYieldScore", error); return null }
+  return data
+}
+
+// ---------------------------------------------------------------------------
+// Trade
+// ---------------------------------------------------------------------------
+
+export async function fetchTradeOffers(filters?: { offerType?: string; visibility?: string; limit?: number }) {
+  const supabase = getSupabaseClient()
+  if (!supabase) return []
+  let query = supabase.from("sovereign_trade_offers").select("*").eq("status", "open").order("created_at", { ascending: false })
+  if (filters?.offerType) query = query.eq("offer_type", filters.offerType)
+  if (filters?.visibility) query = query.eq("visibility", filters.visibility)
+  if (filters?.limit) query = query.limit(filters.limit)
+  const { data, error } = await query
+  if (error) { console.error("fetchTradeOffers", error); return [] }
+  return data ?? []
+}
+
+export async function fetchTradeSessions() {
+  const supabase = getSupabaseClient()
+  if (!supabase) return []
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return []
+  const { data, error } = await supabase.from("sovereign_trade_sessions").select("*").or(`party_a_user_id.eq.${user.id},party_b_user_id.eq.${user.id}`).order("created_at", { ascending: false })
+  if (error) { console.error("fetchTradeSessions", error); return [] }
+  return data ?? []
+}
+
+// ---------------------------------------------------------------------------
+// Authenticity
+// ---------------------------------------------------------------------------
+
+export async function fetchAuthenticityAttestations(contentHash?: string) {
+  const supabase = getSupabaseClient()
+  if (!supabase) return []
+  let query = supabase.from("authenticity_attestations").select("*").order("created_at", { ascending: false })
+  if (contentHash) query = query.eq("content_hash", contentHash)
+  const { data, error } = await query.limit(50)
+  if (error) { console.error("fetchAuthenticityAttestations", error); return [] }
+  return data ?? []
+}
+
+export async function fetchAuthenticityChallenges(status?: string) {
+  const supabase = getSupabaseClient()
+  if (!supabase) return []
+  let query = supabase.from("authenticity_challenges").select("*").order("created_at", { ascending: false })
+  if (status) query = query.eq("status", status)
+  const { data, error } = await query.limit(50)
+  if (error) { console.error("fetchAuthenticityChallenges", error); return [] }
+  return data ?? []
+}
+
+export async function fetchHeartbeatLog(limit?: number) {
+  const supabase = getSupabaseClient()
+  if (!supabase) return []
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return []
+  const { data, error } = await supabase.from("biological_heartbeat_log").select("*").eq("user_id", user.id).order("created_at", { ascending: false }).limit(limit ?? 20)
+  if (error) { console.error("fetchHeartbeatLog", error); return [] }
+  return data ?? []
+}
+
+// ---------------------------------------------------------------------------
+// A2A Protocol
+// ---------------------------------------------------------------------------
+
+export async function fetchA2AAgentCards(capability?: string) {
+  const supabase = getSupabaseClient()
+  if (!supabase) return []
+  let query = supabase.from("a2a_agent_cards").select("*").order("avg_rating", { ascending: false })
+  if (capability) query = query.contains("capabilities", [capability])
+  const { data, error } = await query.limit(50)
+  if (error) { console.error("fetchA2AAgentCards", error); return [] }
+  return data ?? []
+}
+
+export async function fetchA2AHandshakes(role?: string) {
+  const supabase = getSupabaseClient()
+  if (!supabase) return []
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return []
+  let query = supabase.from("a2a_handshakes").select("*").order("created_at", { ascending: false })
+  if (role === "requester") {
+    query = query.eq("requester_user_id", user.id)
+  } else if (role === "provider") {
+    query = query.eq("provider_user_id", user.id)
+  } else {
+    query = query.or(`requester_user_id.eq.${user.id},provider_user_id.eq.${user.id}`)
+  }
+  const { data, error } = await query.limit(50)
+  if (error) { console.error("fetchA2AHandshakes", error); return [] }
+  return data ?? []
+}
+
+// ---------------------------------------------------------------------------
+// Experience Archive
+// ---------------------------------------------------------------------------
+
+export async function fetchExperienceEntries(filters?: { entryType?: string; tribeId?: string; limit?: number }) {
+  const supabase = getSupabaseClient()
+  if (!supabase) return []
+  let query = supabase.from("experience_entries").select("*").order("created_at", { ascending: false })
+  if (filters?.entryType) query = query.eq("entry_type", filters.entryType)
+  if (filters?.tribeId) query = query.eq("tribe_id", filters.tribeId)
+  const { data, error } = await query.limit(filters?.limit ?? 50)
+  if (error) { console.error("fetchExperienceEntries", error); return [] }
+  return data ?? []
+}
+
+export async function fetchExperienceEndorsements(experienceId: string) {
+  const supabase = getSupabaseClient()
+  if (!supabase) return []
+  const { data, error } = await supabase.from("experience_endorsements").select("*").eq("experience_id", experienceId).order("created_at", { ascending: false })
+  if (error) { console.error("fetchExperienceEndorsements", error); return [] }
+  return data ?? []
+}
+
+// ---------------------------------------------------------------------------
+// Decoupling
+// ---------------------------------------------------------------------------
+
+export async function fetchDecouplingAudits() {
+  const supabase = getSupabaseClient()
+  if (!supabase) return []
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return []
+  const { data, error } = await supabase.from("decoupling_audits").select("*").eq("user_id", user.id).order("created_at", { ascending: false })
+  if (error) { console.error("fetchDecouplingAudits", error); return [] }
+  return data ?? []
+}
+
+export async function fetchDecouplingMilestones(auditId: string) {
+  const supabase = getSupabaseClient()
+  if (!supabase) return []
+  const { data, error } = await supabase.from("decoupling_milestones").select("*").eq("audit_id", auditId).order("sort_order", { ascending: true })
+  if (error) { console.error("fetchDecouplingMilestones", error); return [] }
+  return data ?? []
+}
+
+// ---------------------------------------------------------------------------
+// Bounties
+// ---------------------------------------------------------------------------
+
+export async function fetchBountyOpportunities(status?: string) {
+  const supabase = getSupabaseClient()
+  if (!supabase) return []
+  let query = supabase.from("bounty_opportunities").select("*").order("created_at", { ascending: false })
+  if (status) query = query.eq("status", status)
+  const { data, error } = await query.limit(50)
+  if (error) { console.error("fetchBountyOpportunities", error); return [] }
+  return data ?? []
+}
+
+export async function fetchBountySubmissions() {
+  const supabase = getSupabaseClient()
+  if (!supabase) return []
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return []
+  const { data, error } = await supabase.from("bounty_submissions").select("*").eq("submitter_user_id", user.id).order("created_at", { ascending: false })
+  if (error) { console.error("fetchBountySubmissions", error); return [] }
+  return data ?? []
+}
+
+// ---------------------------------------------------------------------------
+// Recursive Evolution
+// ---------------------------------------------------------------------------
+
+export async function fetchIntelligenceTariffAudits() {
+  const supabase = getSupabaseClient()
+  if (!supabase) return []
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return []
+  const { data, error } = await supabase.from("intelligence_tariff_audits").select("*").eq("user_id", user.id).order("created_at", { ascending: false })
+  if (error) { console.error("fetchIntelligenceTariffAudits", error); return [] }
+  return data ?? []
+}
+
+export async function fetchAgentHarnessEvolutions(agentDefinitionId?: string) {
+  const supabase = getSupabaseClient()
+  if (!supabase) return []
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return []
+  let query = supabase.from("agent_harness_evolutions").select("*").eq("user_id", user.id).order("created_at", { ascending: false })
+  if (agentDefinitionId) query = query.eq("agent_definition_id", agentDefinitionId)
+  const { data, error } = await query.limit(50)
+  if (error) { console.error("fetchAgentHarnessEvolutions", error); return [] }
+  return data ?? []
+}
+
+export async function fetchAutoResearchCampaigns(tribeId?: string) {
+  const supabase = getSupabaseClient()
+  if (!supabase) return []
+  let query = supabase.from("tribal_auto_research_campaigns").select("*").order("created_at", { ascending: false })
+  if (tribeId) query = query.eq("tribe_id", tribeId)
+  const { data, error } = await query
+  if (error) { console.error("fetchAutoResearchCampaigns", error); return [] }
+  return data ?? []
+}
+
+export async function fetchAutoResearchExperiments(campaignId: string) {
+  const supabase = getSupabaseClient()
+  if (!supabase) return []
+  const { data, error } = await supabase.from("auto_research_experiments").select("*").eq("campaign_id", campaignId).order("score", { ascending: false })
+  if (error) { console.error("fetchAutoResearchExperiments", error); return [] }
+  return data ?? []
+}
+
+// SherLog Forensics
+
+export async function fetchMalwareArtifacts(classification?: string) {
+  const supabase = getSupabaseClient()
+  if (!supabase) return []
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return []
+  let query = supabase.from("malware_artifacts").select("*").eq("reporter_user_id", user.id).order("created_at", { ascending: false })
+  if (classification) query = query.eq("classification", classification)
+  const { data, error } = await query
+  if (error) { console.error("fetchMalwareArtifacts", error); return [] }
+  return data ?? []
+}
+
+export async function fetchForensicNarratives(artifactId?: string) {
+  const supabase = getSupabaseClient()
+  if (!supabase) return []
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return []
+  let query = supabase.from("forensic_narratives").select("*").eq("analyst_user_id", user.id).order("created_at", { ascending: false })
+  if (artifactId) query = query.eq("artifact_id", artifactId)
+  const { data, error } = await query
+  if (error) { console.error("fetchForensicNarratives", error); return [] }
+  return data ?? []
+}
+
+export async function fetchTribalIocs(isActive?: boolean) {
+  const supabase = getSupabaseClient()
+  if (!supabase) return []
+  let query = supabase.from("tribal_herd_immunity").select("*").order("last_seen_at", { ascending: false })
+  if (isActive !== undefined) query = query.eq("is_active", isActive)
+  const { data, error } = await query
+  if (error) { console.error("fetchTribalIocs", error); return [] }
+  return data ?? []
+}
+
+export async function fetchSandboxDetonations(status?: string) {
+  const supabase = getSupabaseClient()
+  if (!supabase) return []
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return []
+  let query = supabase.from("sandbox_detonations").select("*").eq("submitted_by_user_id", user.id).order("created_at", { ascending: false })
+  if (status) query = query.eq("status", status)
+  const { data, error } = await query
+  if (error) { console.error("fetchSandboxDetonations", error); return [] }
+  return data ?? []
+}
+
+// LeWorldModel
+export async function fetchWorldModels() {
+  const supabase = getSupabaseClient()
+  if (!supabase) return []
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return []
+  const { data, error } = await supabase.from("world_models").select("*").eq("owner_user_id", user.id).order("created_at", { ascending: false })
+  if (error) { console.error("fetchWorldModels", error); return [] }
+  return data ?? []
+}
+
+export async function fetchImaginarySimulations(worldModelId?: string) {
+  const supabase = getSupabaseClient()
+  if (!supabase) return []
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return []
+  let query = supabase.from("imaginary_simulations").select("*").eq("user_id", user.id).order("created_at", { ascending: false })
+  if (worldModelId) query = query.eq("world_model_id", worldModelId)
+  const { data, error } = await query
+  if (error) { console.error("fetchImaginarySimulations", error); return [] }
+  return data ?? []
+}
+
+export async function fetchSurpriseEvents(worldModelId?: string, severity?: string) {
+  const supabase = getSupabaseClient()
+  if (!supabase) return []
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return []
+  let query = supabase.from("surprise_events").select("*").eq("user_id", user.id).order("created_at", { ascending: false })
+  if (worldModelId) query = query.eq("world_model_id", worldModelId)
+  if (severity) query = query.eq("severity", severity)
+  const { data, error } = await query
+  if (error) { console.error("fetchSurpriseEvents", error); return [] }
+  return data ?? []
+}
+
+export async function fetchLatentProbes(worldModelId?: string) {
+  const supabase = getSupabaseClient()
+  if (!supabase) return []
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return []
+  let query = supabase.from("latent_probes").select("*").eq("user_id", user.id).order("created_at", { ascending: false })
+  if (worldModelId) query = query.eq("world_model_id", worldModelId)
+  const { data, error } = await query
+  if (error) { console.error("fetchLatentProbes", error); return [] }
+  return data ?? []
+}
+
+// ---------------------------------------------------------------------------
+// Pacific Rim Shield
+// ---------------------------------------------------------------------------
+
+export async function fetchTrafficEntropyLedger(anomalousOnly?: boolean) {
+  const supabase = getSupabaseClient()
+  if (!supabase) return []
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return []
+  let query = supabase.from("traffic_entropy_ledger").select("*").eq("user_id", user.id).order("created_at", { ascending: false })
+  if (anomalousOnly) query = query.eq("is_anomalous", true)
+  const { data, error } = await query
+  if (error) { console.error("fetchTrafficEntropyLedger", error); return [] }
+  return data ?? []
+}
+
+export async function fetchAdversaryProfiles(status?: string) {
+  const supabase = getSupabaseClient()
+  if (!supabase) return []
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return []
+  let query = supabase.from("adversary_stylometry").select("*").eq("analyst_user_id", user.id).order("created_at", { ascending: false })
+  if (status) query = query.eq("status", status)
+  const { data, error } = await query
+  if (error) { console.error("fetchAdversaryProfiles", error); return [] }
+  return data ?? []
+}
+
+export async function fetchDeviceLifecycleStates(lifecycleStatus?: string) {
+  const supabase = getSupabaseClient()
+  if (!supabase) return []
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return []
+  let query = supabase.from("device_lifecycle_states").select("*").eq("user_id", user.id).order("created_at", { ascending: false })
+  if (lifecycleStatus) query = query.eq("lifecycle_status", lifecycleStatus)
+  const { data, error } = await query
+  if (error) { console.error("fetchDeviceLifecycleStates", error); return [] }
+  return data ?? []
+}
+
+export async function fetchBiometricEncryptionGates() {
+  const supabase = getSupabaseClient()
+  if (!supabase) return []
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return []
+  const { data, error } = await supabase.from("biometric_encryption_gates").select("*").eq("user_id", user.id).order("created_at", { ascending: false })
+  if (error) { console.error("fetchBiometricEncryptionGates", error); return [] }
+  return data ?? []
+}
+
+// Interplanetary Pipeline
+
+export async function fetchDeregulatedPolicies(status?: string) {
+  const supabase = getSupabaseClient()
+  if (!supabase) return []
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return []
+  let query = supabase.from("deregulated_policy_ledger").select("*").eq("user_id", user.id).order("created_at", { ascending: false })
+  if (status) query = query.eq("deregulation_status", status)
+  const { data, error } = await query
+  if (error) { console.error("fetchDeregulatedPolicies", error); return [] }
+  return data ?? []
+}
+
+export async function fetchLunarBuildPhases(phase?: string) {
+  const supabase = getSupabaseClient()
+  if (!supabase) return []
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return []
+  let query = supabase.from("lunar_build_phases").select("*").eq("user_id", user.id).order("created_at", { ascending: false })
+  if (phase) query = query.eq("phase", phase)
+  const { data, error } = await query
+  if (error) { console.error("fetchLunarBuildPhases", error); return [] }
+  return data ?? []
+}
+
+export async function fetchFissionTelemetry(sourceType?: string) {
+  const supabase = getSupabaseClient()
+  if (!supabase) return []
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return []
+  let query = supabase.from("fission_power_telemetry").select("*").eq("user_id", user.id).order("created_at", { ascending: false })
+  if (sourceType) query = query.eq("source_type", sourceType)
+  const { data, error } = await query
+  if (error) { console.error("fetchFissionTelemetry", error); return [] }
+  return data ?? []
+}
+
+export async function fetchSupplyChainMonitors(status?: string) {
+  const supabase = getSupabaseClient()
+  if (!supabase) return []
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return []
+  let query = supabase.from("supply_chain_monitors").select("*").eq("user_id", user.id).order("created_at", { ascending: false })
+  if (status) query = query.eq("status", status)
+  const { data, error } = await query
+  if (error) { console.error("fetchSupplyChainMonitors", error); return [] }
+  return data ?? []
 }

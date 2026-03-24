@@ -3,6 +3,7 @@
 import type { ActiveView } from "@/app/page"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
+import { SPONSORS } from "@/lib/shared/sponsors"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Label } from "@/components/ui/label"
 import {
@@ -24,9 +25,12 @@ import {
   Loader2,
   Mail,
   Network,
+  RefreshCw,
   Rocket,
   ShieldCheck,
   Sparkles,
+  Unlock,
+  Wifi,
   Wrench,
   type LucideIcon,
 } from "lucide-react"
@@ -604,6 +608,107 @@ export function SettingsPanel({ onNavigate }: SettingsPanelProps) {
                 <span className="text-xs text-muted-foreground">{item.value}</span>
               </div>
             ))}
+          </CardContent>
+        </Card>
+
+        {/* Sponsor Integration Hub */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base flex items-center gap-2">
+              <Sparkles className="h-4 w-4 text-primary" />
+              Sponsor Integrations
+            </CardTitle>
+            <CardDescription>Connect sponsor services to unlock enhanced features. {SPONSORS.filter(s => s.integrationAvailable).length} integrations available.</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              {SPONSORS.filter(s => s.integrationAvailable).slice(0, 8).map((sponsor) => (
+                <div key={sponsor.name} className="flex items-center justify-between rounded-lg border border-border p-2.5 hover:border-primary/30 transition-colors">
+                  <div className="min-w-0">
+                    <p className="text-xs font-medium truncate">{sponsor.name}</p>
+                    <p className="text-[10px] text-muted-foreground truncate">{sponsor.powersFeature.split(" — ")[0]}</p>
+                  </div>
+                  <a href={sponsor.url} target="_blank" rel="noopener noreferrer" className="shrink-0 rounded-md border border-border px-2 py-1 text-[10px] font-medium hover:bg-muted/50 transition-colors">
+                    Connect
+                  </a>
+                </div>
+              ))}
+            </div>
+            <div className="flex items-center justify-between pt-2">
+              <p className="text-[10px] text-muted-foreground">
+                {SPONSORS.filter(s => s.integrationAvailable).length - 8} more integrations available
+              </p>
+              <a href="/sponsors" className="text-[10px] text-primary hover:underline">View all sponsors &rarr;</a>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Sovereignty Audit */}
+        <Card className="bg-card border-border">
+          <CardHeader>
+            <CardTitle className="text-sm font-semibold flex items-center gap-2">
+              <Unlock className="h-4 w-4 text-amber-500" />
+              Sovereignty Audit
+            </CardTitle>
+            <CardDescription className="text-xs">Analyze golden handcuffs and calculate your break-even to sovereignty</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <div className="flex items-center justify-between">
+              <span className="text-xs text-muted-foreground">Handcuff value</span>
+              <span className="text-xs font-medium">Not calculated</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-xs text-muted-foreground">Break-even months</span>
+              <span className="text-xs font-medium">&mdash;</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-xs text-muted-foreground">Sovereign income</span>
+              <span className="text-xs font-medium">$0/mo</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-xs text-muted-foreground">Status</span>
+              <Badge variant="outline" className="text-xs">Not started</Badge>
+            </div>
+            <Button variant="outline" size="sm" className="w-full gap-1 text-xs">
+              <Sparkles className="h-3 w-3" />
+              Run Handcuff Audit
+            </Button>
+          </CardContent>
+        </Card>
+
+        {/* Sync Status */}
+        <Card className="bg-card border-border">
+          <CardHeader>
+            <CardTitle className="text-sm font-semibold flex items-center gap-2">
+              <Wifi className="h-4 w-4 text-emerald-500" />
+              Sync Status
+            </CardTitle>
+            <CardDescription className="text-xs">Offline queue and shadow state persistence</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className="h-2 w-2 rounded-full bg-emerald-500" />
+                <span className="text-xs text-muted-foreground">Connection</span>
+              </div>
+              <Badge variant="outline" className="text-xs">Online</Badge>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-xs text-muted-foreground">Pending operations</span>
+              <span className="text-xs font-medium">0</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-xs text-muted-foreground">Shadow snapshots</span>
+              <span className="text-xs font-medium">0 cached</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-xs text-muted-foreground">Conflicts</span>
+              <span className="text-xs font-medium">0 pending</span>
+            </div>
+            <Button variant="outline" size="sm" className="w-full gap-1 text-xs">
+              <RefreshCw className="h-3 w-3" />
+              Force Sync
+            </Button>
           </CardContent>
         </Card>
 

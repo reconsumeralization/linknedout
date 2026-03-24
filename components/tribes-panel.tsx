@@ -1,6 +1,7 @@
 "use client"
 
 import { BrandedPanelHeader } from "@/components/branded-panel-header"
+import { TribeIntelligencePanel } from "@/components/tribe-intelligence-panel"
 import { CrmTalentNav } from "@/components/crm-talent-nav"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -32,6 +33,9 @@ import {
   fetchSupabaseTribes,
   subscribeToProfiles,
   subscribeToTribes,
+  fetchGovernanceProposals,
+  fetchGovernanceVotes,
+  fetchGovernanceDelegations,
   type SupabaseProfileView,
 } from "@/lib/supabase/supabase-data"
 import {
@@ -40,7 +44,7 @@ import {
   type TribeDesignPreviewOutput,
   type TribeDesignPreviewTribe,
 } from "@/lib/shared/tribe-design-preview-events"
-import type { Tribe, TribeRadarDataPoint, TribeRole, TribeSkillDistPoint, TribesPanelProps, TribeMember } from "@/lib/shared/types"
+import type { Tribe, TribeRadarDataPoint, TribeRole, TribeSkillDistPoint, TribesPanelProps, TribeMember, GovernanceProposal, GovernanceVote, GovernanceDelegation } from "@/lib/shared/types"
 import { cn } from "@/lib/shared/utils"
 import {
   Brain,
@@ -57,6 +61,9 @@ import {
   Trash2,
   UserPlus,
   Users,
+  UserCheck,
+  Vote,
+  Scale,
   X,
   Zap,
 } from "lucide-react"
@@ -733,6 +740,12 @@ export function TribesPanel({ csvData, onNavigate, onPageContextChange }: Tribes
   const [dataSource, setDataSource] = useState<"csv" | "supabase">("supabase")
   const [projectNames, setProjectNames] = useState<string[]>([])
 
+  // ── Governance state ─────────────────────────────────────────────────────
+  const [govProposals, setGovProposals] = useState<GovernanceProposal[]>([])
+  const [govDelegations, setGovDelegations] = useState<GovernanceDelegation[]>([])
+  const [govVotesMap, setGovVotesMap] = useState<Record<string, GovernanceVote[]>>({})
+  const [isLoadingGov, setIsLoadingGov] = useState(false)
+
   // ── CSV Auto-Group ────────────────────────────────────────────────────────
   useEffect(() => {
     if (!csvData) return
@@ -1108,6 +1121,36 @@ export function TribesPanel({ csvData, onNavigate, onPageContextChange }: Tribes
 
   useEffect(() => {
     setReanalyzeError(null)
+  }, [selectedTribeId])
+
+  // ── Load governance data when tribe changes ─────────────────────────────
+  useEffect(() => {
+    if (!selectedTribeId || selectedTribeId.startsWith(DESIGN_PREVIEW_ID_PREFIX)) return
+    let cancelled = false
+    async function loadGov() {
+      setIsLoadingGov(true)
+      try {
+        const [proposals, delegations] = await Promise.all([
+          fetchGovernanceProposals(selectedTribeId),
+          fetchGovernanceDelegations(selectedTribeId),
+        ])
+        if (cancelled) return
+        setGovProposals(proposals)
+        setGovDelegations(delegations)
+        // Load votes for each proposal
+        const votesEntries = await Promise.all(
+          proposals.map(async (p) => [p.id, await fetchGovernanceVotes(p.id)] as const),
+        )
+        if (cancelled) return
+        setGovVotesMap(Object.fromEntries(votesEntries))
+      } catch (err) {
+        console.error("loadGovernance", err)
+      } finally {
+        if (!cancelled) setIsLoadingGov(false)
+      }
+    }
+    void loadGov()
+    return () => { cancelled = true }
   }, [selectedTribeId])
 
   const selectedTribe = tribes.find(t => t.id === selectedTribeId) ?? tribes[0]
@@ -1997,6 +2040,153 @@ export function TribesPanel({ csvData, onNavigate, onPageContextChange }: Tribes
                     </Button>
                   </div>
                 )}
+              </CardContent>
+            </Card>
+
+            {/* Tribe Intelligence: High-Bandwidth Intelligence Syndicate */}
+            <TribeIntelligencePanel tribe={selectedTribe} />
+
+            {/* ── Governance ─────────────────────────────────────────────── */}
+            <Card className="bg-card border-border">
+              <CardHeader className="pb-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Scale className="w-4 h-4 text-primary" />
+                    <CardTitle className="text-sm font-semibold">Governance</CardTitle>
+                    <Badge variant="outline" className="text-[10px]">
+                      {govProposals.filter(p => p.status === "open" || p.status === "voting").length} active
+                    </Badge>
+                  </div>
+                  <Button size="sm" className="gap-1.5 text-xs">
+                    <Plus className="w-3.5 h-3.5" />
+                    Propose
+                  </Button>
+                </div>
+                <CardDescription className="text-xs">
+                  Liquid governance proposals, delegation, and execution history
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {/* Active Proposals */}
+                <div className="space-y-2">
+                  <h4 className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Proposals</h4>
+                  {isLoadingGov ? (
+                    <p className="text-xs text-muted-foreground text-center py-4">Loading governance data...</p>
+                  ) : govProposals.length === 0 ? (
+                    <p className="text-xs text-muted-foreground text-center py-4">No proposals yet. Start one to coordinate tribe decisions.</p>
+                  ) : (
+                    <div className="space-y-2">
+                      {govProposals.map(proposal => {
+                        const votes = govVotesMap[proposal.id] ?? []
+                        const totalPower = (proposal.voteSummary?.totalPower ?? votes.reduce((s: number, v: any) => s + (v.voting_power ?? 0), 0)) || 1
+                        const approvePower = proposal.voteSummary?.approvePower ?? votes.filter(v => v.vote === "approve").reduce((s, v) => s + v.votingPower, 0)
+                        const rejectPower = proposal.voteSummary?.rejectPower ?? votes.filter(v => v.vote === "reject").reduce((s, v) => s + v.votingPower, 0)
+                        const approvePercent = Math.round((approvePower / totalPower) * 100)
+                        const rejectPercent = Math.round((rejectPower / totalPower) * 100)
+                        const voterCount = proposal.voteSummary?.voterCount ?? votes.length
+                        const isActive = proposal.status === "open" || proposal.status === "voting"
+                        return (
+                          <div key={proposal.id} className="rounded-lg border border-border p-3 space-y-2">
+                            <div className="flex items-start justify-between gap-2">
+                              <div className="flex-1 min-w-0">
+                                <p className="text-xs font-medium truncate">{proposal.title}</p>
+                                <div className="flex items-center gap-1.5 mt-1 flex-wrap">
+                                  <Badge variant="outline" className="text-[10px] capitalize">{proposal.proposalType.replace("_", " ")}</Badge>
+                                  <Badge
+                                    variant={isActive ? "default" : proposal.status === "passed" || proposal.status === "executed" ? "default" : "secondary"}
+                                    className={cn(
+                                      "text-[10px] capitalize",
+                                      isActive && "bg-chart-2/20 text-chart-2 border-chart-2/30",
+                                      (proposal.status === "passed" || proposal.status === "executed") && "bg-accent/20 text-accent border-accent/30",
+                                      proposal.status === "rejected" && "bg-destructive/20 text-destructive border-destructive/30",
+                                    )}
+                                  >
+                                    {proposal.status}
+                                  </Badge>
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-1 text-[10px] text-muted-foreground shrink-0">
+                                <Vote className="w-3 h-3" />
+                                {voterCount}
+                              </div>
+                            </div>
+                            {/* Vote progress bar */}
+                            <div className="space-y-1">
+                              <div className="flex items-center gap-1 text-[10px]">
+                                <span className="text-accent">{approvePercent}% approve</span>
+                                <span className="text-muted-foreground mx-1">|</span>
+                                <span className="text-destructive">{rejectPercent}% reject</span>
+                              </div>
+                              <div className="flex h-1.5 rounded-full overflow-hidden bg-muted">
+                                <div className="bg-accent transition-all" style={{ width: `${approvePercent}%` }} />
+                                <div className="bg-destructive transition-all" style={{ width: `${rejectPercent}%` }} />
+                              </div>
+                            </div>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  )}
+                </div>
+
+                {/* Delegation Management */}
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <h4 className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Delegations</h4>
+                    <Button size="sm" variant="outline" className="gap-1.5 text-xs h-7">
+                      <UserCheck className="w-3 h-3" />
+                      Delegate Vote
+                    </Button>
+                  </div>
+                  {govDelegations.length === 0 ? (
+                    <p className="text-xs text-muted-foreground text-center py-3">No active delegations. Delegate your voting power to trusted members.</p>
+                  ) : (
+                    <div className="space-y-1.5">
+                      {govDelegations.map(d => (
+                        <div key={d.id} className="flex items-center justify-between rounded-md border border-border px-3 py-2">
+                          <div className="flex items-center gap-2 min-w-0">
+                            <UserCheck className="w-3.5 h-3.5 text-primary shrink-0" />
+                            <span className="text-xs truncate">{d.delegateUserId.slice(0, 8)}...</span>
+                          </div>
+                          <div className="flex items-center gap-1.5">
+                            <Badge variant="outline" className="text-[10px] capitalize">{d.domain}</Badge>
+                            <Badge
+                              variant={d.isActive ? "default" : "secondary"}
+                              className={cn("text-[10px]", d.isActive && "bg-accent/20 text-accent border-accent/30")}
+                            >
+                              {d.isActive ? "Active" : "Revoked"}
+                            </Badge>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* Execution History */}
+                <div className="space-y-2">
+                  <h4 className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Execution History</h4>
+                  {govProposals.filter(p => p.status === "executed").length === 0 ? (
+                    <p className="text-xs text-muted-foreground text-center py-3">No executed proposals yet.</p>
+                  ) : (
+                    <div className="space-y-1.5">
+                      {govProposals
+                        .filter(p => p.status === "executed")
+                        .map(p => (
+                          <div key={p.id} className="flex items-center justify-between rounded-md border border-border px-3 py-2">
+                            <div className="flex items-center gap-2 min-w-0">
+                              <Scale className="w-3.5 h-3.5 text-accent shrink-0" />
+                              <span className="text-xs truncate">{p.title}</span>
+                            </div>
+                            <div className="flex items-center gap-1.5">
+                              <Badge variant="default" className="text-[10px] bg-accent/20 text-accent border-accent/30">Executed</Badge>
+                              <span className="text-[10px] text-muted-foreground">{new Date(p.resolvedAt ?? p.updatedAt).toLocaleDateString()}</span>
+                            </div>
+                          </div>
+                        ))}
+                    </div>
+                  )}
+                </div>
               </CardContent>
             </Card>
 
