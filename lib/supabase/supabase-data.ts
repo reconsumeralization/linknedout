@@ -2667,3 +2667,50 @@ export async function fetchChairmanAlignment(): Promise<Record<string, number>> 
   }
   return result
 }
+
+// Invisible Infrastructure
+export async function fetchWasmArtifacts(status?: string) {
+  const supabase = getSupabaseClient()
+  if (!supabase) return []
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return []
+  let query = supabase.from("wasm_artifacts").select("*").eq("user_id", user.id).order("created_at", { ascending: false })
+  if (status) query = query.eq("sandbox_status", status)
+  const { data, error } = await query
+  if (error) { console.error("fetchWasmArtifacts", error); return [] }
+  return data ?? []
+}
+
+export async function fetchVisualWebLogs(status?: string) {
+  const supabase = getSupabaseClient()
+  if (!supabase) return []
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return []
+  let query = supabase.from("visual_web_logs").select("*").eq("user_id", user.id).order("created_at", { ascending: false })
+  if (status) query = query.eq("status", status)
+  const { data, error } = await query
+  if (error) { console.error("fetchVisualWebLogs", error); return [] }
+  return data ?? []
+}
+
+export async function fetchConsultantBlueprints(domain?: string) {
+  const supabase = getSupabaseClient()
+  if (!supabase) return []
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return []
+  let query = supabase.from("consultant_blueprints").select("*").eq("creator_user_id", user.id).order("created_at", { ascending: false })
+  if (domain) query = query.eq("expertise_domain", domain)
+  const { data, error } = await query
+  if (error) { console.error("fetchConsultantBlueprints", error); return [] }
+  return data ?? []
+}
+
+export async function fetchObservabilityRefunds() {
+  const supabase = getSupabaseClient()
+  if (!supabase) return []
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return []
+  const { data, error } = await supabase.from("observability_refund_ledger").select("*").eq("user_id", user.id).order("created_at", { ascending: false })
+  if (error) { console.error("fetchObservabilityRefunds", error); return [] }
+  return data ?? []
+}

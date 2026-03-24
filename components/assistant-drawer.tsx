@@ -208,6 +208,9 @@ function getSuggestedPrompts(activeView: ActiveView, hasImportedProfiles: boolea
       "Initialize Agent #0 for recursive self-optimization",
       "Calibrate the alignment vector to prioritize energy sovereignty",
       "Distill tribal intelligence into local model weights",
+      "Browse a website visually using Molmo local vision",
+      "Compile my intent into invisible WebAssembly code",
+      "Deploy a consultant agent for regulatory strategy",
     ],
     globe: [
       "Show me governance arcs for active proposals",

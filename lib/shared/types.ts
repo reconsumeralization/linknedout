@@ -2473,3 +2473,70 @@ export interface EvolutionSummary {
   topMutatedTools: Array<{ toolName: string; mutationCount: number }>
   alignmentVector: Record<string, number>
 }
+
+// ---------------------------------------------------------------------------
+// Invisible Infrastructure: MolmoWeb Vision + WebAssembly Sandbox
+// ---------------------------------------------------------------------------
+
+export interface WasmArtifact {
+  id: string
+  userId: string
+  artifactName: string
+  intentDescription?: string
+  wasmBinaryHash?: string
+  sourceToolName?: string
+  sandboxStatus: "provisioned" | "running" | "completed" | "vaporized" | "failed"
+  isolationLevel: "strict" | "permissive" | "quarantine"
+  memoryLimitMb: number
+  executionTimeMs?: number
+  vantaCompliant: boolean
+  sentryTested: boolean
+  createdAt: string
+  completedAt?: string
+}
+
+export interface VisualWebLog {
+  id: string
+  userId: string
+  sessionName?: string
+  targetUrl?: string
+  navigationSteps: Array<{ step: number; action: string; element?: string; url?: string }>
+  semanticSnapshots: Array<{ timestamp: string; description: string; elements: string[] }>
+  elementsInteracted: number
+  modelUsed: string
+  hardwareNode?: string
+  processingTimeMs?: number
+  status: "active" | "completed" | "failed" | "archived"
+  createdAt: string
+}
+
+export interface ConsultantBlueprint {
+  id: string
+  creatorUserId: string
+  blueprintName: string
+  expertiseDomain: string
+  description?: string
+  skillDefinition: Record<string, unknown>
+  hourlyRateEquivalentUsd: number
+  usageCount: number
+  avgRating?: number
+  tribalVerified: boolean
+  status: "draft" | "published" | "verified" | "deprecated"
+  createdAt: string
+  updatedAt: string
+}
+
+export interface ObservabilityRefundEntry {
+  id: string
+  userId: string
+  sourceSystem: string
+  originalDataVolumeMb: number
+  sanitizedDataVolumeMb: number
+  reductionPct: number
+  garbageCategoriesPruned: string[]
+  vendorCostBeforeUsd?: number
+  vendorCostAfterUsd?: number
+  monthlySavingsUsd?: number
+  sanitizationRulesApplied: number
+  createdAt: string
+}

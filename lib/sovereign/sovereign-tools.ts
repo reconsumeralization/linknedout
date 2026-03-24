@@ -1883,5 +1883,189 @@ export function createSovereignTools(
         }
       },
     }),
+
+    // ========================================================================
+    // Invisible Infrastructure Tools
+    // ========================================================================
+
+    activateMolmoVision: tool({
+      description:
+        "Browse the web visually using a local 8B vision model on sovereign hardware",
+      inputSchema: z.object({
+        targetUrl: z.string(),
+        sessionName: z.string().optional(),
+        hardwareNode: z.string().optional(),
+      }),
+      execute: async (input) => {
+        try {
+          const { data: session, error } = await client
+            .from("visual_web_logs")
+            .insert({
+              user_id: userId,
+              target_url: input.targetUrl,
+              session_name: input.sessionName,
+              model_used: "molmo-8b",
+              hardware_node: input.hardwareNode,
+              status: "active",
+            })
+            .select()
+            .single()
+
+          if (error || !session) {
+            return { ok: false, error: error?.message || "Failed to activate Molmo vision session." }
+          }
+
+          return { ok: true, session }
+        } catch (err: unknown) {
+          return { ok: false, error: err instanceof Error ? err.message : "Unknown error activating Molmo vision." }
+        }
+      },
+    }),
+
+    compileIntentToAssembly: tool({
+      description:
+        "Compile high-level intent into invisible auto-tested WebAssembly code",
+      inputSchema: z.object({
+        artifactName: z.string(),
+        intentDescription: z.string(),
+        isolationLevel: z.enum(["strict", "permissive", "quarantine"]).optional(),
+      }),
+      execute: async (input) => {
+        try {
+          const { data: artifact, error } = await client
+            .from("wasm_artifacts")
+            .insert({
+              user_id: userId,
+              artifact_name: input.artifactName,
+              intent_description: input.intentDescription,
+              isolation_level: input.isolationLevel ?? "strict",
+              sandbox_status: "provisioned",
+            })
+            .select()
+            .single()
+
+          if (error || !artifact) {
+            return { ok: false, error: error?.message || "Failed to compile intent to assembly." }
+          }
+
+          return { ok: true, artifact }
+        } catch (err: unknown) {
+          return { ok: false, error: err instanceof Error ? err.message : "Unknown error compiling intent." }
+        }
+      },
+    }),
+
+    deployConsultantAgent: tool({
+      description:
+        "Provision a PwC-level tribal strategy expert agent from the Consultant Guild",
+      inputSchema: z.object({
+        blueprintName: z.string(),
+        expertiseDomain: z.string(),
+        description: z.string().optional(),
+        skillDefinition: z.record(z.unknown()).optional(),
+      }),
+      execute: async (input) => {
+        try {
+          const { data: blueprint, error } = await client
+            .from("consultant_blueprints")
+            .insert({
+              creator_user_id: userId,
+              blueprint_name: input.blueprintName,
+              expertise_domain: input.expertiseDomain,
+              description: input.description,
+              skill_definition: input.skillDefinition ?? {},
+              status: "published",
+            })
+            .select()
+            .single()
+
+          if (error || !blueprint) {
+            return { ok: false, error: error?.message || "Failed to deploy consultant agent." }
+          }
+
+          return { ok: true, blueprint }
+        } catch (err: unknown) {
+          return { ok: false, error: err instanceof Error ? err.message : "Unknown error deploying consultant." }
+        }
+      },
+    }),
+
+    provisionWasmSandbox: tool({
+      description:
+        "Isolate high-stakes agent execution in a WebAssembly quarantine container",
+      inputSchema: z.object({
+        artifactName: z.string(),
+        memoryLimitMb: z.number().optional(),
+        isolationLevel: z.enum(["strict", "permissive", "quarantine"]).optional(),
+      }),
+      execute: async (input) => {
+        try {
+          const { data: sandbox, error } = await client
+            .from("wasm_artifacts")
+            .insert({
+              user_id: userId,
+              artifact_name: input.artifactName,
+              memory_limit_mb: input.memoryLimitMb ?? 256,
+              isolation_level: input.isolationLevel ?? "quarantine",
+              sandbox_status: "provisioned",
+            })
+            .select()
+            .single()
+
+          if (error || !sandbox) {
+            return { ok: false, error: error?.message || "Failed to provision WASM sandbox." }
+          }
+
+          return { ok: true, sandbox }
+        } catch (err: unknown) {
+          return { ok: false, error: err instanceof Error ? err.message : "Unknown error provisioning sandbox." }
+        }
+      },
+    }),
+
+    sanitizeSourceData: tool({
+      description:
+        "Fix data quality at the source to cut observability vendor bills",
+      inputSchema: z.object({
+        sourceSystem: z.string(),
+        originalDataVolumeMb: z.number(),
+        sanitizedDataVolumeMb: z.number(),
+        vendorCostBeforeUsd: z.number().optional(),
+        vendorCostAfterUsd: z.number().optional(),
+      }),
+      execute: async (input) => {
+        try {
+          const reductionPct = input.originalDataVolumeMb > 0
+            ? Math.round(((input.originalDataVolumeMb - input.sanitizedDataVolumeMb) / input.originalDataVolumeMb) * 10000) / 100
+            : 0
+          const monthlySavings = (input.vendorCostBeforeUsd != null && input.vendorCostAfterUsd != null)
+            ? Math.round((input.vendorCostBeforeUsd - input.vendorCostAfterUsd) * 100) / 100
+            : undefined
+
+          const { data: entry, error } = await client
+            .from("observability_refund_ledger")
+            .insert({
+              user_id: userId,
+              source_system: input.sourceSystem,
+              original_data_volume_mb: input.originalDataVolumeMb,
+              sanitized_data_volume_mb: input.sanitizedDataVolumeMb,
+              reduction_pct: reductionPct,
+              vendor_cost_before_usd: input.vendorCostBeforeUsd,
+              vendor_cost_after_usd: input.vendorCostAfterUsd,
+              monthly_savings_usd: monthlySavings,
+            })
+            .select()
+            .single()
+
+          if (error || !entry) {
+            return { ok: false, error: error?.message || "Failed to sanitize source data." }
+          }
+
+          return { ok: true, entry, reductionPct, monthlySavings }
+        } catch (err: unknown) {
+          return { ok: false, error: err instanceof Error ? err.message : "Unknown error sanitizing source data." }
+        }
+      },
+    }),
   }
 }
