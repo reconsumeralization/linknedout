@@ -28,6 +28,9 @@ vi.mock("@/lib/supabase/supabase-data", () => ({
   fetchSupabaseProfiles: vi.fn().mockResolvedValue([]),
   fetchSupabaseTribes: vi.fn().mockResolvedValue([]),
   fetchSupabaseProjects: vi.fn().mockResolvedValue([]),
+  fetchTribeKnowledgeBase: vi.fn().mockResolvedValue([]),
+  fetchTribeSignalFeed: vi.fn().mockResolvedValue([]),
+  fetchTribeSprints: vi.fn().mockResolvedValue([]),
   subscribeToProfiles: vi.fn().mockImplementation(() => () => {}),
   subscribeToTribes: vi.fn().mockImplementation(() => () => {}),
 }))

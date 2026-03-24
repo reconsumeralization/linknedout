@@ -24,3 +24,5 @@ branded-supabase/logs/
 .env*.local
 !.env.example
 .DS_Store
+
+.vercel
