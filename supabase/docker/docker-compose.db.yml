@@ -1,0 +1,71 @@
+# LinkedOut — DB-only container (used by pnpm supabase:db:* scripts)
+#
+# POSTGRES_PASSWORD must be set in the environment before starting.
+# The PowerShell wrapper (scripts/supabase-db-container.ps1) reads it
+# from .env.local and passes it automatically.
+#
+# For initial setup, generate a strong password:
+#   openssl rand -base64 32
+# Then add to .env.local:
+#   POSTGRES_PASSWORD=<generated value>
+#
+# Usage:
+#   pnpm supabase:db:start   # start + write SUPABASE_DB_CONTAINER_* to .env.local
+#   pnpm supabase:db:stop    # stop
+#   pnpm supabase:db:reset   # wipe volume + re-apply migrations
+#   pnpm supabase:db:logs    # tail logs
+#   pnpm supabase:db:psql    # open psql shell
+
+name: linkedout-supabase-db
+
+secrets:
+  postgres_password:
+    environment: "POSTGRES_PASSWORD"
+
+networks:
+  db_local:
+    internal: true
+
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: linkedout-supabase-db
+    restart: unless-stopped
+    secrets:
+      - postgres_password
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_DB: postgres
+      # PostgreSQL reads the password from the secret file, not an env var
+      POSTGRES_PASSWORD_FILE: /run/secrets/postgres_password
+    ports:
+      # Loopback-only: not reachable from outside this machine
+      - "127.0.0.1:54322:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d postgres || exit 1"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    volumes:
+      - linkedout_supabase_db_data:/var/lib/postgresql/data
+      - ./init/00-supabase-compat.sql:/docker-entrypoint-initdb.d/00-supabase-compat.sql:ro
+      - ./init/10-apply-migrations.sh:/docker-entrypoint-initdb.d/10-apply-migrations.sh:ro
+      - ../migrations:/workspace/migrations:ro
+    networks:
+      - db_local
+    cap_drop: [ALL]
+    cap_add:
+      - CHOWN
+      - SETUID
+      - SETGID
+      - DAC_OVERRIDE
+    security_opt:
+      - no-new-privileges:true
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 512M
+
+volumes:
+  linkedout_supabase_db_data:

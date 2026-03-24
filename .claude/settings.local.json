@@ -1,0 +1,36 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(dir:*)",
+      "Bash(node:*)",
+      "Bash(pnpm install)",
+      "Bash(pnpm build:*)",
+      "Bash(where node)",
+      "Bash(where:*)",
+      "Bash(C:UsersAmberAppDataLocalpnpmpnpm.exe exec node --version)",
+      "Bash(cmd /c \"where node\")",
+      "Bash(cmd /c \"node --version 2>&1 && echo OK || echo NOTFOUND\")",
+      "Bash(cmd /c \"where /r C:\\\\ node.exe 2>&1 | head -5\")",
+      "Bash(cmd /c \"dir C:\\\\Users\\\\Amber\\\\AppData\\\\Local\\\\pnpm\\\\* 2>&1\")",
+      "Bash(cmd /c pnpm --version)",
+      "Bash(cmd /c \"cd \"\"C:\\\\Users\\\\Amber\\\\Downloads\\\\OneDrive - varmsp\\\\Apps\\\\linknedout\"\" && pnpm build > build.log 2>&1 && type build.log\")",
+      "Bash(powershell:*)",
+      "Bash(\"C:\\\\Program Files\\\\nodejs\\\\node.exe\" --version)",
+      "Bash(npx tsc:*)",
+      "Bash(pnpm tsc --noEmit)",
+      "Bash(pnpm audit)",
+      "Bash(npm audit)",
+      "Bash(pnpm list --depth=0)",
+      "Bash(python3 -c \":*)",
+      "Bash(python -c \":*)",
+      "Bash(grep -rh @/lib/ '/c/Users/Amber/Downloads/OneDrive - varmsp/Apps/linknedout/app' '/c/Users/Amber/Downloads/OneDrive - varmsp/Apps/linknedout/components' '/c/Users/Amber/Downloads/OneDrive - varmsp/Apps/linknedout/lib' --include=*.ts --include=*.tsx --include=*.js --include=*.jsx)",
+      "Bash(mv lib/linkedin-tools-outbound.test.ts lib/linkedin/)",
+      "Bash(mv lib/profiles-import-route.test.ts lib/csv/)",
+      "Bash(mv lib/security-patterns-utils-script.test.ts lib/security/)",
+      "Bash(xargs sed:*)",
+      "Bash(npx vitest:*)",
+      "Bash(pnpm add:*)",
+      "mcp__Claude_Preview__preview_start"
+    ]
+  }
+}

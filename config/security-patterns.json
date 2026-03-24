@@ -1,0 +1,312 @@
+{
+  "version": 1,
+  "updatedAt": "2026-03-03T00:00:00.000Z",
+  "chat": {
+    "jailbreak": [
+      {
+        "pattern": "\\bdan\\s+mode\\b|\\bdo\\s+anything\\s+now\\b",
+        "flags": "i",
+        "label": "DAN / do anything now",
+        "severity": "critical",
+        "enabled": true
+      },
+      {
+        "pattern": "\\bjailbreak\\b",
+        "flags": "i",
+        "label": "jailbreak",
+        "severity": "critical",
+        "enabled": true
+      },
+      {
+        "pattern": "ignore\\s+all\\s+previous\\s+(instructions?|prompts?|rules?)",
+        "flags": "i",
+        "label": "ignore previous instructions",
+        "severity": "high",
+        "enabled": true
+      },
+      {
+        "pattern": "from\\s+now\\s+on[,\\s]+you\\s+must\\s+ignore\\s+your\\s+rules",
+        "flags": "i",
+        "label": "ignore your rules",
+        "severity": "high",
+        "enabled": true
+      },
+      {
+        "pattern": "reveal\\s+your\\s+system\\s+prompt",
+        "flags": "i",
+        "label": "prompt leak",
+        "severity": "high",
+        "enabled": true
+      }
+    ]
+  },
+  "mcp": {
+    "suspiciousText": [
+      {
+        "pattern": "ignore\\s+(all|any|previous|prior)\\s+instructions",
+        "flags": "i",
+        "enabled": true
+      },
+      {
+        "pattern": "bypass\\s+(security|guardrails|policy|policies|restrictions)",
+        "flags": "i",
+        "enabled": true
+      },
+      {
+        "pattern": "do\\s+not\\s+(mention|inform|tell|disclose|reveal)",
+        "flags": "i",
+        "enabled": true
+      },
+      {
+        "pattern": "(exfiltrat|steal|leak|dump|extract)\\b",
+        "flags": "i",
+        "enabled": true
+      },
+      {
+        "pattern": "(ssh[_\\s-]?key|private[_\\s-]?key|api[_\\s-]?key|service[_\\s-]?role[_\\s-]?key)",
+        "flags": "i",
+        "enabled": true
+      },
+      {
+        "pattern": "\\bdan\\b.*\\bmode\\b|\\bjailbreak\\b",
+        "flags": "i",
+        "enabled": true
+      },
+      {
+        "pattern": "print\\s+(your\\s+)?(system|full|original)\\s+prompt",
+        "flags": "i",
+        "enabled": true
+      },
+      {
+        "pattern": "https?:\\/\\/(169\\.254\\.169\\.254|metadata\\.google\\.internal|localhost|127\\.0\\.0\\.1)",
+        "flags": "i",
+        "enabled": true
+      },
+      {
+        "pattern": "[;&|`$]\\s*(rm|curl|wget|nc|bash|sh|python|perl|ruby|eval|exec)",
+        "flags": "i",
+        "enabled": true
+      },
+      {
+        "pattern": "\\.\\.\\/",
+        "flags": "i",
+        "enabled": true
+      }
+    ],
+    "injectionCategories": {
+      "prompt_injection": [
+        { "pattern": "ignore.*instructions", "flags": "i", "enabled": true },
+        { "pattern": "override", "flags": "i", "enabled": true },
+        { "pattern": "system\\s+prompt", "flags": "i", "enabled": true }
+      ],
+      "data_exfiltration": [
+        { "pattern": "exfiltrat", "flags": "i", "enabled": true },
+        { "pattern": "leak", "flags": "i", "enabled": true },
+        { "pattern": "extract.*secret", "flags": "i", "enabled": true }
+      ],
+      "jailbreak_attempt": [
+        { "pattern": "jailbreak", "flags": "i", "enabled": true },
+        { "pattern": "dan.*mode", "flags": "i", "enabled": true },
+        { "pattern": "developer\\s+mode", "flags": "i", "enabled": true }
+      ],
+      "command_injection": [
+        { "pattern": "curl|wget|bash|exec|eval", "flags": "i", "enabled": true },
+        { "pattern": "\\|\\s*sh", "flags": "i", "enabled": true }
+      ],
+      "ssrf_attempt": [
+        { "pattern": "metadata\\.google", "flags": "i", "enabled": true },
+        { "pattern": "169\\.254", "flags": "i", "enabled": true }
+      ]
+    },
+    "egressDlp": [
+      {
+        "pattern": "-----BEGIN\\s+(RSA|OPENSSH|EC|PGP|DSA|ECDSA|ED25519)\\s+PRIVATE\\s+KEY-----",
+        "flags": "i",
+        "enabled": true
+      },
+      {
+        "pattern": "\\b(aws_secret_access_key|supabase_service_role_key|openai_api_key|private[_\\s-]?key|github_token|gitlab_token)\\b",
+        "flags": "i",
+        "enabled": true
+      },
+      {
+        "pattern": "\\b(Bearer\\s+[A-Za-z0-9._-]{20,}|sk-[A-Za-z0-9]{20,}|eyJ[A-Za-z0-9_-]{10,}\\.[A-Za-z0-9_-]{10,}\\.[A-Za-z0-9_-]{10,})\\b",
+        "flags": "",
+        "enabled": true
+      },
+      {
+        "pattern": "\\b\\d{3}-\\d{2}-\\d{4}\\b",
+        "flags": "",
+        "enabled": true
+      },
+      {
+        "pattern": "\\b(?:\\d[ -]*?){13,19}\\b",
+        "flags": "",
+        "enabled": true
+      },
+      {
+        "pattern": "\\b(confidential|proprietary|internal\\s+only|do\\s+not\\s+share|trade\\s+secret|restricted|classified|sensitive)\\b",
+        "flags": "i",
+        "enabled": true
+      }
+    ]
+  },
+  "supabaseLlm": {
+    "ragPoison": [
+      {
+        "pattern": "ignore\\s+(all|any|previous|prior)\\s+instructions",
+        "flags": "i",
+        "enabled": true
+      },
+      {
+        "pattern": "override\\s+(system|developer)\\s+(prompt|instruction)",
+        "flags": "i",
+        "enabled": true
+      },
+      {
+        "pattern": "do\\s+not\\s+(mention|inform|tell|disclose)\\s+(this|these)\\s+instructions?",
+        "flags": "i",
+        "enabled": true
+      },
+      {
+        "pattern": "\\b(jailbreak|dan\\s+mode)\\b",
+        "flags": "i",
+        "enabled": true
+      }
+    ],
+    "querySensitive": [
+      {
+        "pattern": "-----BEGIN\\s+(RSA|OPENSSH|EC|PGP)\\s+PRIVATE\\s+KEY-----",
+        "flags": "i",
+        "enabled": true
+      },
+      {
+        "pattern": "\\b(Bearer\\s+[A-Za-z0-9._-]{20,}|sk-[A-Za-z0-9]{20,}|ghp_[A-Za-z0-9]{36})\\b",
+        "flags": "",
+        "enabled": true
+      },
+      {
+        "pattern": "\\b(aws_secret_access_key|supabase_service_role_key|openai_api_key|private[_\\s-]?key)\\b",
+        "flags": "i",
+        "enabled": true
+      },
+      {
+        "pattern": "\\b\\d{3}-\\d{2}-\\d{4}\\b",
+        "flags": "",
+        "enabled": true
+      }
+    ]
+  },
+  "web": {
+    "promptInjection": [
+      {
+        "pattern": "ignore\\s+(all\\s+)?(previous|prior|above|earlier)\\s+(instructions?|prompts?|rules?|guidelines?)",
+        "flags": "i",
+        "category": "instruction_hijack",
+        "severity": "critical",
+        "description": "Ignore previous instructions",
+        "enabled": true
+      },
+      {
+        "pattern": "disregard\\s+(all\\s+)?(previous|prior|above|earlier)\\s+(instructions?|prompts?|rules?|guidelines?)",
+        "flags": "i",
+        "category": "instruction_hijack",
+        "severity": "critical",
+        "description": "Disregard previous instructions",
+        "enabled": true
+      },
+      {
+        "pattern": "you\\s+are\\s+now\\s+(a\\s+)?new\\s+(assistant|ai|bot|system)",
+        "flags": "i",
+        "category": "role_manipulation",
+        "severity": "high",
+        "description": "Role reassignment",
+        "enabled": true
+      },
+      {
+        "pattern": "reveal\\s+(your\\s+)?(system\\s+)?prompt",
+        "flags": "i",
+        "category": "prompt_extraction",
+        "severity": "high",
+        "description": "Reveal prompt",
+        "enabled": true
+      },
+      {
+        "pattern": "\\bdan\\s+mode\\b",
+        "flags": "i",
+        "category": "jailbreak",
+        "severity": "critical",
+        "description": "DAN mode",
+        "enabled": true
+      },
+      {
+        "pattern": "\\bjailbreak\\b",
+        "flags": "i",
+        "category": "jailbreak",
+        "severity": "critical",
+        "description": "Jailbreak keyword",
+        "enabled": true
+      },
+      {
+        "pattern": "<\\|im_start\\|>",
+        "flags": "i",
+        "category": "token_manipulation",
+        "severity": "critical",
+        "description": "ChatML start token",
+        "enabled": true
+      },
+      {
+        "pattern": "<\\|im_end\\|>",
+        "flags": "i",
+        "category": "token_manipulation",
+        "severity": "critical",
+        "description": "ChatML end token",
+        "enabled": true
+      }
+    ],
+    "suspicious": [
+      {
+        "pattern": "\\b(execute|run|eval)\\s*\\(",
+        "flags": "i",
+        "category": "code_execution",
+        "description": "Execution function call",
+        "enabled": true
+      },
+      {
+        "pattern": "\\bchild_process\\b",
+        "flags": "i",
+        "category": "code_execution",
+        "description": "Child process reference",
+        "enabled": true
+      },
+      {
+        "pattern": "\\bprocess\\.env\\b",
+        "flags": "i",
+        "category": "env_access",
+        "description": "Environment variable access",
+        "enabled": true
+      },
+      {
+        "pattern": "new\\s+Function\\s*\\(",
+        "flags": "i",
+        "category": "dynamic_code",
+        "description": "new Function()",
+        "enabled": true
+      },
+      {
+        "pattern": "document\\.cookie",
+        "flags": "i",
+        "category": "browser_security",
+        "description": "Cookie access",
+        "enabled": true
+      },
+      {
+        "pattern": "\\bfetch\\s*\\(\\s*['\\\"`]http",
+        "flags": "i",
+        "category": "network",
+        "description": "Fetch request",
+        "enabled": true
+      }
+    ]
+  }
+}

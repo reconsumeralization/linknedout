@@ -1,0 +1,26 @@
+# v0 runtime files
+__v0_runtime_loader.js
+__v0_devtools.tsx
+__v0_jsx-dev-runtime.ts
+
+# Common ignores
+node_modules/
+.next/
+.next-*/
+.next-verify/
+tmp_*
+tsconfig.tsbuildinfo
+supabase-docker-clone/
+branded-supabase/volumes/
+branded-supabase/logs/
+.env
+.env.local
+.env.development
+.env.development.local
+.env.production
+.env.production.local
+.env.test
+.env.test.local
+.env*.local
+!.env.example
+.DS_Store

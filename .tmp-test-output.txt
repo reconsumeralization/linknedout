@@ -1,0 +1,31 @@
+
+[1m[46m RUN [49m[22m [36mv3.2.4 [39m[90mC:/Users/Amber/Downloads/OneDrive - varmsp/Apps/linknedout[39m
+
+ [32m?[39m lib/critical-workflow-policy.test.ts [2m([22m[2m5 tests[22m[2m)[22m[32m 44[2mms[22m[39m
+ [32m?[39m lib/security-patterns-utils-script.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 12[2mms[22m[39m
+ [32m?[39m lib/network-security.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 7[2mms[22m[39m
+ [32m?[39m lib/route-params.test.ts [2m([22m[2m11 tests[22m[2m)[22m[32m 14[2mms[22m[39m
+[90mstdout[2m | lib/mcp-tool-security.test.ts
+[22m[39m[security-patterns] consumer=mcp-tool-security version=1 hash=b5cfee71d2d1b0c8 counts=chatJailbreak=5, mcpSuspiciousText=10, mcpInjectionCategories=13, mcpEgressDlp=6, supabaseRagPoison=4, supabaseQuerySensitive=4, webPromptInjection=8, webSuspicious=6
+
+[90mstdout[2m | lib/regression/guard-diagnostics-payload.test.ts
+[22m[39m[security-patterns] consumer=mcp-tool-security version=1 hash=b5cfee71d2d1b0c8 counts=chatJailbreak=5, mcpSuspiciousText=10, mcpInjectionCategories=13, mcpEgressDlp=6, supabaseRagPoison=4, supabaseQuerySensitive=4, webPromptInjection=8, webSuspicious=6
+
+ [32m?[39m lib/llm-guard.test.ts [2m([22m[2m5 tests[22m[2m)[22m[32m 20[2mms[22m[39m
+ [32m?[39m lib/security-patterns.test.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 8[2mms[22m[39m
+ [32m?[39m lib/regression/guard-diagnostics-payload.test.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 8[2mms[22m[39m
+ [32m?[39m lib/mcp-tool-security.test.ts [2m([22m[2m15 tests[22m[2m)[22m[32m 150[2mms[22m[39m
+ [32m?[39m lib/sentinel-alerting.test.ts [2m([22m[2m6 tests[22m[2m)[22m[32m 22[2mms[22m[39m
+ [32m?[39m lib/regression/linkedin-share-429.test.ts [2m([22m[2m3 tests[22m[2m)[22m[33m 787[2mms[22m[39m
+   [33m[2m?[22m[39m LinkedIn share route 429 messaging[2m > [22mreturns 429 with user message and Retry-After when app-level rate limit is exceeded [33m 773[2mms[22m[39m
+ [32m?[39m lib/require-auth.test.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 20[2mms[22m[39m
+ [32m?[39m lib/sentinel-task-reality.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 4[2mms[22m[39m
+ [32m?[39m components/__tests__/sentinel-panel.regression.test.tsx [2m([22m[2m2 tests[22m[2m)[22m[33m 346[2mms[22m[39m
+ [32m?[39m components/__tests__/tribes-panel.regression.test.tsx [2m([22m[2m2 tests[22m[2m)[22m[33m 306[2mms[22m[39m
+
+[2m Test Files [22m [1m[32m14 passed[39m[22m[90m (14)[39m
+[2m      Tests [22m [1m[32m68 passed[39m[22m[90m (68)[39m
+[2m   Start at [22m 21:01:39
+[2m   Duration [22m 8.52s[2m (transform 2.93s, setup 8.72s, collect 8.28s, tests 1.75s, environment 3.53s, prepare 7.86s)[22m
+
+

@@ -1,0 +1,52 @@
+# ── Build artifacts ───────────────────────────────────────────────────────────
+.next
+.next-*
+*.next-ci*
+out
+dist
+coverage
+*.tsbuildinfo
+build_output*.txt
+tmp_*.txt
+
+# ── Dependencies (installed fresh inside the image) ───────────────────────────
+node_modules
+
+# ── All .env files — NEVER bake secrets into the image ────────────────────────
+.env*
+
+# ── Version control ───────────────────────────────────────────────────────────
+.git
+.gitignore
+.gitattributes
+
+# ── CI / tooling / editor ─────────────────────────────────────────────────────
+.github
+.claude
+.vscode
+.idea
+*.log
+
+# ── OS noise ──────────────────────────────────────────────────────────────────
+**/.DS_Store
+**/Thumbs.db
+**/desktop.ini
+
+# ── Credential directories — prevent accidental COPY leaks ────────────────────
+.aws
+.ssh
+.kube
+.docker
+.gnupg
+.npm
+.pnpm-store
+
+# ── Test / docs / scripts — not needed in the image ──────────────────────────
+__tests__
+*.test.*
+*.spec.*
+docs/
+README*
+CHANGELOG*
+LICENSE*
+scripts/

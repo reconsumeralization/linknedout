@@ -1,0 +1,626 @@
+"use client"
+
+import type { ActiveView } from "@/app/page"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Label } from "@/components/ui/label"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+import { Textarea } from "@/components/ui/textarea"
+import { clearOnboardingDismissed, clearWelcomeSeen } from "@/components/onboarding-card"
+import { getSupabaseClient } from "@/lib/supabase/supabase"
+import { cn } from "@/lib/shared/utils"
+import {
+  ArrowRight,
+  Bot,
+  LayoutDashboard,
+  Linkedin,
+  Loader2,
+  Mail,
+  Network,
+  Rocket,
+  ShieldCheck,
+  Sparkles,
+  Wrench,
+  type LucideIcon,
+} from "lucide-react"
+import { useTheme } from "next-themes"
+import { toast } from "sonner"
+import { useCallback, useEffect, useState } from "react"
+
+interface SettingsPanelProps {
+  onNavigate?: (view: ActiveView) => void
+}
+
+type LinkedInIdentity = {
+  name?: string
+  email?: string
+  updatedAt: string
+}
+
+type LinkedInServerIdentity = {
+  linkedin_subject: string
+  display_name: string | null
+  picture_url: string | null
+  email: string | null
+  expires_at: string
+  scopes: string | null
+  has_share_scope: boolean
+  last_introspect_at: string | null
+  introspect_active: boolean | null
+}
+
+const LINKEDIN_IDENTITY_KEY = "linkedout_linkedin_identity"
+
+type QuickLink = {
+  view: ActiveView
+  label: string
+  description: string
+  icon: LucideIcon
+}
+
+const quickLinks: QuickLink[] = [
+  {
+    view: "dashboard",
+    label: "Dashboard",
+    description: "Setup checklist and workspace overview",
+    icon: LayoutDashboard,
+  },
+  {
+    view: "email",
+    label: "Email Security",
+    description: "Review sync and mailbox protection",
+    icon: Mail,
+  },
+  {
+    view: "sentinel",
+    label: "SENTINEL",
+    description: "Security control plane — guardrails, not checkboxes",
+    icon: ShieldCheck,
+  },
+  {
+    view: "network",
+    label: "Network Insights",
+    description: "Inspect org graph and connectivity",
+    icon: Network,
+  },
+  {
+    view: "agents",
+    label: "Agent Control",
+    description: "Manage agent guardrails and tooling",
+    icon: Bot,
+  },
+]
+
+export function SettingsPanel({ onNavigate }: SettingsPanelProps) {
+  const { theme, setTheme } = useTheme()
+  const [mounted, setMounted] = useState(false)
+  const [guidesReset, setGuidesReset] = useState(false)
+  const [linkedinIdentity, setLinkedinIdentity] = useState<LinkedInIdentity | null>(null)
+  const [serverLinkedInIdentity, setServerLinkedInIdentity] = useState<LinkedInServerIdentity | null>(null)
+  const [linkedinNotice, setLinkedinNotice] = useState<string | null>(null)
+  const [linkedinError, setLinkedinError] = useState<string | null>(null)
+  const [shareText, setShareText] = useState("")
+  const [shareVisibility, setShareVisibility] = useState<"PUBLIC" | "CONNECTIONS" | "LOGGED_IN">("PUBLIC")
+  const [shareLoading, setShareLoading] = useState(false)
+  const [shareError, setShareError] = useState<string | null>(null)
+  const [shareSuccess, setShareSuccess] = useState<string | null>(null)
+
+  const supabasePublicEnvConfigured = Boolean(
+    process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+  )
+  const [hasSession, setHasSession] = useState(false)
+  useEffect(() => {
+    const supabase = getSupabaseClient()
+    if (!supabase) return
+    supabase.auth.getSession().then(({ data }) => setHasSession(!!data.session))
+    const { data } = supabase.auth.onAuthStateChange(() => {
+      supabase.auth.getSession().then(({ data: d }) => setHasSession(!!d.session))
+    })
+    return () => data.subscription.unsubscribe()
+  }, [])
+
+  const fetchServerLinkedInIdentity = useCallback(async () => {
+    const supabase = getSupabaseClient()
+    if (!supabase) return
+    const { data: sessionData } = await supabase.auth.getSession()
+    const token = sessionData.session?.access_token
+    if (!token) return
+    try {
+      const res = await fetch("/api/linkedin/identity", {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      if (!res.ok) return
+      const json = (await res.json()) as { ok?: boolean; identity?: LinkedInServerIdentity | null }
+      if (json.ok && json.identity) {
+        setServerLinkedInIdentity(json.identity)
+      } else {
+        setServerLinkedInIdentity(null)
+      }
+    } catch {
+      setServerLinkedInIdentity(null)
+    }
+  }, [])
+
+  useEffect(() => {
+    setMounted(true)
+
+    const loadSavedIdentity = () => {
+      try {
+        const raw = localStorage.getItem(LINKEDIN_IDENTITY_KEY)
+        if (!raw) return
+        const parsed = JSON.parse(raw) as LinkedInIdentity
+        if (parsed && typeof parsed === "object") {
+          setLinkedinIdentity(parsed)
+        }
+      } catch {
+        // ignore malformed local value
+      }
+    }
+
+    loadSavedIdentity()
+
+    const params = new URLSearchParams(window.location.search)
+    const isSuccess = params.get("linkedinAuthSuccess") === "true"
+    const errorCode = params.get("linkedinError")
+    const name = params.get("linkedinName") || undefined
+    const email = params.get("linkedinEmail") || undefined
+
+    if (isSuccess) {
+      const identity: LinkedInIdentity = {
+        name,
+        email,
+        updatedAt: new Date().toISOString(),
+      }
+      setLinkedinIdentity(identity)
+      setLinkedinError(null)
+      setLinkedinNotice(
+        `LinkedIn connected${name ? ` as ${name}` : ""}${email ? ` (${email})` : ""}.`,
+      )
+      try {
+        localStorage.setItem(LINKEDIN_IDENTITY_KEY, JSON.stringify(identity))
+      } catch {
+        // ignore storage errors
+      }
+      fetchServerLinkedInIdentity()
+    } else if (errorCode) {
+      setLinkedinError(`LinkedIn auth failed (${errorCode.replace(/_/g, " ")}).`)
+    }
+
+    if (isSuccess || errorCode) {
+      params.delete("linkedinAuthSuccess")
+      params.delete("linkedinError")
+      params.delete("linkedinName")
+      params.delete("linkedinEmail")
+      params.delete("linkedinExpiresIn")
+      const nextQuery = params.toString()
+      const nextUrl = `${window.location.pathname}${nextQuery ? `?${nextQuery}` : ""}${window.location.hash}`
+      window.history.replaceState({}, "", nextUrl)
+    }
+  }, [])
+
+  useEffect(() => {
+    if (!mounted) return
+    fetchServerLinkedInIdentity()
+  }, [mounted, fetchServerLinkedInIdentity])
+
+  const handleShowSetupChecklist = () => {
+    clearOnboardingDismissed()
+    onNavigate?.("dashboard")
+  }
+
+  const handleShowWelcomeAgain = () => {
+    clearWelcomeSeen()
+    onNavigate?.("dashboard")
+  }
+
+  const handleResetGuides = () => {
+    clearOnboardingDismissed()
+    clearWelcomeSeen()
+    setGuidesReset(true)
+  }
+
+  const handleClearLinkedInIdentity = () => {
+    try {
+      localStorage.removeItem(LINKEDIN_IDENTITY_KEY)
+    } catch {
+      // ignore storage errors
+    }
+    setLinkedinIdentity(null)
+    setLinkedinNotice("Stored LinkedIn identity was cleared on this browser.")
+    setLinkedinError(null)
+  }
+
+  const handleShareOnLinkedIn = useCallback(async () => {
+    const trimmed = shareText.trim()
+    if (!trimmed) {
+      toast.error("Enter some text to post.")
+      return
+    }
+    const supabase = getSupabaseClient()
+    if (!supabase) {
+      toast.error("Supabase not configured.")
+      return
+    }
+    const { data: sessionData } = await supabase.auth.getSession()
+    const token = sessionData.session?.access_token
+    if (!token) {
+      toast.error("Sign in with Supabase to post to LinkedIn.")
+      return
+    }
+    setShareLoading(true)
+    setShareError(null)
+    setShareSuccess(null)
+    try {
+      const res = await fetch("/api/linkedin/share", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ text: trimmed, visibility: shareVisibility }),
+      })
+      const json = (await res.json()) as { ok?: boolean; ugcPostId?: string; error?: string; message?: string }
+      if (res.ok && json.ok && json.ugcPostId) {
+        setShareSuccess(json.ugcPostId)
+        setShareText("")
+        toast.success("Posted to LinkedIn.")
+      } else {
+        const msg = json.message || json.error || "Post failed"
+        setShareError(msg)
+        toast.error(msg)
+      }
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "Post failed"
+      setShareError(msg)
+      toast.error(msg)
+    } finally {
+      setShareLoading(false)
+    }
+  }, [shareText, shareVisibility])
+
+  const themeLabel = mounted ? (theme ?? "dark").toUpperCase() : "LOADING"
+  const statusItems = [
+    { label: "Theme state", value: themeLabel, ok: mounted },
+    {
+      label: "Supabase public env",
+      value: supabasePublicEnvConfigured ? "Configured" : "Missing",
+      ok: supabasePublicEnvConfigured,
+    },
+    { label: "Guided onboarding controls", value: "Ready", ok: true },
+  ]
+
+  return (
+    <div className="h-full overflow-y-auto p-6">
+      <div className="mx-auto max-w-3xl space-y-6">
+        <header className="rounded-xl border border-border/80 bg-gradient-to-br from-primary/10 via-background to-background p-5">
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <p className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">Control center</p>
+              <h1 className="mt-2 text-2xl font-semibold tracking-tight">Settings</h1>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Tune appearance, onboarding flow, and workspace behavior.
+              </p>
+              <p className="mt-2 text-xs text-muted-foreground/90 flex items-center gap-1.5">
+                <ShieldCheck className="h-3.5 w-3.5 shrink-0" />
+                Credentials are encrypted; security is built in, not bolted on.
+              </p>
+            </div>
+            <div className="flex size-10 items-center justify-center rounded-lg border border-primary/30 bg-primary/10 text-primary">
+              <Wrench className="h-4 w-4" />
+            </div>
+          </div>
+        </header>
+
+        {onNavigate ? (
+          <Card className="border-primary/10 bg-primary/5">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium">Setup progress</CardTitle>
+              <CardDescription className="text-xs">
+                At a glance. Full steps on Dashboard or the setup guide.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="pt-0">
+              <div className="flex flex-wrap items-center gap-3">
+                <div className="flex items-center gap-2 rounded-md border border-border/80 bg-background/60 px-3 py-2">
+                  <span className={`inline-block h-2 w-2 rounded-full ${supabasePublicEnvConfigured ? "bg-emerald-500" : "bg-amber-500"}`} />
+                  <span className="text-xs">Supabase env</span>
+                  <span className="text-xs text-muted-foreground">{supabasePublicEnvConfigured ? "Set" : "Missing"}</span>
+                </div>
+                <div className="flex items-center gap-2 rounded-md border border-border/80 bg-background/60 px-3 py-2">
+                  <span className={`inline-block h-2 w-2 rounded-full ${hasSession ? "bg-emerald-500" : "bg-amber-500"}`} />
+                  <span className="text-xs">Session</span>
+                  <span className="text-xs text-muted-foreground">{hasSession ? "Signed in" : "Not signed in"}</span>
+                </div>
+                <div className="flex items-center gap-2 rounded-md border border-border/80 bg-background/60 px-3 py-2">
+                  <span className={`inline-block h-2 w-2 rounded-full ${serverLinkedInIdentity || linkedinIdentity ? "bg-emerald-500" : "bg-muted-foreground/60"}`} />
+                  <span className="text-xs">LinkedIn</span>
+                  <span className="text-xs text-muted-foreground">{serverLinkedInIdentity || linkedinIdentity ? "Connected" : "Optional"}</span>
+                </div>
+                <Button variant="ghost" size="sm" className="h-7 text-xs gap-1" asChild>
+                  <a href="/setup" target="_blank" rel="noopener noreferrer">
+                    Full guide
+                    <ArrowRight className="h-3 w-3" />
+                  </a>
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        ) : null}
+
+        {onNavigate ? (
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base flex items-center gap-2">
+                <Rocket className="h-4 w-4" />
+                Setup and onboarding
+              </CardTitle>
+              <CardDescription>
+                Sign in with Supabase (see .env.example) to unlock Email, Network Insights, and Agent Control. The conversational setup checklist is on the Dashboard, and AI Assistant can guide CSV/PDF imports once you are ready.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-2">
+              <Button variant="outline" size="sm" className="gap-2 w-full sm:w-auto" asChild>
+                <a href="/setup" target="_blank" rel="noopener noreferrer">
+                  <Rocket className="h-4 w-4" />
+                  Open setup guide (Supabase &amp; LinkedIn)
+                </a>
+              </Button>
+              <Button variant="outline" size="sm" className="gap-2 w-full sm:w-auto" onClick={handleShowSetupChecklist}>
+                <LayoutDashboard className="h-4 w-4" />
+                Show setup checklist on Dashboard
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-2 w-full sm:w-auto"
+                onClick={() => {
+                  window.location.href = "/login?redirect=/auth"
+                }}
+              >
+                <ShieldCheck className="h-4 w-4" />
+                Open login page
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-2 w-full sm:w-auto"
+                onClick={() => {
+                  window.location.href = "/auth"
+                }}
+              >
+                <ArrowRight className="h-4 w-4" />
+                Open auth center
+              </Button>
+              <Button variant="ghost" size="sm" className="gap-2 w-full sm:w-auto text-muted-foreground" onClick={handleShowWelcomeAgain}>
+                <Sparkles className="h-4 w-4" />
+                Show welcome screen again
+              </Button>
+            </CardContent>
+          </Card>
+        ) : null}
+
+        {onNavigate ? (
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Workspace shortcuts</CardTitle>
+              <CardDescription>Jump directly to high-impact sections from one place.</CardDescription>
+            </CardHeader>
+            <CardContent className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+              {quickLinks.map((link) => {
+                const Icon = link.icon
+                return (
+                  <Button
+                    key={link.view}
+                    variant="outline"
+                    className="h-auto justify-between px-3 py-3"
+                    onClick={() => onNavigate(link.view)}
+                  >
+                    <span className="flex min-w-0 items-start gap-2 text-left">
+                      <Icon className="mt-0.5 h-4 w-4 shrink-0" />
+                      <span className="min-w-0">
+                        <span className="block text-sm font-medium">{link.label}</span>
+                        <span className="block text-xs text-muted-foreground">{link.description}</span>
+                      </span>
+                    </span>
+                    <ArrowRight className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                  </Button>
+                )
+              })}
+            </CardContent>
+          </Card>
+        ) : null}
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Appearance</CardTitle>
+            <CardDescription>Choose how LinkedOut looks.</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <div className="flex items-center gap-2">
+                <Label htmlFor="theme">Theme</Label>
+                <Badge variant="secondary" className="text-[10px] tracking-wide">
+                  {themeLabel}
+                </Badge>
+              </div>
+              {mounted ? (
+                <Select
+                  value={theme ?? "dark"}
+                  onValueChange={(value) => setTheme(value)}
+                >
+                  <SelectTrigger id="theme" className="w-[220px]">
+                    <SelectValue placeholder="Theme" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="light">Light</SelectItem>
+                    <SelectItem value="dark">Dark</SelectItem>
+                  </SelectContent>
+                </Select>
+              ) : (
+                <Button id="theme" variant="outline" className="w-[220px] justify-between" disabled>
+                  Loading...
+                </Button>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base flex items-center gap-2">
+              <Linkedin className="h-4 w-4" />
+              LinkedIn consumer auth
+            </CardTitle>
+            <CardDescription>
+              Sign In with LinkedIn (OpenID Connect). Use &quot;Connect with Share&quot; to also allow posting from LinkedOut. Scopes: <code className="rounded bg-muted px-1 py-0.5 text-xs">openid profile email</code>
+              {serverLinkedInIdentity?.has_share_scope ? " + w_member_social" : ""}.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <div className="flex items-center justify-between rounded-md border border-border/70 px-3 py-2 text-sm">
+              <div className="flex items-center gap-2">
+                <span className={cn("inline-block h-2 w-2 rounded-full", (serverLinkedInIdentity || linkedinIdentity) ? "bg-emerald-500" : "bg-amber-500")} />
+                <span>Status</span>
+              </div>
+              <span className="text-xs text-muted-foreground">
+                {serverLinkedInIdentity ? "Connected (saved to account)" : linkedinIdentity ? "Connected (this browser)" : "Not connected"}
+              </span>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <Button size="sm" asChild>
+                <a href="/auth/linkedin">Connect LinkedIn</a>
+              </Button>
+              <Button size="sm" variant="outline" asChild>
+                <a href="/auth/linkedin?scope=share">Connect with Share</a>
+              </Button>
+              {linkedinIdentity && !serverLinkedInIdentity ? (
+                <Button size="sm" variant="ghost" onClick={handleClearLinkedInIdentity}>
+                  Clear local identity
+                </Button>
+              ) : null}
+            </div>
+            {(serverLinkedInIdentity || linkedinIdentity) ? (
+              <p className="text-xs text-muted-foreground">
+                Connected: {serverLinkedInIdentity?.display_name ?? linkedinIdentity?.name ?? "Unknown name"}
+                {(serverLinkedInIdentity?.email ?? linkedinIdentity?.email) ? ` (${serverLinkedInIdentity?.email ?? linkedinIdentity?.email})` : ""}
+                {serverLinkedInIdentity?.has_share_scope ? " · Can post to LinkedIn." : ""}
+              </p>
+            ) : (
+              <p className="text-xs text-muted-foreground">
+                Connect to link your LinkedIn identity to LinkedOut. Sign in with Supabase first to save the connection to your account.
+              </p>
+            )}
+            {linkedinNotice ? (
+              <p className="text-xs text-emerald-600 dark:text-emerald-400">{linkedinNotice}</p>
+            ) : null}
+            {linkedinError ? (
+              <p className="text-xs text-destructive">{linkedinError}</p>
+            ) : null}
+
+            {serverLinkedInIdentity?.has_share_scope ? (
+              <div className="space-y-3 border-t border-border pt-3 mt-3">
+                <Label className="text-xs font-medium">Share on LinkedIn</Label>
+                <Textarea
+                  placeholder="What do you want to share? (max 3000 characters)"
+                  value={shareText}
+                  onChange={(e) => setShareText(e.target.value.slice(0, 3000))}
+                  className="min-h-[100px] text-sm resize-y"
+                  maxLength={3000}
+                  disabled={shareLoading}
+                />
+                <div className="flex flex-wrap items-center gap-2">
+                  <Select value={shareVisibility} onValueChange={(v) => setShareVisibility(v as "PUBLIC" | "CONNECTIONS" | "LOGGED_IN")}>
+                    <SelectTrigger className="w-[140px] h-8 text-xs">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="PUBLIC" className="text-xs">Public</SelectItem>
+                      <SelectItem value="CONNECTIONS" className="text-xs">Connections</SelectItem>
+                      <SelectItem value="LOGGED_IN" className="text-xs">Logged-in members</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <Button
+                    size="sm"
+                    onClick={handleShareOnLinkedIn}
+                    disabled={shareLoading || !shareText.trim()}
+                    className="gap-1.5"
+                  >
+                    {shareLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : null}
+                    {shareLoading ? "Posting..." : "Post to LinkedIn"}
+                  </Button>
+                </div>
+                {shareSuccess ? (
+                  <p className="text-xs text-emerald-600 dark:text-emerald-400">Posted. Post ID: {shareSuccess}</p>
+                ) : null}
+                {shareError ? (
+                  <p className="text-xs text-destructive">{shareError}</p>
+                ) : null}
+              </div>
+            ) : null}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base flex items-center gap-2">
+              <ShieldCheck className="h-4 w-4" />
+              Local guides and prompts
+            </CardTitle>
+            <CardDescription>Reset onboarding reminders and welcome prompts for this browser.</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            <Button variant="outline" size="sm" className="w-full sm:w-auto" onClick={handleResetGuides}>
+              Reset onboarding and welcome flags
+            </Button>
+            {guidesReset ? (
+              <p className="text-xs text-emerald-600 dark:text-emerald-400">
+                Local guidance flags were reset.
+              </p>
+            ) : null}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Runtime status</CardTitle>
+            <CardDescription>Fast checks for client configuration and readiness.</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            {statusItems.map((item) => (
+              <div key={item.label} className="flex items-center justify-between rounded-md border border-border/70 px-3 py-2 text-sm">
+                <div className="flex items-center gap-2">
+                  <span
+                    className={cn(
+                      "inline-block h-2 w-2 rounded-full",
+                      item.ok ? "bg-emerald-500" : "bg-amber-500",
+                    )}
+                  />
+                  <span>{item.label}</span>
+                </div>
+                <span className="text-xs text-muted-foreground">{item.value}</span>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">About</CardTitle>
+            <CardDescription>LinkedOut and environment.</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-2 text-sm text-muted-foreground">
+            <p>
+              LinkedOut - LinkedIn CRM and Tribe Intelligence. Environment and
+              API keys are configured via <code className="rounded bg-muted px-1 py-0.5 text-xs">.env.local</code> and
+              documented in <code className="rounded bg-muted px-1 py-0.5 text-xs">.env.example</code>.
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+    </div>
+  )
+}

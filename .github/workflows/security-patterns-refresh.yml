@@ -1,0 +1,91 @@
+name: Refresh security patterns
+
+on:
+  schedule:
+    # Run every Monday at 03:00 UTC
+    - cron: "0 3 * * 1"
+  workflow_dispatch: {}
+
+jobs:
+  refresh-security-patterns:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: "pnpm"
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile=false
+
+      - name: Refresh security-patterns.json via OpenAI
+        run: pnpm security:patterns:update
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+
+      - name: Create pull request with updated patterns
+        uses: peter-evans/create-pull-request@v7
+        with:
+          commit-message: "chore: refresh security patterns"
+          title: "chore: refresh security patterns"
+          body: |
+            Automated refresh of `config/security-patterns.json` using the OpenAI-backed updater script.
+
+            - Runs weekly via GitHub Actions (see `.github/workflows/security-patterns-refresh.yml`).
+            - Uses the `OPENAI_API_KEY` repository secret.
+          branch: chore/refresh-security-patterns
+          add-paths: |
+            config/security-patterns.json
+
+name: Refresh Security Patterns
+
+on:
+  schedule:
+    - cron: "0 3 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  refresh-patterns:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Refresh security pattern registry
+        env:
+          SECURITY_PATTERNS_FEED_URL: ${{ secrets.SECURITY_PATTERNS_FEED_URL }}
+          SECURITY_PATTERNS_FEED_BEARER: ${{ secrets.SECURITY_PATTERNS_FEED_BEARER }}
+        run: node scripts/update-security-patterns.mjs
+
+      - name: Commit and push changes
+        run: |
+          if git diff --quiet -- config/security-patterns.json; then
+            echo "No pattern changes to commit."
+            exit 0
+          fi
+
+          git config user.name "security-patterns-bot"
+          git config user.email "security-patterns-bot@users.noreply.github.com"
+          git add config/security-patterns.json
+          git commit -m "chore(security): refresh pattern registry"
+          git push
+

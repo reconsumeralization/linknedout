@@ -1,0 +1,234 @@
+# LinkedOut — full local stack
+#
+# ── Prerequisites ──────────────────────────────────────────────────────────────
+# 1. Copy .env.example → .env  (docker-compose reads .env automatically)
+# 2. Set POSTGRES_PASSWORD to a strong random value (openssl rand -base64 32)
+# 3. Set NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY if using Supabase cloud
+#
+# ── Common commands ────────────────────────────────────────────────────────────
+#   docker compose up --build          # build + start everything
+#   docker compose up db               # DB only
+#   docker compose logs -f app         # tail app logs
+#   docker compose exec db psql -U postgres -d postgres
+#   docker compose down -v             # stop + wipe volumes (full reset)
+#
+# ── Port access ────────────────────────────────────────────────────────────────
+#   App : http://127.0.0.1:3000
+#   DB  : 127.0.0.1:54322 (host-only; not exposed to LAN/internet)
+
+name: linkedout
+
+# ── Docker secrets ─────────────────────────────────────────────────────────────
+# The POSTGRES_PASSWORD host env var is mounted as a secret file inside
+# containers instead of appearing in `docker inspect` output.
+secrets:
+  postgres_password:
+    environment: "POSTGRES_PASSWORD"
+
+# ── Isolated networks ─────────────────────────────────────────────────────────
+networks:
+  # data: internal network — only app ↔ db. Cannot reach internet.
+  data:
+    internal: true
+  # frontend: carries traffic between the host and the app only.
+  frontend: {}
+
+services:
+
+  # ── PostgreSQL 16 ────────────────────────────────────────────────────────────
+  db:
+    image: postgres:16-alpine
+    container_name: linkedout-db
+    restart: unless-stopped
+    secrets:
+      - postgres_password
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_DB: postgres
+      # PostgreSQL reads the password from the secret file — never an env var.
+      POSTGRES_PASSWORD_FILE: /run/secrets/postgres_password
+    ports:
+      # Loopback-only: inaccessible from outside the host machine
+      - "127.0.0.1:54322:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d postgres || exit 1"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    volumes:
+      - linkedout_db_data:/var/lib/postgresql/data
+      - ./supabase/docker/init/00-supabase-compat.sql:/docker-entrypoint-initdb.d/00-supabase-compat.sql:ro
+      - ./supabase/docker/init/10-apply-migrations.sh:/docker-entrypoint-initdb.d/10-apply-migrations.sh:ro
+      - ./supabase/migrations:/workspace/migrations:ro
+    networks:
+      - data
+    # Minimal Linux capabilities — Postgres needs only these to run
+    cap_drop: [ALL]
+    cap_add:
+      - CHOWN      # change ownership of data directory
+      - SETUID     # drop to non-root postgres user
+      - SETGID
+      - DAC_OVERRIDE  # read/write data dir before ownership is set
+    security_opt:
+      - no-new-privileges:true
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 512M
+
+  # ── Next.js app ───────────────────────────────────────────────────────────────
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      # NEXT_PUBLIC_* are embedded in the JS bundle at build time.
+      # Provide via host env or a root .env file (docker-compose reads it automatically).
+      args:
+        NEXT_PUBLIC_SUPABASE_URL: ${NEXT_PUBLIC_SUPABASE_URL:-}
+        NEXT_PUBLIC_SUPABASE_ANON_KEY: ${NEXT_PUBLIC_SUPABASE_ANON_KEY:-}
+        NEXT_PUBLIC_APP_URL: ${NEXT_PUBLIC_APP_URL:-http://localhost:3000}
+    container_name: linkedout-app
+    restart: unless-stopped
+    ports:
+      # Loopback-only — put nginx/Caddy/Traefik in front for TLS in production
+      - "127.0.0.1:3000:3000"
+    # Runtime secrets — sourced from .env.local (gitignored)
+    # Compose interpolation for ${...} uses host env or .env, not env_file values.
+    # Export POSTGRES_PASSWORD (or put it in .env) before running docker compose.
+    env_file:
+      - path: .env.local
+        required: false
+    environment:
+      NODE_ENV: production
+      # Inside the compose network the DB is reached by service name.
+      # Password injected from host env — never hardcoded here.
+      SUPABASE_DB_CONTAINER_URL: "postgresql://postgres:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set for docker compose}@db:5432/postgres"
+      SUPABASE_DB_CONTAINER_HOST: db
+      SUPABASE_DB_CONTAINER_PORT: "5432"
+      SUPABASE_DB_CONTAINER_USER: postgres
+      SUPABASE_DB_CONTAINER_DATABASE: postgres
+      SUPABASE_DB_CONTAINER_PASSWORD: "${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set for docker compose}"
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:3000/ > /dev/null || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 40s
+    networks:
+      - data      # reaches the DB
+      - frontend  # reachable from host
+    # Drop all Linux capabilities — Next.js node process needs none
+    cap_drop: [ALL]
+    security_opt:
+      - no-new-privileges:true
+    # Read-only root filesystem; only /tmp is writable
+    read_only: true
+    tmpfs:
+      - /tmp:mode=1777,size=128m
+    deploy:
+      resources:
+        limits:
+          cpus: "2.0"
+          memory: 1G
+    develop:
+      watch:
+        - action: rebuild
+          path: .
+          ignore:
+            - node_modules
+            - .next
+            - .git
+
+  # ── Local security-patterns updater (no GitHub required) ─────────────────────
+  #
+  # This sidecar runs entirely on your own infrastructure and periodically
+  # executes the OpenAI-backed updater script:
+  #   node scripts/update-security-patterns-from-openai.js
+  #
+  # It only:
+  #   - Reads & writes `config/security-patterns.json` in the mounted workspace
+  #   - Calls the OpenAI API using OPENAI_API_KEY from your private env
+  #
+  # Frequency is controlled by SECURITY_PATTERNS_INTERVAL_SECONDS
+  # (default: one week = 604800 seconds).
+  security-cron:
+    image: node:22-alpine
+    container_name: linkedout-security-cron
+    restart: unless-stopped
+    working_dir: /workspace
+    volumes:
+      - ./:/workspace
+    env_file:
+      - path: .env.local
+        required: false
+    environment:
+      # Must be set in your private .env/.env.local or host env
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      # Optional: override interval (in seconds). Default is 7 days.
+      SECURITY_PATTERNS_INTERVAL_SECONDS: ${SECURITY_PATTERNS_INTERVAL_SECONDS:-604800}
+    # No network access to DB; only needs outbound HTTPS to OpenAI.
+    networks:
+      - frontend
+    command: >
+      sh -c "
+        INTERVAL=\"$${SECURITY_PATTERNS_INTERVAL_SECONDS:-604800}\";
+        echo \"[security-cron] Starting with interval=$${INTERVAL}s\";
+        while true; do
+          if [ -z \"$${OPENAI_API_KEY}\" ]; then
+            echo \"[security-cron] OPENAI_API_KEY is not set, skipping update\" 1>&2;
+          else
+            echo \"[security-cron] Running security-patterns update...\";
+            node scripts/update-security-patterns-from-openai.js || echo \"[security-cron] Update failed (see logs above)\";
+          fi;
+          sleep \"$${INTERVAL}\";
+        done
+      "
+
+  # ── SENTINEL KPI webhook cron (no GitHub required) ───────────────────────────
+  #
+  # Periodically POSTs to the app's /api/sentinel/cron to evaluate KPI thresholds
+  # and dispatch webhook alerts. Requires SENTINEL_CRON_SECRET and app to be up.
+  #
+  # Frequency: SENTINEL_CRON_INTERVAL_SECONDS (default 600 = 10 minutes).
+  sentinel-cron:
+    image: node:22-alpine
+    container_name: linkedout-sentinel-cron
+    restart: unless-stopped
+    working_dir: /workspace
+    volumes:
+      - ./:/workspace
+    env_file:
+      - path: .env.local
+        required: false
+    environment:
+      SENTINEL_CRON_SECRET: ${SENTINEL_CRON_SECRET:-}
+      SENTINEL_CRON_APP_URL: "http://app:3000"
+      SENTINEL_CRON_DRY_RUN: ${SENTINEL_CRON_DRY_RUN:-false}
+      SENTINEL_CRON_MAX_OWNERS: ${SENTINEL_CRON_MAX_OWNERS:-50}
+      SENTINEL_CRON_LOOKBACK_HOURS: ${SENTINEL_CRON_LOOKBACK_HOURS:-24}
+      SENTINEL_CRON_INTERVAL_SECONDS: ${SENTINEL_CRON_INTERVAL_SECONDS:-600}
+    networks:
+      - frontend
+    depends_on:
+      - app
+    command: >
+      sh -c "
+        INTERVAL=\"$${SENTINEL_CRON_INTERVAL_SECONDS:-600}\";
+        echo \"[sentinel-cron] Starting with interval=$${INTERVAL}s, app=http://app:3000\";
+        while true; do
+          if [ -z \"$${SENTINEL_CRON_SECRET}\" ]; then
+            echo \"[sentinel-cron] SENTINEL_CRON_SECRET is not set, skipping\" 1>&2;
+          else
+            echo \"[sentinel-cron] Invoking /api/sentinel/cron...\";
+            node scripts/sentinel-cron-invoke.mjs || echo \"[sentinel-cron] Invoke failed (see logs above)\";
+          fi;
+          sleep \"$${INTERVAL}\";
+        done
+      "
+
+volumes:
+  linkedout_db_data:

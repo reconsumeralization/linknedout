@@ -1,0 +1,13 @@
+▲ Next.js 16.1.6 (webpack)
+- Local:         http://localhost:3000
+- Network:       http://192.168.0.101:3000
+- Environments: .env.local
+
+✓ Starting...
+✓ Ready in 17.4s
+○ Compiling / ...
+ GET / 200 in 3.5s (compile: 1878ms, render: 1648ms)
+ GET / 200 in 161ms (compile: 34ms, render: 126ms)
+ GET / 200 in 185ms (compile: 15ms, render: 171ms)
+○ Compiling /api/chat ...
+^C

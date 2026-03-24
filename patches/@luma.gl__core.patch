@@ -1,0 +1,18 @@
+diff --git a/dist/adapter/canvas-context.js b/dist/adapter/canvas-context.js
+index d4436e12f2fdfde833d7c942066db523ee61c90e..bb5bc46d60556e4c2e8b28a7b2a661a4532461d8 100644
+--- a/dist/adapter/canvas-context.js
++++ b/dist/adapter/canvas-context.js	
+@@ -166,8 +166,11 @@ export class CanvasContext {
+     }
+     /** Returns the biggest allowed framebuffer size. @todo Allow the application to limit this? */
+     getMaxDrawingBufferSize() {
+-        const maxTextureDimension = this.device.limits.maxTextureDimension2D;
+-        return [maxTextureDimension, maxTextureDimension];
++        const maxTextureDimension = this.device?.limits?.maxTextureDimension2D;
++        const size = (typeof maxTextureDimension === 'number' && maxTextureDimension >= 1024)
++            ? maxTextureDimension
++            : 16384;
++        return [size, size];
+     }
+     /** Update the canvas drawing buffer size. Called automatically if props.autoResize is true. */
+     setDrawingBufferSize(width, height) {

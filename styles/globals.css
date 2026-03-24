@@ -1,0 +1,161 @@
+@import 'tailwindcss';
+@import 'tw-animate-css';
+
+@custom-variant dark (&:is(.dark *));
+
+/* LinkedIn-inspired palette (default: LinkedIn in light mode, .dark: dark mode) */
+
+:root {
+  /* LinkedIn Light Background and Foreground */
+  --background: #f3f6f8;               /* LinkedIn main background */
+  --foreground: #1d2226;               /* LinkedIn text */
+  --card: #fff;                        /* Card/Panel/Feed background */
+  --card-foreground: #1d2226;
+  --popover: #fff;                     /* Dropdown/Popover */
+  --popover-foreground: #1d2226;
+
+  /* Primary: LinkedIn Blue */
+  --primary: #0a66c2;
+  --primary-foreground: #fff;
+
+  /* Secondary: Lighter LinkedIn blue-gray, for sidebar or muted buttons */
+  --secondary: #eef3f8;
+  --secondary-foreground: #0a66c2;
+
+  /* Muted and Accent */
+  --muted: #e9ecef;
+  --muted-foreground: #71777c;         /* Muted text */
+
+  --accent: #e9ecef;
+  --accent-foreground: #0a66c2;
+
+  /* Alerts/Destructive */
+  --destructive: #d61c1c;
+  --destructive-foreground: #fff;
+
+  /* Borders and input */
+  --border: #e0e0e0;
+  --input: #e0e0e0;
+  --ring: #4086c9;                     /* Subtle LinkedIn blue shadow for focus */
+
+  /* Chart accent colors (using LinkedIn visual style blues/grays) */
+  --chart-1: #0a66c2;
+  --chart-2: #5e9cd3;
+  --chart-3: #b8d1e8;
+  --chart-4: #e6e9ef;
+  --chart-5: #17272f;
+
+  --radius: 0.5rem;
+
+  /* Sidebar/Nav-specific */
+  --sidebar: #fff;
+  --sidebar-foreground: #1d2226;
+  --sidebar-primary: #0a66c2;
+  --sidebar-primary-foreground: #fff;
+  --sidebar-accent: #edf3f8;
+  --sidebar-accent-foreground: #0a66c2;
+  --sidebar-border: #e0e0e0;
+  --sidebar-ring: #4086c9;
+}
+
+.dark {
+  --background: #181e23;               /* LinkedIn dark BG */
+  --foreground: #f3f6f8;
+  --card: #22272a;
+  --card-foreground: #f3f6f8;
+  --popover: #22272a;
+  --popover-foreground: #f3f6f8;
+
+  --primary: #378fe9;                  /* Lighter LinkedIn blue for dark backgrounds */
+  --primary-foreground: #fff;
+
+  --secondary: #23262a;
+  --secondary-foreground: #3795d2;
+
+  --muted: #23262a;
+  --muted-foreground: #b8c3cc;
+
+  --accent: #23262a;
+  --accent-foreground: #378fe9;
+
+  --destructive: #e06666;
+  --destructive-foreground: #fff;
+
+  --border: #2a3136;
+  --input: #2a3136;
+  --ring: #3795d2;
+
+  --chart-1: #378fe9;
+  --chart-2: #70b5f9;
+  --chart-3: #b8d1e8;
+  --chart-4: #343d45;
+  --chart-5: #4b5763;
+
+  --sidebar: #23262a;
+  --sidebar-foreground: #f3f6f8;
+  --sidebar-primary: #0a66c2;
+  --sidebar-primary-foreground: #fff;
+  --sidebar-accent: #2a3136;
+  --sidebar-accent-foreground: #378fe9;
+  --sidebar-border: #343d45;
+  --sidebar-ring: #70b5f9;
+}
+
+@theme inline {
+  --font-sans: 'Segoe UI', 'Roboto', 'Arial', 'Helvetica Neue', sans-serif;
+  --font-mono: 'Geist Mono', 'Geist Mono Fallback', monospace;
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+    font-family: var(--font-sans);
+    box-sizing: border-box;
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-family: var(--font-sans);
+    font-size: 1rem;
+    background-color: var(--background);
+    color: var(--foreground);
+    letter-spacing: 0.01em;
+    line-height: 1.5;
+    min-height: 100vh;
+  }
+}

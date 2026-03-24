@@ -1,0 +1,113 @@
+{
+  "manifest_type": "adgap.c2pa_style.flight_manifest",
+  "version": "1.0.0",
+  "manifest_id": "manifest_2026_09_14_flight_8f1d4c",
+  "created_at": "2026-09-14T18:42:11Z",
+  "issuer": {
+    "organization": "AgentForge",
+    "component": "drone-orchestrator",
+    "kid": "af-prod-kms-key-17"
+  },
+  "subject": {
+    "mission_id": "mission_8f1d4c",
+    "operator_id": "operator_acme_airlogistics",
+    "drone_id": "drone_px4_047",
+    "dock_id": "dock_sfo_03",
+    "region": "US-CA"
+  },
+  "assertions": [
+    {
+      "type": "adgap.order_trigger",
+      "timestamp": "2026-09-14T18:21:03Z",
+      "actor": {
+        "type": "human",
+        "id": "usr_1f2b9e",
+        "role": "maestro_dispatcher"
+      },
+      "payload": {
+        "intent": "restock_medical_supplies",
+        "cargo_class": "medical_non_hazardous",
+        "priority": "urgent",
+        "destination": {
+          "lat": 37.7643,
+          "lon": -122.4589
+        }
+      },
+      "hash": "sha256:1c51688ce4f3e8e7f4f74fc9a0de5ec2de42d01b7ae8e73e72a3ed5a590f4b2f"
+    },
+    {
+      "type": "adgap.risk_assessment",
+      "timestamp": "2026-09-14T18:22:19Z",
+      "actor": {
+        "type": "agent",
+        "id": "agent_safety_sentinel_v12",
+        "model_version": "gpt-4.1-mini-2026-08"
+      },
+      "payload": {
+        "risk_score": 0.31,
+        "confidence": 0.92,
+        "tail_risk": 0.04,
+        "policy_result": "human_signoff_required",
+        "factors": [
+          "coastal_wind_cell",
+          "school_zone_proximity"
+        ]
+      },
+      "hash": "sha256:233c8c4f63013667017f0d0225fb2d0eaf03b8645a06be7a8e7b007f7fb3d0b9"
+    },
+    {
+      "type": "adgap.human_signoff",
+      "timestamp": "2026-09-14T18:23:02Z",
+      "actor": {
+        "type": "human",
+        "id": "usr_8a1dd2",
+        "role": "flight_supervisor"
+      },
+      "payload": {
+        "decision": "approved",
+        "reason": "wind fallback route acceptable",
+        "mfa_verified": true
+      },
+      "hash": "sha256:b059de6ea1f8b42d4f9f8fddc8806d3bf0a05cbb7f934b5ed2bce6f0e73e5a0c"
+    },
+    {
+      "type": "adgap.delivery_confirmation",
+      "timestamp": "2026-09-14T18:38:45Z",
+      "actor": {
+        "type": "agent",
+        "id": "agent_delivery_vision_v4"
+      },
+      "payload": {
+        "status": "delivered",
+        "recipient_ack": "app_signature",
+        "media_ref": "s3://evidence-bucket/mission_8f1d4c/confirm.jpg",
+        "privacy_redaction_applied": true
+      },
+      "hash": "sha256:fc6e8a8d6cc0204688f8ab018c2cd4b5f84cc5ad8913290f0d1836f3d25189cc"
+    }
+  ],
+  "ingredients": [
+    {
+      "source": "utm_feed",
+      "ref": "utm_snapshot_2026-09-14T18:22:00Z",
+      "hash": "sha256:44f043f8a5ecb392e6fce4431de5316f83ecf2c9d7d009c372e211b87885cdaf"
+    },
+    {
+      "source": "weather_provider",
+      "ref": "wx_grid_2026-09-14T18:21:30Z",
+      "hash": "sha256:31eb197b9705f9009ca4d5db136b35cb95fa5c3c1479184e724acdefa3f7e412"
+    }
+  ],
+  "integrity": {
+    "hash_algorithm": "sha256",
+    "chain_root": "sha256:ef6f7c8871e36fdde5ed3537f5608f6a6b96f4be8a5056229ec2dad7bca1571d",
+    "signature": {
+      "alg": "ES256",
+      "value": "MEUCIA0R7mX5JQz4hW6lN9b3J4XxQfW5fJ2A0jk5jR9P...=="
+    }
+  },
+  "retention": {
+    "policy": "default_30d_with_dispute_hold",
+    "expires_at": "2026-10-14T18:42:11Z"
+  }
+}
