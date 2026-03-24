@@ -2613,3 +2613,57 @@ export async function fetchSupplyChainMonitors(status?: string) {
   if (error) { console.error("fetchSupplyChainMonitors", error); return [] }
   return data ?? []
 }
+
+// ---------------------------------------------------------------------------
+// Recursive Meta-Agent
+// ---------------------------------------------------------------------------
+
+export async function fetchEvolutionLogs(mutationType?: string) {
+  const supabase = getSupabaseClient()
+  if (!supabase) return []
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return []
+  let query = supabase.from("evolution_logs").select("*").eq("user_id", user.id).order("created_at", { ascending: false })
+  if (mutationType) query = query.eq("mutation_type", mutationType)
+  const { data, error } = await query
+  if (error) { console.error("fetchEvolutionLogs", error); return [] }
+  return data ?? []
+}
+
+export async function fetchPerformanceMutations(toolName?: string) {
+  const supabase = getSupabaseClient()
+  if (!supabase) return []
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return []
+  let query = supabase.from("performance_mutations").select("*").eq("user_id", user.id).order("created_at", { ascending: false })
+  if (toolName) query = query.eq("tool_name", toolName)
+  const { data, error } = await query
+  if (error) { console.error("fetchPerformanceMutations", error); return [] }
+  return data ?? []
+}
+
+export async function fetchTribalDna(status?: string) {
+  const supabase = getSupabaseClient()
+  if (!supabase) return []
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return []
+  let query = supabase.from("tribal_dna_registry").select("*").eq("contributor_user_id", user.id).order("created_at", { ascending: false })
+  if (status) query = query.eq("status", status)
+  const { data, error } = await query
+  if (error) { console.error("fetchTribalDna", error); return [] }
+  return data ?? []
+}
+
+export async function fetchChairmanAlignment(): Promise<Record<string, number>> {
+  const supabase = getSupabaseClient()
+  if (!supabase) return {}
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return {}
+  const { data, error } = await supabase.from("chairman_alignment_vectors").select("dimension, weight").eq("user_id", user.id)
+  if (error) { console.error("fetchChairmanAlignment", error); return {} }
+  const result: Record<string, number> = {}
+  for (const row of data ?? []) {
+    result[row.dimension] = row.weight
+  }
+  return result
+}

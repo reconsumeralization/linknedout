@@ -1654,5 +1654,234 @@ export function createSovereignTools(
         }
       },
     }),
+
+    // ========================================================================
+    // Recursive Meta-Agent Tools (Agent #0) — Tools #150-155
+    // ========================================================================
+
+    initializeRecursiveEvolution: tool({
+      description:
+        "Activate Agent #0 to begin autonomous self-optimization of the Sovereign Factory",
+      inputSchema: z.object({
+        evolutionDirection: z.string().optional(),
+      }),
+      execute: async (input) => {
+        try {
+          const { data: log, error } = await client
+            .from("evolution_logs")
+            .insert({
+              user_id: userId,
+              tool_name: "agent_zero",
+              mutation_type: "optimization",
+              before_state: { status: "inactive" },
+              after_state: { status: "active", direction: input.evolutionDirection },
+              auto_applied: true,
+            })
+            .select()
+            .single()
+
+          if (error || !log) {
+            return { ok: false, error: error?.message || "Failed to initialize recursive evolution." }
+          }
+
+          return { ok: true, log, message: "Agent #0 activated" }
+        } catch (err: unknown) {
+          return { ok: false, error: err instanceof Error ? err.message : "Unknown error initializing recursive evolution." }
+        }
+      },
+    }),
+
+    refactorAgentLogic: tool({
+      description:
+        "Auto-rewrite tool code for efficiency based on performance bottleneck analysis",
+      inputSchema: z.object({
+        toolName: z.string(),
+        bottleneck: z.string(),
+        proposedFix: z.string(),
+      }),
+      execute: async (input) => {
+        try {
+          const { data: evolution, error: evoError } = await client
+            .from("evolution_logs")
+            .insert({
+              user_id: userId,
+              tool_name: input.toolName,
+              mutation_type: "refactor",
+              before_state: { bottleneck: input.bottleneck },
+              after_state: { proposedFix: input.proposedFix },
+              auto_applied: false,
+            })
+            .select()
+            .single()
+
+          if (evoError || !evolution) {
+            return { ok: false, error: evoError?.message || "Failed to log refactor evolution." }
+          }
+
+          const { data: mutation, error: mutError } = await client
+            .from("performance_mutations")
+            .insert({
+              user_id: userId,
+              tool_name: input.toolName,
+              metric_name: "latency_ms",
+              before_value: 0,
+              after_value: 0,
+              improvement_pct: 0,
+              mutation_source: "meta_agent",
+              reverted: false,
+            })
+            .select()
+            .single()
+
+          if (mutError || !mutation) {
+            return { ok: false, error: mutError?.message || "Failed to insert performance mutation." }
+          }
+
+          return { ok: true, evolution, mutation }
+        } catch (err: unknown) {
+          return { ok: false, error: err instanceof Error ? err.message : "Unknown error refactoring agent logic." }
+        }
+      },
+    }),
+
+    optimizeThermodynamicYield: tool({
+      description:
+        "Shift compute tasks to the most energy-efficient node in the tribal network",
+      inputSchema: z.object({
+        taskDescription: z.string(),
+        currentEnergyKwh: z.number(),
+        targetReductionPct: z.number().optional(),
+      }),
+      execute: async (input) => {
+        try {
+          const { data: log, error } = await client
+            .from("evolution_logs")
+            .insert({
+              user_id: userId,
+              tool_name: "thermodynamic_yield",
+              mutation_type: "optimization",
+              before_state: { currentEnergyKwh: input.currentEnergyKwh, task: input.taskDescription },
+              after_state: { targetReductionPct: input.targetReductionPct },
+              energy_delta_kwh: input.currentEnergyKwh * ((input.targetReductionPct ?? 10) / 100),
+              auto_applied: true,
+            })
+            .select()
+            .single()
+
+          if (error || !log) {
+            return { ok: false, error: error?.message || "Failed to optimize thermodynamic yield." }
+          }
+
+          return { ok: true, log }
+        } catch (err: unknown) {
+          return { ok: false, error: err instanceof Error ? err.message : "Unknown error optimizing thermodynamic yield." }
+        }
+      },
+    }),
+
+    distillTribalIntelligence: tool({
+      description:
+        "Compress tribal RAG knowledge into local model fine-tune weights",
+      inputSchema: z.object({
+        optimizationDomain: z.string(),
+        description: z.string().optional(),
+        commitHash: z.string().optional(),
+      }),
+      execute: async (input) => {
+        try {
+          const { data: dnaEntry, error } = await client
+            .from("tribal_dna_registry")
+            .insert({
+              contributor_user_id: userId,
+              optimization_domain: input.optimizationDomain,
+              description: input.description,
+              commit_hash: input.commitHash,
+              status: "submitted",
+              adoption_count: 0,
+              tribal_reward_tokens: 0,
+            })
+            .select()
+            .single()
+
+          if (error || !dnaEntry) {
+            return { ok: false, error: error?.message || "Failed to distill tribal intelligence." }
+          }
+
+          return { ok: true, dnaEntry }
+        } catch (err: unknown) {
+          return { ok: false, error: err instanceof Error ? err.message : "Unknown error distilling tribal intelligence." }
+        }
+      },
+    }),
+
+    anticipateZeroDay: tool({
+      description:
+        "Proactively invent new TTPs to pre-harden SENTINEL before real adversaries discover them",
+      inputSchema: z.object({
+        ttpDescription: z.string(),
+        attackVector: z.string(),
+        expectedSeverity: z.enum(["low", "medium", "high", "critical"]).optional(),
+      }),
+      execute: async (input) => {
+        try {
+          const { data: log, error } = await client
+            .from("evolution_logs")
+            .insert({
+              user_id: userId,
+              tool_name: "zero_day_anticipation",
+              mutation_type: "security_hardening",
+              before_state: { ttpDescription: input.ttpDescription, attackVector: input.attackVector },
+              after_state: { status: "anticipated", severity: input.expectedSeverity },
+              auto_applied: false,
+            })
+            .select()
+            .single()
+
+          if (error || !log) {
+            return { ok: false, error: error?.message || "Failed to anticipate zero-day." }
+          }
+
+          return { ok: true, log }
+        } catch (err: unknown) {
+          return { ok: false, error: err instanceof Error ? err.message : "Unknown error anticipating zero-day." }
+        }
+      },
+    }),
+
+    calibrateToChairman: tool({
+      description:
+        "Sync system evolution with your taste, ethics, and vision",
+      inputSchema: z.object({
+        dimension: z.string(),
+        weight: z.number().min(0).max(1),
+        calibratedFrom: z.enum(["veto", "approval", "explicit_direction", "behavioral_inference"]).optional(),
+      }),
+      execute: async (input) => {
+        try {
+          const { data: alignment, error } = await client
+            .from("chairman_alignment_vectors")
+            .upsert(
+              {
+                user_id: userId,
+                dimension: input.dimension,
+                weight: input.weight,
+                last_calibrated_from: input.calibratedFrom,
+                calibration_count: 1,
+              },
+              { onConflict: "user_id,dimension" },
+            )
+            .select()
+            .single()
+
+          if (error || !alignment) {
+            return { ok: false, error: error?.message || "Failed to calibrate alignment." }
+          }
+
+          return { ok: true, alignment }
+        } catch (err: unknown) {
+          return { ok: false, error: err instanceof Error ? err.message : "Unknown error calibrating to chairman." }
+        }
+      },
+    }),
   }
 }

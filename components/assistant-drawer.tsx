@@ -205,6 +205,9 @@ function getSuggestedPrompts(activeView: ActiveView, hasImportedProfiles: boolea
       "Execute a permissionless launch using deregulated policy sections",
       "Stake tokens to a lunar build phase mission",
       "Monitor supply chain vendors for slippage",
+      "Initialize Agent #0 for recursive self-optimization",
+      "Calibrate the alignment vector to prioritize energy sovereignty",
+      "Distill tribal intelligence into local model weights",
     ],
     globe: [
       "Show me governance arcs for active proposals",

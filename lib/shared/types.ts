@@ -2404,3 +2404,72 @@ export interface SupplyChainMonitor {
   createdAt: string
   updatedAt: string
 }
+
+// ---------------------------------------------------------------------------
+// Recursive Meta-Agent: Agent #0 (Tools #150-155)
+// ---------------------------------------------------------------------------
+
+export type MutationType = "optimization" | "refactor" | "distillation" | "security_hardening" | "alignment_shift"
+
+export interface EvolutionLog {
+  id: string
+  userId: string
+  agentId?: string
+  toolName?: string
+  mutationType: MutationType
+  beforeState: Record<string, unknown>
+  afterState: Record<string, unknown>
+  improvementPct?: number
+  energyDeltaKwh?: number
+  tokenDelta?: number
+  autoApplied: boolean
+  approvedByChairman?: boolean
+  createdAt: string
+}
+
+export interface PerformanceMutation {
+  id: string
+  userId: string
+  toolName: string
+  metricName: "latency_ms" | "token_count" | "energy_kwh" | "error_rate" | "accuracy_pct"
+  beforeValue: number
+  afterValue: number
+  improvementPct: number
+  mutationSource: "meta_agent" | "tribal_sync" | "manual" | "auto_research"
+  appliedAt?: string
+  reverted: boolean
+  createdAt: string
+}
+
+export interface TribalDnaEntry {
+  id: string
+  contributorUserId: string
+  campaignId?: string
+  commitHash?: string
+  optimizationDomain: string
+  description?: string
+  improvementPct?: number
+  adoptionCount: number
+  tribalRewardTokens: number
+  status: "submitted" | "verified" | "adopted" | "superseded" | "rejected"
+  createdAt: string
+}
+
+export interface ChairmanAlignmentVector {
+  userId: string
+  dimension: string
+  weight: number
+  lastCalibratedFrom?: "veto" | "approval" | "explicit_direction" | "behavioral_inference"
+  calibrationCount: number
+  createdAt: string
+  updatedAt: string
+}
+
+export interface EvolutionSummary {
+  totalEvolutions: number
+  avgImprovementPct: number
+  totalEnergySavedKwh: number
+  totalTokensSaved: number
+  topMutatedTools: Array<{ toolName: string; mutationCount: number }>
+  alignmentVector: Record<string, number>
+}
