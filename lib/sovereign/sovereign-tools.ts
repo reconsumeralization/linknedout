@@ -583,9 +583,10 @@ export function createSovereignTools(
     }),
 
     // ========================================================================
-    // A2A Protocol Tools
+    // A2A Protocol + Global Expansion Tools (#173-176)
     // ========================================================================
 
+    // #173
     initializeA2AHandshake: tool({
       description:
         "Discover a provider agent by capability and initiate a cross-factory handshake for task delegation",
@@ -698,10 +699,7 @@ export function createSovereignTools(
       },
     }),
 
-    // ========================================================================
-    // Experience Archive Tools
-    // ========================================================================
-
+    // #176
     mintExperienceEntry: tool({
       description:
         "Capture a breakthrough, lesson, or hard-won advice as a persistent experience entry",
@@ -784,10 +782,7 @@ export function createSovereignTools(
       },
     }),
 
-    // ========================================================================
-    // Decoupling Protocol Tools
-    // ========================================================================
-
+    // #174
     triggerDecouplingProtocol: tool({
       description:
         "Analyze golden handcuffs and calculate the sovereignty break-even point",
@@ -843,10 +838,7 @@ export function createSovereignTools(
       },
     }),
 
-    // ========================================================================
-    // Bounty Challenge Tools
-    // ========================================================================
-
+    // #175
     deployToMarketChallenge: tool({
       description:
         "Package a factory build and prepare a submission for an external bounty challenge",

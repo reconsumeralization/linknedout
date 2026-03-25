@@ -17,7 +17,24 @@ import { Textarea } from "@/components/ui/textarea"
 import { clearOnboardingDismissed, clearWelcomeSeen } from "@/components/onboarding-card"
 import { getSupabaseClient, resetSupabaseClients } from "@/lib/supabase/supabase"
 import { getUserKeys, setUserKeys, clearUserKeys, hasUserSupabase, hasUserOpenAI, type UserKeys } from "@/lib/shared/user-keys"
+import {
+  getIntegrationKey,
+  setIntegrationKey,
+  removeIntegrationKey,
+  isSponsorConnected,
+  countConnectedSponsors,
+  SPONSOR_FIELDS,
+  type IntegrationCredential,
+} from "@/lib/shared/integration-keys"
 import { cn } from "@/lib/shared/utils"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import {
   ArrowRight,
@@ -108,6 +125,99 @@ const quickLinks: QuickLink[] = [
   },
 ]
 
+function SponsorKeyForm({
+  sponsorName,
+  fields,
+  powersFeature,
+  featureTools,
+  onSaved,
+}: {
+  sponsorName: string
+  fields: import("@/lib/shared/integration-keys").IntegrationFieldDef[]
+  powersFeature: string
+  featureTools: string[]
+  onSaved: () => void
+}) {
+  const existing = getIntegrationKey(sponsorName)
+  const [values, setValues] = useState<Record<string, string>>(() => {
+    const init: Record<string, string> = {}
+    for (const f of fields) {
+      init[f.field] = existing?.[f.field] ?? ""
+    }
+    return init
+  })
+  const [saved, setSaved] = useState(false)
+  const connected = isSponsorConnected(sponsorName)
+
+  const handleSave = () => {
+    const cred: Partial<import("@/lib/shared/integration-keys").IntegrationCredential> = {}
+    for (const f of fields) {
+      const val = values[f.field]?.trim()
+      if (val) (cred as Record<string, string>)[f.field] = val
+    }
+    setIntegrationKey(sponsorName, cred as Omit<import("@/lib/shared/integration-keys").IntegrationCredential, "savedAt">)
+    setSaved(true)
+    onSaved()
+    toast.success(`${sponsorName} keys saved.`)
+    setTimeout(() => setSaved(false), 2000)
+  }
+
+  const handleDisconnect = () => {
+    removeIntegrationKey(sponsorName)
+    const cleared: Record<string, string> = {}
+    for (const f of fields) cleared[f.field] = ""
+    setValues(cleared)
+    onSaved()
+    toast.success(`${sponsorName} disconnected.`)
+  }
+
+  return (
+    <div className="space-y-4 pt-2">
+      <div className="rounded-lg border border-border/70 bg-muted/30 p-3">
+        <p className="text-xs font-medium">{powersFeature.split(" — ")[0]}</p>
+        <p className="text-[10px] text-muted-foreground mt-1">{powersFeature.split(" — ")[1] ?? powersFeature}</p>
+        <div className="flex flex-wrap gap-1 mt-2">
+          {featureTools.slice(0, 4).map((t) => (
+            <Badge key={t} variant="secondary" className="text-[9px]">{t}</Badge>
+          ))}
+          {featureTools.length > 4 ? (
+            <Badge variant="secondary" className="text-[9px]">+{featureTools.length - 4} more</Badge>
+          ) : null}
+        </div>
+      </div>
+      {fields.map((f) => (
+        <div key={f.field} className="space-y-1.5">
+          <Label htmlFor={`${sponsorName}-${f.field}`} className="text-xs">{f.label}</Label>
+          <Input
+            id={`${sponsorName}-${f.field}`}
+            type={f.sensitive ? "password" : "text"}
+            placeholder={f.placeholder}
+            value={values[f.field] ?? ""}
+            onChange={(e) => setValues((prev) => ({ ...prev, [f.field]: e.target.value }))}
+            className="font-mono text-xs"
+          />
+        </div>
+      ))}
+      <div className="flex gap-2 pt-1">
+        <Button size="sm" onClick={handleSave} className="gap-1.5">
+          {saved ? <CheckCircle2 className="h-3.5 w-3.5" /> : null}
+          {saved ? "Saved" : connected ? "Update Keys" : "Connect"}
+        </Button>
+        {connected ? (
+          <Button size="sm" variant="ghost" onClick={handleDisconnect} className="text-muted-foreground">
+            Disconnect
+          </Button>
+        ) : null}
+      </div>
+      {connected && existing?.savedAt ? (
+        <p className="text-[10px] text-muted-foreground">
+          Connected since {new Date(existing.savedAt).toLocaleDateString()}
+        </p>
+      ) : null}
+    </div>
+  )
+}
+
 export function SettingsPanel({ onNavigate }: SettingsPanelProps) {
   const { theme, setTheme } = useTheme()
   const [mounted, setMounted] = useState(false)
@@ -179,6 +289,13 @@ export function SettingsPanel({ onNavigate }: SettingsPanelProps) {
       setTestingConnection(false)
     }
   }, [userKeysState])
+
+  // Sponsor integration state
+  const integrableSponsors = SPONSORS.filter(s => s.integrationAvailable)
+  const [connectedCount, setConnectedCount] = useState(0)
+  useEffect(() => {
+    setConnectedCount(countConnectedSponsors())
+  }, [])
 
   const supabasePublicEnvConfigured = Boolean(
     process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
@@ -778,32 +895,64 @@ export function SettingsPanel({ onNavigate }: SettingsPanelProps) {
           </CardContent>
         </Card>
 
-        {/* Sponsor Integration Hub */}
+        {/* Sponsor Integration Hub — functional key management */}
         <Card>
           <CardHeader>
             <CardTitle className="text-base flex items-center gap-2">
               <Sparkles className="h-4 w-4 text-primary" />
               Sponsor Integrations
             </CardTitle>
-            <CardDescription>Connect sponsor services to unlock enhanced features. {SPONSORS.filter(s => s.integrationAvailable).length} integrations available.</CardDescription>
+            <CardDescription>
+              Connect sponsor services to unlock enhanced features. {connectedCount} of {integrableSponsors.length} connected.
+              Keys are stored locally in your browser.
+            </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-2">
+          <CardContent className="space-y-3">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-              {SPONSORS.filter(s => s.integrationAvailable).slice(0, 8).map((sponsor) => (
-                <div key={sponsor.name} className="flex items-center justify-between rounded-lg border border-border p-2.5 hover:border-primary/30 transition-colors">
-                  <div className="min-w-0">
-                    <p className="text-xs font-medium truncate">{sponsor.name}</p>
-                    <p className="text-[10px] text-muted-foreground truncate">{sponsor.powersFeature.split(" — ")[0]}</p>
-                  </div>
-                  <a href={sponsor.url} target="_blank" rel="noopener noreferrer" className="shrink-0 rounded-md border border-border px-2 py-1 text-[10px] font-medium hover:bg-muted/50 transition-colors">
-                    Connect
-                  </a>
-                </div>
-              ))}
+              {integrableSponsors.map((sponsor) => {
+                const connected = isSponsorConnected(sponsor.name)
+                const fields = SPONSOR_FIELDS[sponsor.name]
+                return (
+                  <Dialog key={sponsor.name}>
+                    <DialogTrigger asChild>
+                      <button className="flex items-center justify-between rounded-lg border border-border p-2.5 hover:border-primary/30 transition-colors w-full text-left">
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-1.5">
+                            <span className={cn("inline-block h-2 w-2 rounded-full shrink-0", connected ? "bg-emerald-500" : "bg-muted-foreground/40")} />
+                            <p className="text-xs font-medium truncate">{sponsor.name}</p>
+                          </div>
+                          <p className="text-[10px] text-muted-foreground truncate ml-3.5">{sponsor.powersFeature.split(" — ")[0]}</p>
+                        </div>
+                        <Badge variant={connected ? "default" : "outline"} className="shrink-0 text-[10px]">
+                          {connected ? "Connected" : "Connect"}
+                        </Badge>
+                      </button>
+                    </DialogTrigger>
+                    <DialogContent className="sm:max-w-md">
+                      <DialogHeader>
+                        <DialogTitle className="flex items-center gap-2 text-base">
+                          <Key className="h-4 w-4" />
+                          {sponsor.name} Integration
+                        </DialogTitle>
+                        <DialogDescription>
+                          {sponsor.description}
+                        </DialogDescription>
+                      </DialogHeader>
+                      <SponsorKeyForm
+                        sponsorName={sponsor.name}
+                        fields={fields ?? [{ field: "apiKey", label: "API Key", placeholder: "Enter key...", sensitive: true }]}
+                        powersFeature={sponsor.powersFeature}
+                        featureTools={sponsor.featureTools}
+                        onSaved={() => setConnectedCount(countConnectedSponsors())}
+                      />
+                    </DialogContent>
+                  </Dialog>
+                )
+              })}
             </div>
-            <div className="flex items-center justify-between pt-2">
+            <div className="flex items-center justify-between pt-1">
               <p className="text-[10px] text-muted-foreground">
-                {SPONSORS.filter(s => s.integrationAvailable).length - 8} more integrations available
+                {SPONSORS.filter(s => !s.integrationAvailable).length} more coming soon
               </p>
               <a href="/sponsors" className="text-[10px] text-primary hover:underline">View all sponsors &rarr;</a>
             </div>
