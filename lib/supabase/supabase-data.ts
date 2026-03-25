@@ -3116,3 +3116,47 @@ export async function fetchHumanAlphaGates() {
   if (error) { console.error("fetchHumanAlphaGates", error); return [] }
   return data ?? []
 }
+
+// ---------------------------------------------------------------------------
+// Harness Evolution Layer
+// ---------------------------------------------------------------------------
+
+export async function fetchAestheticCalibrations() {
+  const supabase = getSupabaseClient()
+  if (!supabase) return []
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return []
+  const { data, error } = await supabase.from("aesthetic_calibrations").select("*").eq("owner_user_id", user.id).order("created_at", { ascending: false })
+  if (error) { console.error("fetchAestheticCalibrations", error); return [] }
+  return data ?? []
+}
+
+export async function fetchVerificationContracts() {
+  const supabase = getSupabaseClient()
+  if (!supabase) return []
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return []
+  const { data, error } = await supabase.from("verification_contracts").select("*").eq("owner_user_id", user.id).order("created_at", { ascending: false })
+  if (error) { console.error("fetchVerificationContracts", error); return [] }
+  return data ?? []
+}
+
+export async function fetchScaffoldAudits() {
+  const supabase = getSupabaseClient()
+  if (!supabase) return []
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return []
+  const { data, error } = await supabase.from("scaffold_audit_log").select("*").eq("owner_user_id", user.id).order("created_at", { ascending: false })
+  if (error) { console.error("fetchScaffoldAudits", error); return [] }
+  return data ?? []
+}
+
+export async function fetchVisualQaResults() {
+  const supabase = getSupabaseClient()
+  if (!supabase) return []
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return []
+  const { data, error } = await supabase.from("visual_qa_results").select("*").eq("owner_user_id", user.id).order("created_at", { ascending: false })
+  if (error) { console.error("fetchVisualQaResults", error); return [] }
+  return data ?? []
+}

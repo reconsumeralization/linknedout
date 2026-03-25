@@ -3794,5 +3794,146 @@ export function createSovereignTools(
         }
       },
     }),
+
+    // ========================================================================
+    // Harness Evolution Layer (#229-232)
+    // ========================================================================
+
+    // #229 — calibrateAestheticTaste
+    calibrateAestheticTaste: tool({
+      description:
+        "Force the Evaluator to penalize generic AI slop and demand original, chairman-aligned design",
+      inputSchema: z.object({
+        domain: z.string(),
+        tasteCriteria: z.array(z.object({ criterion: z.string(), weight: z.number() })).min(1),
+        penaltyPatterns: z.array(z.string()).optional(),
+        rewardPatterns: z.array(z.string()).optional(),
+      }),
+      execute: async (input) => {
+        try {
+          const { data, error } = await client
+            .from("aesthetic_calibrations")
+            .insert({
+              owner_user_id: userId,
+              domain: input.domain,
+              taste_criteria: input.tasteCriteria,
+              penalty_patterns: input.penaltyPatterns ?? [],
+              reward_patterns: input.rewardPatterns ?? [],
+              calibration_score: 0,
+            })
+            .select()
+            .single()
+          if (error || !data) {
+            return { ok: false, error: error?.message || "Failed to insert aesthetic calibration." }
+          }
+          return { ok: true, calibration: data }
+        } catch (err: unknown) {
+          return { ok: false, error: err instanceof Error ? err.message : "Unknown error in calibrateAestheticTaste." }
+        }
+      },
+    }),
+
+    // #230 — negotiateVerificationContract
+    negotiateVerificationContract: tool({
+      description:
+        "Force Generator and Evaluator agents to agree on testable edge cases before coding begins",
+      inputSchema: z.object({
+        contractName: z.string(),
+        edgeCases: z.array(z.string()).min(1),
+        acceptanceCriteria: z.array(z.string()).min(1),
+      }),
+      execute: async (input) => {
+        try {
+          const { data, error } = await client
+            .from("verification_contracts")
+            .insert({
+              owner_user_id: userId,
+              contract_name: input.contractName,
+              edge_cases: input.edgeCases,
+              acceptance_criteria: input.acceptanceCriteria,
+              status: "negotiating",
+            })
+            .select()
+            .single()
+          if (error || !data) {
+            return { ok: false, error: error?.message || "Failed to insert verification contract." }
+          }
+          return { ok: true, contract: data }
+        } catch (err: unknown) {
+          return { ok: false, error: err instanceof Error ? err.message : "Unknown error in negotiateVerificationContract." }
+        }
+      },
+    }),
+
+    // #231 — pruneObsoleteScaffolding
+    pruneObsoleteScaffolding: tool({
+      description:
+        "Auto-remove old harness code when base models become natively smarter",
+      inputSchema: z.object({
+        scaffoldName: z.string(),
+        modelVersionTested: z.string(),
+        testPassedWithout: z.boolean(),
+      }),
+      execute: async (input) => {
+        try {
+          const pruned = input.testPassedWithout
+          const { data, error } = await client
+            .from("scaffold_audit_log")
+            .insert({
+              owner_user_id: userId,
+              scaffold_name: input.scaffoldName,
+              model_version_tested: input.modelVersionTested,
+              test_passed_without: input.testPassedWithout,
+              pruned,
+              pruned_at: pruned ? new Date().toISOString() : null,
+            })
+            .select()
+            .single()
+          if (error || !data) {
+            return { ok: false, error: error?.message || "Failed to insert scaffold audit entry." }
+          }
+          return { ok: true, audit: data, pruned }
+        } catch (err: unknown) {
+          return { ok: false, error: err instanceof Error ? err.message : "Unknown error in pruneObsoleteScaffolding." }
+        }
+      },
+    }),
+
+    // #232 — executeVisualQA
+    executeVisualQA: tool({
+      description:
+        "Use MolmoWeb vision to visually click, drag, and test a built application",
+      inputSchema: z.object({
+        testUrl: z.string(),
+        buildId: z.string().optional(),
+        interactionsToTest: z.number().optional(),
+      }),
+      execute: async (input) => {
+        try {
+          const interactionsCount = input.interactionsToTest ?? 10
+          const { data, error } = await client
+            .from("visual_qa_results")
+            .insert({
+              owner_user_id: userId,
+              test_url: input.testUrl,
+              build_id: input.buildId ?? null,
+              interactions_tested: interactionsCount,
+              screenshots_taken: 0,
+              bugs_found: 0,
+              bug_details: [],
+              overall_score: 0,
+              passed: false,
+            })
+            .select()
+            .single()
+          if (error || !data) {
+            return { ok: false, error: error?.message || "Failed to insert visual QA result." }
+          }
+          return { ok: true, qaResult: data }
+        } catch (err: unknown) {
+          return { ok: false, error: err instanceof Error ? err.message : "Unknown error in executeVisualQA." }
+        }
+      },
+    }),
   }
 }

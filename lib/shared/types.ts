@@ -3010,3 +3010,41 @@ export interface HumanAlphaGate {
   validationSummary?: string; decision?: "approved" | "rejected" | "deferred"
   signedAt?: string; createdAt: string
 }
+
+// ---------------------------------------------------------------------------
+// Harness Evolution Layer
+// ---------------------------------------------------------------------------
+
+export interface AestheticCalibration {
+  id: string; ownerUserId: string
+  domain: string; tasteCriteria: Array<{ criterion: string; weight: number }>
+  penaltyPatterns: string[]; rewardPatterns: string[]
+  chairmanVectorRef?: string; calibrationScore: number
+  createdAt: string; updatedAt: string
+}
+
+export interface VerificationContract {
+  id: string; ownerUserId: string
+  contractName: string; generatorAgent: string; evaluatorAgent: string
+  edgeCases: string[]; acceptanceCriteria: string[]
+  generatorSigned: boolean; evaluatorSigned: boolean
+  status: "draft" | "negotiating" | "signed" | "executing" | "completed" | "failed"
+  createdAt: string; updatedAt: string
+}
+
+export interface ScaffoldAuditEntry {
+  id: string; ownerUserId: string
+  scaffoldName: string; wasLoadBearing: boolean
+  modelVersionTested?: string; testPassedWithout: boolean
+  pruned: boolean; prunedAt?: string; tokenOverheadSaved: number
+  createdAt: string
+}
+
+export interface VisualQaResult {
+  id: string; ownerUserId: string
+  buildId?: string; testUrl?: string
+  screenshotsTaken: number; interactionsTested: number
+  bugsFound: number; bugDetails: Array<Record<string, unknown>>
+  overallScore: number; passed: boolean
+  testedAt: string; createdAt: string
+}
