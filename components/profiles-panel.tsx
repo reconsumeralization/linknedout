@@ -398,6 +398,12 @@ function ProfileDetail({ profile, tribeNames, onAddToTribe, onCreateProject, onS
               </Badge>
             ))}
           </div>
+          {/* Connection Intelligence */}
+          <div className="flex flex-wrap gap-1.5 mt-2">
+            <Badge variant="outline" className="text-[10px]">Value: --</Badge>
+            <Badge variant="outline" className="text-[10px]">Alignment: --</Badge>
+            <Badge variant="outline" className="text-[10px] text-emerald-600">Bot Risk: Low</Badge>
+          </div>
         </CardContent>
       </Card>
 

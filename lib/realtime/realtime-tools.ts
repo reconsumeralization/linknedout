@@ -1,6 +1,8 @@
 import { evaluateAegisToolPolicy } from "@/lib/security/aegis-policy"
 import { generateC2PAManifest } from "@/lib/security/c2pa-manifest"
 import { createLinkedinTools } from "@/lib/linkedin/linkedin-tools"
+import { createLinkedinWorkflowTools } from "@/lib/linkedin/linkedin-workflow-tools"
+import { createUserScopedClient } from "@/lib/supabase/supabase"
 import {
   getVerificationToolForAction,
   resolveCriticalWorkflowContext,
@@ -499,6 +501,12 @@ export function getRealtimeToolRegistry(
   authContext: SupabaseAuthContext | null,
 ): Record<string, ToolLike> {
   const linkedinTools = createLinkedinTools(authContext)
+  const workflowTools = (() => {
+    if (!authContext?.isSupabaseSession || !authContext.userId) return {} as Record<string, ToolLike>
+    const wfClient = createUserScopedClient(authContext.accessToken)
+    if (!wfClient) return {} as Record<string, ToolLike>
+    return createLinkedinWorkflowTools(wfClient, authContext.userId) as Record<string, ToolLike>
+  })()
   const supabaseTools =
     authContext?.isSupabaseSession === true
       ? (createSupabaseLlmDbTools(authContext) as Record<string, ToolLike>)
@@ -509,6 +517,7 @@ export function getRealtimeToolRegistry(
     : ({} as Record<string, ToolLike>)
   return {
     ...linkedinTools,
+    ...workflowTools,
     ...supabaseTools,
     ...webSearchTools,
     ...sovereignTools,

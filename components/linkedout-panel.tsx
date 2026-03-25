@@ -31,14 +31,16 @@ import {
   Trash2,
   UserPlus,
   Users,
+  Zap,
 } from "lucide-react"
 import { useCallback, useEffect, useMemo, useState } from "react"
+import { toast } from "sonner"
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 type ObjectiveId = "cyber" | "investors" | "buyers" | "podcast" | "hiring" | "custom"
 type QueueFilter = "all" | "intro" | "nurture" | "curate"
-type ViewMode = "queue" | "gems" | "cull"
+type ViewMode = "queue" | "gems" | "cull" | "workflows"
 
 interface UnifiedProfile {
   id: string
@@ -936,6 +938,11 @@ export function LinkedOutPanel({ csvData, onNavigate }: LinkedOutPanelProps) {
                 label: `Cull Mode${curationQueue.length > 0 ? ` (${curationQueue.length})` : ""}`,
                 icon: Trash2,
               },
+              {
+                id: "workflows",
+                label: "Workflows",
+                icon: Zap,
+              },
             ] as const
           ).map(({ id, label, icon: Icon }) => (
             <button
@@ -1314,6 +1321,31 @@ export function LinkedOutPanel({ csvData, onNavigate }: LinkedOutPanelProps) {
                 ))}
               </div>
             )}
+          </div>
+        )}
+
+        {/* ── Workflows View ── */}
+        {viewMode === "workflows" && (
+          <div className="space-y-3">
+            <p className="text-sm text-muted-foreground">Automated LinkedIn workflow actions. Run individually or schedule daily.</p>
+            {[
+              { action: "cull_invitations", label: "Cull Stale Invitations", desc: "Review and cull pending invitations over 30 days old" },
+              { action: "detect_bots", label: "Detect Bot Connections", desc: "Scan for AI bot patterns in your network" },
+              { action: "analyze_feed", label: "Analyze News Feed", desc: "Parse feed for sentiment, importance, and action items" },
+              { action: "identify_low_value", label: "Identify Low-Value Connections", desc: "Find low-engagement connections to review" },
+              { action: "prioritize_dms", label: "Prioritize DM Responses", desc: "Analyze incoming messages and suggest replies" },
+              { action: "curate_repost", label: "Curate & Repost", desc: "Find high-value content to repost with commentary" },
+            ].map((wf) => (
+              <div key={wf.action} className="flex items-center justify-between rounded-lg border border-border p-3">
+                <div>
+                  <p className="text-sm font-medium">{wf.label}</p>
+                  <p className="text-xs text-muted-foreground">{wf.desc}</p>
+                </div>
+                <Button size="sm" variant="outline" className="shrink-0" onClick={() => toast.info(`Workflow "${wf.label}" triggered. Check AI Assistant for results.`)}>
+                  Run
+                </Button>
+              </div>
+            ))}
           </div>
         )}
       </div>

@@ -141,6 +141,11 @@ function getSuggestedPrompts(activeView: ActiveView, hasImportedProfiles: boolea
       "Design tribes for this objective, create a project, and suggest Share on LinkedIn or outreach",
       "Connect this objective to a project and suggest a tribe",
       "Which of my CRM profiles or tribes should I target for this?",
+      "Cull my stale LinkedIn invitations older than 30 days",
+      "Detect bot connections in my network",
+      "Analyze my LinkedIn feed for action items",
+      "Score alignment for my new connections",
+      "Import an external contact list",
     ],
     email: ["Summarize my recent email threads", "How do I connect Gmail or Outlook?", "Draft a short outreach email"],
     fundraising: [

@@ -2902,3 +2902,64 @@ export async function fetchSolidStatePowerConfigs() {
   if (error) { console.error("fetchSolidStatePowerConfigs", error); return [] }
   return data ?? []
 }
+
+// LinkedIn Workflow Automation
+export async function fetchInvitationTracking(status?: string) {
+  const supabase = getSupabaseClient()
+  if (!supabase) return []
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return []
+  let q = supabase.from("invitation_tracking").select("*").eq("owner_user_id", user.id)
+  if (status) q = q.eq("invitation_status", status)
+  const { data, error } = await q.order("updated_at", { ascending: false })
+  if (error) { console.error("fetchInvitationTracking", error); return [] }
+  return data ?? []
+}
+
+export async function fetchConnectionScores(minValue?: number) {
+  const supabase = getSupabaseClient()
+  if (!supabase) return []
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return []
+  let q = supabase.from("connection_scoring").select("*").eq("owner_user_id", user.id)
+  if (minValue !== undefined) q = q.gte("value_score", minValue)
+  const { data, error } = await q.order("value_score", { ascending: false })
+  if (error) { console.error("fetchConnectionScores", error); return [] }
+  return data ?? []
+}
+
+export async function fetchFeedIntelligence(repostOnly?: boolean) {
+  const supabase = getSupabaseClient()
+  if (!supabase) return []
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return []
+  let q = supabase.from("feed_intelligence").select("*").eq("owner_user_id", user.id)
+  if (repostOnly) q = q.eq("repost_candidate", true)
+  const { data, error } = await q.order("importance", { ascending: false }).limit(100)
+  if (error) { console.error("fetchFeedIntelligence", error); return [] }
+  return data ?? []
+}
+
+export async function fetchExternalContacts(status?: string) {
+  const supabase = getSupabaseClient()
+  if (!supabase) return []
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return []
+  let q = supabase.from("external_contact_lists").select("*").eq("owner_user_id", user.id)
+  if (status) q = q.eq("match_status", status)
+  const { data, error } = await q.order("created_at", { ascending: false })
+  if (error) { console.error("fetchExternalContacts", error); return [] }
+  return data ?? []
+}
+
+export async function fetchDmResponseQueue(status?: string) {
+  const supabase = getSupabaseClient()
+  if (!supabase) return []
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return []
+  let q = supabase.from("dm_response_queue").select("*").eq("owner_user_id", user.id)
+  if (status) q = q.eq("response_status", status)
+  const { data, error } = await q.order("priority", { ascending: false })
+  if (error) { console.error("fetchDmResponseQueue", error); return [] }
+  return data ?? []
+}

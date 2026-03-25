@@ -2782,3 +2782,84 @@ export interface SolidStatePowerConfig {
   operationalStatus: "configured" | "charging" | "operational" | "degraded" | "replaced"
   createdAt: string
 }
+
+// ---------------------------------------------------------------------------
+// LinkedIn Workflow Automation
+// ---------------------------------------------------------------------------
+
+export interface InvitationTrackingEntry {
+  id: string
+  ownerUserId: string
+  profileId: string
+  profileName?: string
+  invitationStatus: "pending" | "accepted" | "declined" | "expired" | "culled" | "reinvited"
+  sentAt: string
+  importanceScore: number
+  reinviteAt?: string
+  reinviteNote?: string
+  cullReason?: string
+  metadata?: Record<string, unknown>
+  createdAt: string
+  updatedAt: string
+}
+
+export interface ConnectionScore {
+  id: string
+  ownerUserId: string
+  profileId: string
+  profileName?: string
+  valueScore: number
+  engagementScore: number
+  alignmentScore: number
+  botProbability: number
+  botSignals?: Record<string, unknown>
+  lastInteractionAt?: string
+  lastScoredAt: string
+  createdAt: string
+}
+
+export interface FeedIntelligenceEntry {
+  id: string
+  ownerUserId: string
+  postUrl?: string
+  authorProfileId?: string
+  authorName?: string
+  contentPreview?: string
+  sentiment: "positive" | "negative" | "neutral" | "mixed"
+  importance: number
+  actionItems: Array<{ action: string; priority?: number }>
+  categories: string[]
+  repostCandidate: boolean
+  repostCommentary?: string
+  inviteAuthor: boolean
+  analyzedAt: string
+  createdAt: string
+}
+
+export interface ExternalContactEntry {
+  id: string
+  ownerUserId: string
+  sourceName: string
+  sourceUrl?: string
+  contactName: string
+  contactTitle?: string
+  contactOrg?: string
+  matchedProfileId?: string
+  matchConfidence: number
+  matchStatus: "pending" | "matched" | "unmatched" | "invited" | "skipped"
+  createdAt: string
+}
+
+export interface DmResponseEntry {
+  id: string
+  ownerUserId: string
+  conversationId?: string
+  senderProfileId?: string
+  senderName?: string
+  messagePreview?: string
+  priority: number
+  sentiment: "positive" | "negative" | "neutral" | "mixed" | "urgent"
+  suggestedReply?: string
+  responseStatus: "pending" | "drafted" | "sent" | "dismissed"
+  createdAt: string
+}
