@@ -2,8 +2,7 @@
 # Run `supabase start` to launch local Supabase (requires Docker)
 # Run `supabase db reset` to apply all migrations
 
-[project]
-id = "linkedout"
+project_id = "linkedout"
 
 [api]
 enabled = true

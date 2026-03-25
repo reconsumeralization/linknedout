@@ -76,9 +76,9 @@ create table if not exists public.governance_delegations (
   is_active boolean not null default true,
   created_at timestamptz not null default now(),
   revoked_at timestamptz,
-  constraint gov_delegations_no_self check (delegator_user_id != delegate_user_id),
-  constraint gov_delegations_unique unique (delegator_user_id, tribe_id, domain) where (is_active = true)
+  constraint gov_delegations_no_self check (delegator_user_id != delegate_user_id)
 );
+create unique index if not exists gov_delegations_active_unique on governance_delegations(delegator_user_id, tribe_id, domain) where (is_active = true);
 create index if not exists gov_delegations_delegate_idx on governance_delegations(delegate_user_id, tribe_id);
 create index if not exists gov_delegations_delegator_idx on governance_delegations(delegator_user_id);
 

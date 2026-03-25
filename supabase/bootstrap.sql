@@ -1,10 +1,5 @@
--- LinkedOut Sovereign Factory — Consolidated Bootstrap Schema
--- Generated: 2026-03-25T02:19:33Z
--- Migrations: 56 files
-
--- ============================================================
--- Migration: 20260228123000_baseline_schema.sql
--- ============================================================
+-- LinkedOut Bootstrap Schema (2026-03-25T02:44:31Z)
+-- === 20260228123000_baseline_schema.sql ===
 -- LinkedOut baseline schema for app-wide Supabase integration.
 -- Apply in Supabase SQL editor or your migration pipeline.
 
@@ -1605,10 +1600,7 @@ end $$;
 create index if not exists sentinel_threat_dismissals_owner_idx on public.sentinel_threat_dismissals (owner_user_id, dismissed_at desc);
 create index if not exists sentinel_threat_dismissals_owner_threat_idx on public.sentinel_threat_dismissals (owner_user_id, threat_id);
 
-
--- ============================================================
--- Migration: 20260302000000_linkedout.sql
--- ============================================================
+-- === 20260302000000_linkedout.sql ===
 -- linkedout_objectives: persisted custom scoring objectives per user
 CREATE TABLE IF NOT EXISTS linkedout_objectives (
   id          uuid        PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -1692,10 +1684,7 @@ CREATE POLICY "Users manage own outreach events"
 CREATE POLICY "Users manage own curation actions"
   ON linkedout_curation_actions FOR ALL USING (auth.uid()::text = user_id);
 
-
--- ============================================================
--- Migration: 20260302100000_linkedin_consumer.sql
--- ============================================================
+-- === 20260302100000_linkedin_consumer.sql ===
 -- LinkedIn Consumer Solutions (Sign In + Share) identity and audit tables.
 -- See lib/linkedin-identity-server.ts and app/api/linkedin/share/route.ts.
 --
@@ -2088,10 +2077,7 @@ COMMENT ON COLUMN linkedin_token_refresh_log.refresh_trigger IS 'What triggered 
 COMMENT ON FUNCTION cleanup_linkedin_oauth_states() IS 'Periodic cleanup of expired OAuth states, rate limits, and old logs';
 COMMENT ON FUNCTION check_linkedin_token_expiry() IS 'Updates connection status for expired tokens';
 COMMENT ON FUNCTION get_linkedin_share_stats(uuid, int) IS 'Returns sharing statistics for a user over the specified period';
-
--- ============================================================
--- Migration: 20260303090000_sentinel_resilience_incidents.sql
--- ============================================================
+-- === 20260303090000_sentinel_resilience_incidents.sql ===
 -- SENTINEL resilience incidents with business-impact tagging
 create table if not exists public.sentinel_incidents (
   id uuid primary key default gen_random_uuid(),
@@ -2143,10 +2129,7 @@ create index if not exists sentinel_incidents_owner_detected_idx on public.senti
 create index if not exists sentinel_incidents_owner_status_idx on public.sentinel_incidents (owner_user_id, status, severity);
 create index if not exists sentinel_incidents_source_event_idx on public.sentinel_incidents (source_event_id);
 
-
--- ============================================================
--- Migration: 20260303113000_supabase_security_hardening.sql
--- ============================================================
+-- === 20260303113000_supabase_security_hardening.sql ===
 -- Supabase security hardening for LinkedIn identity, SENTINEL audit access,
 -- and LLM workspace/collection/document ownership integrity.
 
@@ -2288,10 +2271,7 @@ create trigger enforce_llm_document_owner_consistency
 before insert or update on public.llm_documents
 for each row execute function public.enforce_llm_document_owner_consistency();
 
-
--- ============================================================
--- Migration: 20260303123000_supabase_tenant_isolation_crm.sql
--- ============================================================
+-- === 20260303123000_supabase_tenant_isolation_crm.sql ===
 -- Supabase tenant isolation hardening for legacy CRM / analytics tables.
 --
 -- Goals:
@@ -2411,10 +2391,7 @@ begin
 end $$;
 
 
-
--- ============================================================
--- Migration: 20260303133000_supabase_tenant_owner_model_crm.sql
--- ============================================================
+-- === 20260303133000_supabase_tenant_owner_model_crm.sql ===
 -- Supabase tenant isolation follow-up:
 -- Add explicit ownership columns and owner-scoped policies for legacy CRM tables.
 --
@@ -2466,7 +2443,7 @@ with project_owner_candidates as (
 project_owner_resolved as (
   select
     tribe_id,
-    min(owner_user_id) as owner_user_id
+    min(owner_user_id::text)::uuid as owner_user_id
   from project_owner_candidates
   group by tribe_id
   having count(distinct owner_user_id) = 1
@@ -2500,7 +2477,7 @@ with member_owner_candidates as (
 member_owner_resolved as (
   select
     tribe_id,
-    min(owner_user_id) as owner_user_id
+    min(owner_user_id::text)::uuid as owner_user_id
   from member_owner_candidates
   group by tribe_id
   having count(distinct owner_user_id) = 1
@@ -2586,10 +2563,7 @@ begin
     using (owner_user_id = auth.uid());
 end $$;
 
-
--- ============================================================
--- Migration: 20260303170000_critical_workflow_verification_and_egress_shape.sql
--- ============================================================
+-- === 20260303170000_critical_workflow_verification_and_egress_shape.sql ===
 -- Critical workflow verification + workflow-shaped egress telemetry
 -- Adds auditable verification lifecycle columns and egress-shape metadata.
 
@@ -2627,10 +2601,7 @@ create index if not exists mcp_tool_audit_critical_workflow_class_idx
 create index if not exists mcp_tool_audit_egress_shape_approval_idx
   on public.mcp_tool_audit_events (egress_shape_approval_required, created_at desc);
 
-
--- ============================================================
--- Migration: 20260303193000_sentinel_kpi_webhook_alerts.sql
--- ============================================================
+-- === 20260303193000_sentinel_kpi_webhook_alerts.sql ===
 -- SENTINEL KPI webhook dispatch tracking
 -- Internal service-role table to dedupe webhook alerts and keep delivery state.
 
@@ -2663,10 +2634,7 @@ create index if not exists sentinel_alert_dispatches_owner_sent_idx
 create index if not exists sentinel_alert_dispatches_status_attempt_idx
   on public.sentinel_alert_dispatches (last_status, last_attempt_at desc);
 
-
--- ============================================================
--- Migration: 20260305180000_fundraising.sql
--- ============================================================
+-- === 20260305180000_fundraising.sql ===
 -- Fundraising: campaigns, donors, donations, and goals (owner-scoped, RLS).
 
 create table if not exists public.fundraising_campaigns (
@@ -2800,10 +2768,7 @@ create index if not exists fundraising_donations_campaign_donated_idx on public.
 create index if not exists fundraising_donations_donor_idx on public.fundraising_donations (donor_id) where donor_id is not null;
 create index if not exists fundraising_goals_campaign_order_idx on public.fundraising_goals (campaign_id, sort_order, id);
 
-
--- ============================================================
--- Migration: 20260305190000_fundraising_outreach.sql
--- ============================================================
+-- === 20260305190000_fundraising_outreach.sql ===
 -- Fundraising outreach: email and LinkedIn campaigns (owner-scoped, RLS).
 
 create table if not exists public.fundraising_outreach_campaigns (
@@ -2875,10 +2840,7 @@ create index if not exists fundraising_outreach_campaigns_owner_updated_idx on p
 create index if not exists fundraising_outreach_campaigns_fundraising_campaign_idx on public.fundraising_outreach_campaigns (fundraising_campaign_id);
 create index if not exists fundraising_outreach_recipients_outreach_status_idx on public.fundraising_outreach_recipients (outreach_campaign_id, status);
 
-
--- ============================================================
--- Migration: 20260305200000_storage_linkedout_assets.sql
--- ============================================================
+-- === 20260305200000_storage_linkedout_assets.sql ===
 -- LinkedOut branded storage: one app bucket for files and assets (campaign images, avatars, etc.).
 -- Apply in Supabase SQL editor or migration pipeline.
 
@@ -2919,10 +2881,7 @@ on storage.objects for delete
 to authenticated
 using ( bucket_id = 'linkedout-assets' );
 
-
--- ============================================================
--- Migration: 20260305213000_linkedin_manual_outreach.sql
--- ============================================================
+-- === 20260305213000_linkedin_manual_outreach.sql ===
 -- Manual LinkedIn outreach persistence for AI-assisted drafts and follow-up tracking.
 
 create table if not exists public.linkedin_message_drafts (
@@ -3005,10 +2964,7 @@ create index if not exists linkedin_connection_requests_owner_updated_idx
 create index if not exists linkedin_connection_requests_owner_profile_idx
   on public.linkedin_connection_requests (owner_user_id, profile_id);
 
-
--- ============================================================
--- Migration: 20260324000000_tribe_intelligence.sql
--- ============================================================
+-- === 20260324000000_tribe_intelligence.sql ===
 -- Tribe Intelligence: High-Bandwidth Intelligence Syndicate
 -- Adds knowledge base, signal feed, sprints, and extended tribe metadata
 
@@ -3085,10 +3041,7 @@ create trigger set_tribe_kb_updated_at
   before update on tribe_knowledge_base
   for each row execute function set_updated_at();
 
-
--- ============================================================
--- Migration: 20260324100000_ai_native_schema.sql
--- ============================================================
+-- === 20260324100000_ai_native_schema.sql ===
 -- =============================================================================
 -- AI-Native Schema Evolution: From File Cabinet to Brain
 -- Adds: vector embeddings, agent workflow states, lineage tracking, JSONB indexes
@@ -3235,10 +3188,7 @@ alter table user_discovery_profiles enable row level security;
 create policy user_discovery_owner_rw on user_discovery_profiles
   for all using (user_id = auth.uid());
 
-
--- ============================================================
--- Migration: 20260324200000_operating_system_for_agents.sql
--- ============================================================
+-- === 20260324200000_operating_system_for_agents.sql ===
 -- =============================================================================
 -- Operating System for Agents: 6 Prime Directives
 -- Trust Score, Sprint Loop, Content Multiplier, Knowledge GPU,
@@ -3410,10 +3360,7 @@ create trigger set_content_amp_updated_at before update on content_amplification
 drop trigger if exists set_sovereignty_updated_at on sovereignty_profile;
 create trigger set_sovereignty_updated_at before update on sovereignty_profile for each row execute function set_updated_at();
 
-
--- ============================================================
--- Migration: 20260324300000_education_bridge.sql
--- ============================================================
+-- === 20260324300000_education_bridge.sql ===
 -- =============================================================================
 -- Education Bridge: K-12 ↔ OTJ Continuous Learning System
 -- Shadow Agent sessions, Delta Reports, Verification Labs,
@@ -3579,10 +3526,7 @@ create trigger set_prompt_marketplace_updated_at before update on prompt_marketp
 drop trigger if exists set_proof_of_build_updated_at on proof_of_build;
 create trigger set_proof_of_build_updated_at before update on proof_of_build for each row execute function set_updated_at();
 
-
--- ============================================================
--- Migration: 20260324400000_economic_operating_system.sql
--- ============================================================
+-- === 20260324400000_economic_operating_system.sql ===
 -- =============================================================================
 -- Economic Operating System: 5-Pillar Platform Success Layer
 -- KPI tracking, Career Flight Simulator, Anti-Algorithm feed,
@@ -3712,10 +3656,7 @@ create policy velocity_scores_owner_rw on velocity_scores for all using (user_id
 drop trigger if exists set_platform_kpis_updated_at on platform_kpis;
 create trigger set_platform_kpis_updated_at before update on platform_kpis for each row execute function set_updated_at();
 
-
--- ============================================================
--- Migration: 20260324500000_network_intelligence_engine.sql
--- ============================================================
+-- === 20260324500000_network_intelligence_engine.sql ===
 -- =============================================================================
 -- Network Intelligence Engine: Super-Connector Tools for 30K+ Networks
 -- Active Network Index, Agentic Triage, Skill Heat Maps,
@@ -3829,10 +3770,7 @@ create trigger set_triage_rules_updated_at before update on network_triage_rules
 drop trigger if exists set_network_segments_updated_at on network_segments;
 create trigger set_network_segments_updated_at before update on network_segments for each row execute function set_updated_at();
 
-
--- ============================================================
--- Migration: 20260324600000_refund_engine.sql
--- ============================================================
+-- === 20260324600000_refund_engine.sql ===
 -- =============================================================================
 -- Refund Engine: Tariff & Efficiency Reclamation System
 -- Cognitive Tariff, SaaS Audit, Network ROI, Trade Rebates, R&D Credits
@@ -3967,10 +3905,7 @@ create trigger set_refund_dashboard_updated_at before update on refund_dashboard
 drop trigger if exists set_baha_blasts_updated_at on baha_blasts;
 create trigger set_baha_blasts_updated_at before update on baha_blasts for each row execute function set_updated_at();
 
-
--- ============================================================
--- Migration: 20260324700000_cyborg_csuite.sql
--- ============================================================
+-- === 20260324700000_cyborg_csuite.sql ===
 -- =============================================================================
 -- Cyborg C-Suite: AI Autonomous Executive Layer
 -- CEO, CFO, CTO, CMO, CCO + Executive Review + Chairman Veto
@@ -4058,10 +3993,7 @@ create policy csuite_actions_owner_rw on csuite_autonomous_actions for all using
 drop trigger if exists set_executive_briefs_updated_at on executive_briefs;
 create trigger set_executive_briefs_updated_at before update on executive_briefs for each row execute function set_updated_at();
 
-
--- ============================================================
--- Migration: 20260324800000_agent_app_factory.sql
--- ============================================================
+-- === 20260324800000_agent_app_factory.sql ===
 -- =============================================================================
 -- Agent & App Factory: Industrialized Intelligence Assembly Lines
 -- Build pipelines, agent assembly, quality gates, factory metrics
@@ -4165,10 +4097,7 @@ create trigger set_factory_pipelines_updated_at before update on factory_pipelin
 drop trigger if exists set_factory_agents_updated_at on factory_agents;
 create trigger set_factory_agents_updated_at before update on factory_agents for each row execute function set_updated_at();
 
-
--- ============================================================
--- Migration: 20260324900000_sovereign_civilization.sql
--- ============================================================
+-- === 20260324900000_sovereign_civilization.sql ===
 -- =============================================================================
 -- Sovereign Civilization: 6 Bespoke Elements
 -- Human Alpha Oracle, Shadow Negotiator, Sovereign Sanctuary,
@@ -4306,10 +4235,7 @@ create policy wetware_owner_rw on wetware_sessions for all using (user_id = auth
 alter table artifact_registry enable row level security;
 create policy artifact_owner_rw on artifact_registry for all using (user_id = auth.uid());
 
-
--- ============================================================
--- Migration: 20260325000000_agent_lab_persistent_memory.sql
--- ============================================================
+-- === 20260325000000_agent_lab_persistent_memory.sql ===
 -- =============================================================================
 -- Agent Lab: Cognitive Particle Accelerator + Persistent Agentic Memory
 -- Sandbox, Cognitive Staking, Failure Ledger, Agentic Breeding,
@@ -4479,10 +4405,7 @@ create policy durable_owner on durable_workflows for all using (user_id = auth.u
 alter table lab_acceleration_metrics enable row level security;
 create policy metrics_owner on lab_acceleration_metrics for all using (user_id = auth.uid());
 
-
--- ============================================================
--- Migration: 20260325100000_critical_safeguards.sql
--- ============================================================
+-- === 20260325100000_critical_safeguards.sql ===
 -- =============================================================================
 -- Critical Safeguards: 6 Failure Point Defenses
 -- Liability Firewall, Graceful Degradation, Tribal Missions,
@@ -4610,10 +4533,7 @@ create policy heartbeat_owner on biological_heartbeat for all using (user_id = a
 alter table primary_source_registry enable row level security;
 create policy primary_source_owner on primary_source_registry for all using (user_id = auth.uid());
 
-
--- ============================================================
--- Migration: 20260325200000_mitre_immune_system.sql
--- ============================================================
+-- === 20260325200000_mitre_immune_system.sql ===
 -- =============================================================================
 -- MITRE ATT&CK Immune System: Automated Defensive Architecture
 -- Agentic Red Team, Tribal Herd Immunity, Deterministic Hardening
@@ -4689,10 +4609,7 @@ create policy red_team_owner on red_team_exercises for all using (user_id = auth
 alter table defense_posture enable row level security;
 create policy posture_owner on defense_posture for all using (user_id = auth.uid());
 
-
--- ============================================================
--- Migration: 20260325300000_sovereign_civilization_final.sql
--- ============================================================
+-- === 20260325300000_sovereign_civilization_final.sql ===
 -- =============================================================================
 -- Sovereign Civilization Final: TEACHER Codex, Hard-Tech Awakening,
 -- Xenobots / Biological Sovereignty, AI Moment Wave Tracker
@@ -4796,10 +4713,7 @@ create policy xenobot_owner on xenobot_deployments for all using (user_id = auth
 alter table sovereign_wave_tracker enable row level security;
 create policy wave_owner on sovereign_wave_tracker for all using (user_id = auth.uid());
 
-
--- ============================================================
--- Migration: 20260325400000_token_economy_lunar_infrastructure.sql
--- ============================================================
+-- === 20260325400000_token_economy_lunar_infrastructure.sql ===
 -- =============================================================================
 -- Agentic Token Economy + Lunar/Petawatt Infrastructure
 -- Compute-as-Equity, Tribal Compute Pools, Lunar Forge, Orbital Assets
@@ -4851,10 +4765,7 @@ create table if not exists public.lunar_infrastructure (
 alter table agentic_token_ledger enable row level security;
 create policy token_owner on agentic_token_ledger for all using (user_id = auth.uid());
 
-
--- ============================================================
--- Migration: 20260325500000_decadal_timeline_orbital_pharma.sql
--- ============================================================
+-- === 20260325500000_decadal_timeline_orbital_pharma.sql ===
 -- =============================================================================
 -- Decadal Timeline Milestones + Orbital Pharmaceutical Manufacturing
 -- Phase tracking, Orbital Neo Labs, Tribal Pharma, Bio-Sovereignty
@@ -4917,10 +4828,7 @@ create table if not exists public.tribal_pharma_missions (
 alter table decadal_milestones enable row level security;
 create policy milestone_owner on decadal_milestones for all using (user_id = auth.uid());
 
-
--- ============================================================
--- Migration: 20260325600000_energy_spatial_sovereignty.sql
--- ============================================================
+-- === 20260325600000_energy_spatial_sovereignty.sql ===
 -- =============================================================================
 -- Energy Sovereignty (One-Charge) + Spatial Sovereignty (Autonomous Vehicles)
 -- Nuclear Diamond Batteries, Sovereign Fleets, Mobile Neo Labs
@@ -5002,10 +4910,7 @@ create policy energy_owner on tribal_energy_ledger for all using (user_id = auth
 alter table sovereign_vehicles enable row level security;
 create policy vehicle_owner on sovereign_vehicles for all using (owner_user_id = auth.uid());
 
-
--- ============================================================
--- Migration: 20260325700000_legal_sovereign.sql
--- ============================================================
+-- === 20260325700000_legal_sovereign.sql ===
 -- =============================================================================
 -- Legal Sovereign Module: The Harvey/Legora Killer
 -- Sovereign Legal Stacks, Client Trust Portals, Dependency Audits
@@ -5072,10 +4977,7 @@ create policy trust_portal_owner on client_trust_portals for all using (firm_use
 alter table legal_dependency_audits enable row level security;
 create policy legal_audit_owner on legal_dependency_audits for all using (user_id = auth.uid());
 
-
--- ============================================================
--- Migration: 20260326000000_liquid_governance.sql
--- ============================================================
+-- === 20260326000000_liquid_governance.sql ===
 -- =============================================================================
 -- Liquid Governance Protocol: Tribal Consensus via Weighted Liquid Democracy
 -- Voting power weighted by Human Alpha + Trust Score + Proof of Build
@@ -5154,9 +5056,9 @@ create table if not exists public.governance_delegations (
   is_active boolean not null default true,
   created_at timestamptz not null default now(),
   revoked_at timestamptz,
-  constraint gov_delegations_no_self check (delegator_user_id != delegate_user_id),
-  constraint gov_delegations_unique unique (delegator_user_id, tribe_id, domain) where (is_active = true)
+  constraint gov_delegations_no_self check (delegator_user_id != delegate_user_id)
 );
+create unique index if not exists gov_delegations_active_unique on governance_delegations(delegator_user_id, tribe_id, domain) where (is_active = true);
 create index if not exists gov_delegations_delegate_idx on governance_delegations(delegate_user_id, tribe_id);
 create index if not exists gov_delegations_delegator_idx on governance_delegations(delegator_user_id);
 
@@ -5264,10 +5166,7 @@ begin
 end;
 $$;
 
-
--- ============================================================
--- Migration: 20260326100000_labor_of_love_marketplace.sql
--- ============================================================
+-- === 20260326100000_labor_of_love_marketplace.sql ===
 -- =============================================================================
 -- Labor of Love Marketplace: Non-Scalable Human Experiences
 -- Post-work economy where success = Fulfillment Yield, not Profit
@@ -5426,10 +5325,7 @@ create trigger marketplace_order_fulfillment_trigger
   when (NEW.status = 'completed' and OLD.status != 'completed')
   execute function update_fulfillment_yield();
 
-
--- ============================================================
--- Migration: 20260326200000_barter_bot.sql
--- ============================================================
+-- === 20260326200000_barter_bot.sql ===
 -- =============================================================================
 -- Barter Bot: P2P Inter-Sovereign Trade Engine
 -- Trade offers, negotiation sessions, and escrow for sovereign asset exchange
@@ -5506,10 +5402,7 @@ create policy trade_escrow_party_read on sovereign_trade_escrow for select
     )
   );
 
-
--- ============================================================
--- Migration: 20260326300000_authenticity_oracle.sql
--- ============================================================
+-- === 20260326300000_authenticity_oracle.sql ===
 -- =============================================================================
 -- Authenticity Oracle: Anti-Deepfake Content Provenance System
 -- Attestations, challenges, and biological heartbeat verification
@@ -5578,10 +5471,7 @@ create policy challenges_attestation_creator_read on authenticity_challenges for
 alter table biological_heartbeat_log enable row level security;
 create policy heartbeat_owner_rw on biological_heartbeat_log for all using (user_id = auth.uid());
 
-
--- ============================================================
--- Migration: 20260326400000_latency_buffer.sql
--- ============================================================
+-- === 20260326400000_latency_buffer.sql ===
 -- =============================================================================
 -- Latency Buffer: Offline Sync & Conflict Resolution Engine
 -- Queue, shadow state snapshots, and conflict logging for offline-first agents
@@ -5644,10 +5534,7 @@ create policy shadow_state_owner_rw on shadow_state_snapshots for all using (use
 alter table sync_conflict_log enable row level security;
 create policy sync_conflict_owner_rw on sync_conflict_log for all using (user_id = auth.uid());
 
-
--- ============================================================
--- Migration: 20260326500000_a2a_protocol.sql
--- ============================================================
+-- === 20260326500000_a2a_protocol.sql ===
 -- =============================================================================
 -- A2A Protocol: Inter-Tribe Agent Intelligence Exchange
 -- =============================================================================
@@ -5739,10 +5626,7 @@ create policy a2a_message_log_participant_insert on a2a_message_log for insert w
 drop trigger if exists set_a2a_agent_cards_updated_at on a2a_agent_cards;
 create trigger set_a2a_agent_cards_updated_at before update on a2a_agent_cards for each row execute function set_updated_at();
 
-
--- ============================================================
--- Migration: 20260326600000_experience_archive.sql
--- ============================================================
+-- === 20260326600000_experience_archive.sql ===
 -- =============================================================================
 -- Echoes of Experience Archive: Persistent Mentor Ledger
 -- =============================================================================
@@ -5796,10 +5680,7 @@ create policy experience_endorsements_owner_insert on experience_endorsements fo
 drop trigger if exists set_experience_entries_updated_at on experience_entries;
 create trigger set_experience_entries_updated_at before update on experience_entries for each row execute function set_updated_at();
 
-
--- ============================================================
--- Migration: 20260326700000_decoupling_suite.sql
--- ============================================================
+-- === 20260326700000_decoupling_suite.sql ===
 -- =============================================================================
 -- Handcuff Cutter: Golden Handcuff Analysis & Sovereignty Break-Even
 -- =============================================================================
@@ -5853,10 +5734,7 @@ create policy decoupling_milestones_owner_rw on decoupling_milestones for all us
 drop trigger if exists set_decoupling_audits_updated_at on decoupling_audits;
 create trigger set_decoupling_audits_updated_at before update on decoupling_audits for each row execute function set_updated_at();
 
-
--- ============================================================
--- Migration: 20260326800000_bounty_hunter.sql
--- ============================================================
+-- === 20260326800000_bounty_hunter.sql ===
 -- =============================================================================
 -- Bounty Hunter: External Market Challenge Submission Pipeline
 -- =============================================================================
@@ -5912,10 +5790,7 @@ create policy bounty_submissions_owner_rw on bounty_submissions for all using (s
 drop trigger if exists set_bounty_opportunities_updated_at on bounty_opportunities;
 create trigger set_bounty_opportunities_updated_at before update on bounty_opportunities for each row execute function set_updated_at();
 
-
--- ============================================================
--- Migration: 20260326900000_recursive_evolution.sql
--- ============================================================
+-- === 20260326900000_recursive_evolution.sql ===
 -- =============================================================================
 -- Recursive Self-Improvement: Intelligence Explosion Infrastructure — Tools #129-131
 -- =============================================================================
@@ -6021,10 +5896,7 @@ create trigger set_intelligence_tariff_audits_updated_at before update on intell
 drop trigger if exists set_tribal_auto_research_campaigns_updated_at on tribal_auto_research_campaigns;
 create trigger set_tribal_auto_research_campaigns_updated_at before update on tribal_auto_research_campaigns for each row execute function set_updated_at();
 
-
--- ============================================================
--- Migration: 20260327000000_sherlog_forensics.sql
--- ============================================================
+-- === 20260327000000_sherlog_forensics.sql ===
 -- =============================================================================
 -- Project SherLog: Forensic Intelligence Pipeline — Tools #132-135
 -- =============================================================================
@@ -6139,10 +6011,7 @@ create policy sandbox_detonations_owner_all on sandbox_detonations
 create policy sandbox_detonations_read_complete on sandbox_detonations
   for select using (status = 'complete');
 
-
--- ============================================================
--- Migration: 20260327100000_latent_physics.sql
--- ============================================================
+-- === 20260327100000_latent_physics.sql ===
 -- =============================================================================
 -- LeWorldModel: Latent Physics Engine — Tools #136-139
 -- =============================================================================
@@ -6246,10 +6115,7 @@ alter table latent_probes enable row level security;
 create policy latent_probes_owner_all on latent_probes
   for all using (user_id = auth.uid());
 
-
--- ============================================================
--- Migration: 20260327200000_pacific_rim_shield.sql
--- ============================================================
+-- === 20260327200000_pacific_rim_shield.sql ===
 -- =============================================================================
 -- Pacific Rim Shield: Agentic Immunity — Tools #140-145
 -- =============================================================================
@@ -6351,10 +6217,7 @@ alter table biometric_encryption_gates enable row level security;
 create policy biometric_encryption_gates_owner_all on biometric_encryption_gates
   for all using (user_id = auth.uid());
 
-
--- ============================================================
--- Migration: 20260327300000_interplanetary_pipeline.sql
--- ============================================================
+-- === 20260327300000_interplanetary_pipeline.sql ===
 -- =============================================================================
 -- Interplanetary Pipeline: NASA Ignition & SR1 Freedom — Tools #146-149
 -- =============================================================================
@@ -6472,10 +6335,7 @@ create policy supply_chain_monitors_owner_insert on supply_chain_monitors
 create policy supply_chain_monitors_owner_update on supply_chain_monitors
   for update using (user_id = auth.uid());
 
-
--- ============================================================
--- Migration: 20260327400000_recursive_meta_agent.sql
--- ============================================================
+-- === 20260327400000_recursive_meta_agent.sql ===
 -- =============================================================================
 -- Recursive Meta-Agent: Agent #0 — Tools #150-155
 -- =============================================================================
@@ -6562,10 +6422,7 @@ create policy chairman_alignment_owner_rw on chairman_alignment_vectors for all 
 drop trigger if exists set_chairman_alignment_updated_at on chairman_alignment_vectors;
 create trigger set_chairman_alignment_updated_at before update on chairman_alignment_vectors for each row execute function set_updated_at();
 
-
--- ============================================================
--- Migration: 20260327500000_invisible_infrastructure.sql
--- ============================================================
+-- === 20260327500000_invisible_infrastructure.sql ===
 -- =============================================================================
 -- Invisible Infrastructure: MolmoWeb Vision + WebAssembly Sandbox — Tools #156-160
 -- =============================================================================
@@ -6660,10 +6517,7 @@ create policy observability_refund_ledger_owner_rw on observability_refund_ledge
 drop trigger if exists set_consultant_blueprints_updated_at on consultant_blueprints;
 create trigger set_consultant_blueprints_updated_at before update on consultant_blueprints for each row execute function set_updated_at();
 
-
--- ============================================================
--- Migration: 20260327600000_diplomatic_integrity.sql
--- ============================================================
+-- === 20260327600000_diplomatic_integrity.sql ===
 -- Diplomatic Integrity: Proxy Influence Auditing & Handshake Sovereignty
 -- Tools #161-164
 
@@ -6751,10 +6605,7 @@ alter table public.handshake_sovereignty_gates enable row level security;
 create policy "Users manage own handshake gates" on public.handshake_sovereignty_gates for all using (user_id = auth.uid());
 create index idx_handshake_stakes on public.handshake_sovereignty_gates(stakes_level);
 
-
--- ============================================================
--- Migration: 20260327700000_blockade_bypass.sql
--- ============================================================
+-- === 20260327700000_blockade_bypass.sql ===
 -- Blockade Bypass: Vendor Openness Audit & Sovereign MCP Infrastructure
 -- Tools #165-168
 
@@ -6843,10 +6694,7 @@ alter table public.agentic_intent_certs enable row level security;
 create policy "Users manage own intent certs" on public.agentic_intent_certs for all using (user_id = auth.uid());
 create index idx_intent_cert_level on public.agentic_intent_certs(certification_level);
 
-
--- ============================================================
--- Migration: 20260327800000_forensic_accountability.sql
--- ============================================================
+-- === 20260327800000_forensic_accountability.sql ===
 -- Forensic Accountability: Justice Tariff Refund & Network Hygiene
 -- Tools #169-172
 
@@ -6931,10 +6779,7 @@ create table if not exists public.network_hygiene_reports (
 alter table public.network_hygiene_reports enable row level security;
 create policy "Users manage own hygiene reports" on public.network_hygiene_reports for all using (user_id = auth.uid());
 
-
--- ============================================================
--- Migration: 20260328000000_morpheus_protocol.sql
--- ============================================================
+-- === 20260328000000_morpheus_protocol.sql ===
 -- Morpheus Protocol: Biometric Sovereignty & Vibe-Hardened Security
 -- Tools #177-180
 
@@ -7014,10 +6859,7 @@ create table if not exists public.solid_state_power_configs (
 alter table public.solid_state_power_configs enable row level security;
 create policy "Users manage own power configs" on public.solid_state_power_configs for all using (user_id = auth.uid());
 
-
--- ============================================================
--- Migration: 20260329000000_workflow_automation.sql
--- ============================================================
+-- === 20260329000000_workflow_automation.sql ===
 -- LinkedIn Workflow Automation: invitation lifecycle, connection scoring,
 -- feed intelligence, external contact import, DM response prioritization
 
@@ -7139,10 +6981,7 @@ create policy "owner_dm_response_queue" on public.dm_response_queue
 create index idx_dm_response_priority on public.dm_response_queue (owner_user_id, priority desc)
   where response_status = 'pending';
 
-
--- ============================================================
--- Migration: 20260329100000_dns_rsi_ascent.sql
--- ============================================================
+-- === 20260329100000_dns_rsi_ascent.sql ===
 -- DNS Sovereign Resolver + RSI Singularity Ascent
 
 -- 1. Sovereign DNS zones
@@ -7218,10 +7057,7 @@ create table if not exists public.hardware_competitiveness_index (
 alter table public.hardware_competitiveness_index enable row level security;
 create policy "owner_hardware_index" on public.hardware_competitiveness_index for all using (auth.uid() = owner_user_id) with check (auth.uid() = owner_user_id);
 
-
--- ============================================================
--- Migration: 20260329200000_nuance_resilience.sql
--- ============================================================
+-- === 20260329200000_nuance_resilience.sql ===
 -- Nuance & Resilience: supporting schema for circuit breakers #208-214
 
 create table if not exists public.thermodynamic_policy (
@@ -7282,10 +7118,7 @@ create table if not exists public.ghost_state_reconciliation (
 alter table public.ghost_state_reconciliation enable row level security;
 create policy "owner_ghost_state" on public.ghost_state_reconciliation for all using (auth.uid() = owner_user_id) with check (auth.uid() = owner_user_id);
 
-
--- ============================================================
--- Migration: 20260329300000_sovereign_health_atoms.sql
--- ============================================================
+-- === 20260329300000_sovereign_health_atoms.sql ===
 -- Sovereign Health & Atoms: physical supply chain, temporal mapping, credentials
 
 create table if not exists public.atomic_inventory (
@@ -7349,10 +7182,7 @@ create table if not exists public.zk_reputation_vault (
 alter table public.zk_reputation_vault enable row level security;
 create policy "owner_zk_vault" on public.zk_reputation_vault for all using (auth.uid() = owner_user_id) with check (auth.uid() = owner_user_id);
 
-
--- ============================================================
--- Migration: 20260329400000_validation_integrity.sql
--- ============================================================
+-- === 20260329400000_validation_integrity.sql ===
 -- Validation & Integrity: objective functions, reasoning audit, physical verification, human gates
 
 create table if not exists public.objective_functions (
@@ -7418,5 +7248,4 @@ create table if not exists public.human_alpha_gates (
 alter table public.human_alpha_gates enable row level security;
 create policy "owner_alpha_gates" on public.human_alpha_gates for all using (auth.uid() = owner_user_id) with check (auth.uid() = owner_user_id);
 create index idx_alpha_gates_type on public.human_alpha_gates (owner_user_id, gate_type, signed_at desc);
-
 

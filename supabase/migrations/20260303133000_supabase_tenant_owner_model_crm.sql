@@ -49,7 +49,7 @@ with project_owner_candidates as (
 project_owner_resolved as (
   select
     tribe_id,
-    min(owner_user_id) as owner_user_id
+    min(owner_user_id::text)::uuid as owner_user_id
   from project_owner_candidates
   group by tribe_id
   having count(distinct owner_user_id) = 1
@@ -83,7 +83,7 @@ with member_owner_candidates as (
 member_owner_resolved as (
   select
     tribe_id,
-    min(owner_user_id) as owner_user_id
+    min(owner_user_id::text)::uuid as owner_user_id
   from member_owner_candidates
   group by tribe_id
   having count(distinct owner_user_id) = 1
