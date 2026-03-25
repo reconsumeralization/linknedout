@@ -220,6 +220,10 @@ function getSuggestedPrompts(activeView: ActiveView, hasImportedProfiles: boolea
       "Audit institutional accountability gaps for a subject",
       "Reconstruct hidden narrative from redacted dataset",
       "Run network hygiene report on my connections",
+      "Execute a permissionless launch bypassing regulatory friction",
+      "Stake tokens to a lunar sprint mission phase",
+      "Mask biometric signature against surveillance sensors",
+      "Audit vibe-coded project for security vulnerabilities",
     ],
     globe: [
       "Show me governance arcs for active proposals",

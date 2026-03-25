@@ -21,22 +21,24 @@ import { useState } from "react"
 const MINIMAL_ENV = `# Copy to .env.local and fill in your values
 NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
+SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
+OPENAI_API_KEY=sk-your-openai-key
 NEXT_PUBLIC_APP_URL=http://localhost:3000`
 
 const steps = [
   {
     id: "supabase-config",
-    title: "Start with Supabase",
+    title: "Create a Supabase project and grab your keys",
     description:
-      "Use Supabase Cloud or run local Supabase with pnpm supabase:local:start. Copy .env.example to .env.local and set NEXT_PUBLIC_SUPABASE_URL plus NEXT_PUBLIC_SUPABASE_ANON_KEY.",
+      "Go to supabase.com, create a new project, then copy the URL and anon key from Settings > API. Paste them into .env.local as NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY. Also set SUPABASE_SERVICE_ROLE_KEY for server-side features.",
     href: null,
     icon: ShieldCheck,
   },
   {
-    id: "docker",
-    title: "Only use Docker if you want the full local stack",
+    id: "migrations",
+    title: "Apply database migrations",
     description:
-      "If you are running everything locally, set POSTGRES_PASSWORD and then run pnpm docker:up. docs/docker-stack.md and docs/setup-and-onboarding.md cover the full stack.",
+      "Run pnpm supabase:db:start to apply migrations automatically, or apply them manually via the Supabase SQL editor. This creates the tables the app needs (profiles, tribes, projects, etc.).",
     href: null,
     icon: FolderKanban,
   },
@@ -129,19 +131,19 @@ export default function SetupPage() {
           <CardContent className="space-y-4">
             <ol className="space-y-3">
               <li className="rounded-xl border border-border/80 bg-background/70 p-4">
-                <p className="text-sm font-medium text-foreground">1. Copy .env.example to .env.local</p>
+                <p className="text-sm font-medium text-foreground">1. Create a Supabase project and copy keys to .env.local</p>
                 <p className="mt-1 text-sm leading-6 text-muted-foreground">
-                  Put in <code className="rounded bg-muted px-1.5 py-0.5 text-xs">NEXT_PUBLIC_SUPABASE_URL</code> and <code className="rounded bg-muted px-1.5 py-0.5 text-xs">NEXT_PUBLIC_SUPABASE_ANON_KEY</code>. That is the only required client config to start.
+                  Create a project at <a href="https://supabase.com" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">supabase.com</a>. Copy <code className="rounded bg-muted px-1.5 py-0.5 text-xs">NEXT_PUBLIC_SUPABASE_URL</code> and <code className="rounded bg-muted px-1.5 py-0.5 text-xs">NEXT_PUBLIC_SUPABASE_ANON_KEY</code> from Settings &gt; API into .env.local.
                 </p>
               </li>
               <li className="rounded-xl border border-border/80 bg-background/70 p-4">
-                <p className="text-sm font-medium text-foreground">2. Run the app and sign in</p>
+                <p className="text-sm font-medium text-foreground">2. Apply migrations and run the app</p>
                 <p className="mt-1 text-sm leading-6 text-muted-foreground">
-                  Start with <code className="rounded bg-muted px-1.5 py-0.5 text-xs">pnpm dev</code>, open LinkedOut, and sign in with Supabase so the protected panels use your account.
+                  Run <code className="rounded bg-muted px-1.5 py-0.5 text-xs">pnpm supabase:db:start</code> to apply migrations (or run them manually via the SQL editor). Then start the app with <code className="rounded bg-muted px-1.5 py-0.5 text-xs">pnpm dev</code>.
                 </p>
               </li>
               <li className="rounded-xl border border-border/80 bg-background/70 p-4">
-                <p className="text-sm font-medium text-foreground">3. Import your first profiles</p>
+                <p className="text-sm font-medium text-foreground">3. Sign up / sign in, then import profiles</p>
                 <p className="mt-1 text-sm leading-6 text-muted-foreground">
                   Go to AI Assistant and import a LinkedIn CSV or text-based LinkedIn profile PDF. That immediately feeds the existing analysis panels.
                 </p>

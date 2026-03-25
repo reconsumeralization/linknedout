@@ -2742,3 +2742,43 @@ export interface NetworkHygieneReport {
   reportStatus: "generated" | "reviewed" | "actioned" | "archived"
   createdAt: string
 }
+
+// ---------------------------------------------------------------------------
+// Morpheus Protocol: Biometric Sovereignty & Vibe-Hardened Security
+// ---------------------------------------------------------------------------
+
+export interface BiometricMaskingSession {
+  id: string; userId: string
+  maskingType: "iris" | "facial" | "gait" | "voice" | "fingerprint" | "multi_modal"
+  threatSource?: string; frequencyBand?: string
+  maskingMethod: "adversarial_glint" | "noise_injection" | "pattern_disruption" | "frequency_shift" | "holographic"
+  effectivenessScore: number; durationMinutes: number; hardwareUsed?: string
+  status: "active" | "completed" | "failed" | "archived"; createdAt: string
+}
+
+export interface EthicalDeadlockResolution {
+  id: string; userId: string; scenarioLabel: string
+  redFlagType: "violence" | "self_harm" | "exploitation" | "fraud" | "terrorism" | "other"
+  tribalEthicalCodeRef?: string; actionTaken: string; resolutionTimeMs: number
+  escalatedToHuman: boolean; humanOverrideApplied: boolean
+  outcome: "resolved" | "escalated" | "overridden" | "logged_only" | "false_positive"
+  createdAt: string
+}
+
+export interface VibeCodeSecurityAudit {
+  id: string; userId: string; codebaseLabel: string; scanEngine: string
+  totalFilesScanned: number; highSeverityCount: number; mediumSeverityCount: number
+  lowSeverityCount: number; autoFixedCount: number
+  vulnerabilities: Array<{ id: string; severity: string; description: string; file?: string; fixed?: boolean }>
+  scanDurationSeconds: number; passed: boolean; createdAt: string
+}
+
+export interface SolidStatePowerConfig {
+  id: string; userId: string; deviceLabel: string
+  batteryType: "solid_state" | "donut_labs" | "sodium_ion" | "graphene" | "lithium_solid" | "experimental"
+  capacityKwh: number; chargeTimeMinutes: number
+  coolingMethod: "air" | "liquid" | "passive" | "phase_change" | "cryogenic"
+  weightReductionKg: number; runtimeHours: number; targetDevice?: string
+  operationalStatus: "configured" | "charging" | "operational" | "degraded" | "replaced"
+  createdAt: string
+}

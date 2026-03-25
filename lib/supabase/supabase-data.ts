@@ -2856,3 +2856,49 @@ export async function fetchNetworkHygieneReports() {
   if (error) { console.error("fetchNetworkHygieneReports", error); return [] }
   return data ?? []
 }
+
+// ---------------------------------------------------------------------------
+// Morpheus Protocol
+// ---------------------------------------------------------------------------
+
+export async function fetchBiometricMaskingSessions() {
+  const supabase = getSupabaseClient()
+  if (!supabase) return []
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return []
+  const { data, error } = await supabase.from("biometric_masking_sessions").select("*").eq("user_id", user.id).order("created_at", { ascending: false })
+  if (error) { console.error("fetchBiometricMaskingSessions", error); return [] }
+  return data ?? []
+}
+
+export async function fetchEthicalResolutions() {
+  const supabase = getSupabaseClient()
+  if (!supabase) return []
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return []
+  const { data, error } = await supabase.from("ethical_deadlock_resolutions").select("*").eq("user_id", user.id).order("created_at", { ascending: false })
+  if (error) { console.error("fetchEthicalResolutions", error); return [] }
+  return data ?? []
+}
+
+export async function fetchVibeSecurityAudits(passed?: boolean) {
+  const supabase = getSupabaseClient()
+  if (!supabase) return []
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return []
+  let query = supabase.from("vibe_code_security_audits").select("*").eq("user_id", user.id).order("created_at", { ascending: false })
+  if (passed !== undefined) query = query.eq("passed", passed)
+  const { data, error } = await query
+  if (error) { console.error("fetchVibeSecurityAudits", error); return [] }
+  return data ?? []
+}
+
+export async function fetchSolidStatePowerConfigs() {
+  const supabase = getSupabaseClient()
+  if (!supabase) return []
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return []
+  const { data, error } = await supabase.from("solid_state_power_configs").select("*").eq("user_id", user.id).order("created_at", { ascending: false })
+  if (error) { console.error("fetchSolidStatePowerConfigs", error); return [] }
+  return data ?? []
+}
