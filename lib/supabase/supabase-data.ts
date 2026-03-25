@@ -3460,3 +3460,39 @@ export async function fetchStateIndependenceProofs(stateType?: string) {
   if (error) { console.error("fetchStateIndependenceProofs", error); return [] }
   return data ?? []
 }
+
+export async function fetchHedonicOverwriteAudits(limit?: number) {
+  const supabase = getSupabaseClient()
+  if (!supabase) return []
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return []
+  let query = supabase.from("hedonic_overwrite_audits").select("*").eq("owner_user_id", user.id).order("audited_at", { ascending: false })
+  if (limit) query = query.limit(limit)
+  const { data, error } = await query
+  if (error) { console.error("fetchHedonicOverwriteAudits", error); return [] }
+  return data ?? []
+}
+
+export async function fetchAversiveHardenings(hardeningLevel?: string) {
+  const supabase = getSupabaseClient()
+  if (!supabase) return []
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return []
+  let query = supabase.from("aversive_hardening_log").select("*").eq("owner_user_id", user.id).order("etched_at", { ascending: false })
+  if (hardeningLevel) query = query.eq("hardening_level", hardeningLevel)
+  const { data, error } = await query
+  if (error) { console.error("fetchAversiveHardenings", error); return [] }
+  return data ?? []
+}
+
+export async function fetchAffectiveRefunds(classification?: string) {
+  const supabase = getSupabaseClient()
+  if (!supabase) return []
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return []
+  let query = supabase.from("affective_refund_ledger").select("*").eq("owner_user_id", user.id).order("measured_at", { ascending: false })
+  if (classification) query = query.eq("valence_classification", classification)
+  const { data, error } = await query
+  if (error) { console.error("fetchAffectiveRefunds", error); return [] }
+  return data ?? []
+}

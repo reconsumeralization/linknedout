@@ -3449,3 +3449,44 @@ export interface StateIndependenceProof {
   createdAt: string
   updatedAt: string
 }
+
+export interface HedonicOverwriteAudit {
+  id: string
+  ownerUserId: string
+  featureName: string
+  appetitiveLure?: string
+  sensoryRisk?: string
+  overwriteDetected: boolean
+  hedonicScore: number
+  riskScore: number
+  netJudgment: number
+  recommendation?: string
+  auditedAt: string
+  createdAt: string
+}
+
+export interface AversiveHardeningEntry {
+  id: string
+  ownerUserId: string
+  triggerPattern: string
+  triggerSource?: string
+  valence: "aversive" | "appetitive" | "neutral"
+  hardeningLevel: "temporary" | "session" | "permanent" | "crystalline"
+  tribalPropagated: boolean
+  singleExposure: boolean
+  etchedAt: string
+  createdAt: string
+}
+
+export interface AffectiveRefundEntry {
+  id: string
+  ownerUserId: string
+  missionName: string
+  hedonicTransferScore: number
+  fulfillmentYield: number
+  sensoryCost: number
+  netAffectiveRefund: number
+  valenceClassification: "deeply_fulfilling" | "fulfilling" | "neutral" | "draining" | "harmful"
+  measuredAt: string
+  createdAt: string
+}

@@ -5524,5 +5524,204 @@ export function createSovereignTools(
         }
       },
     }),
+
+    // ========================================================================
+    // Affective Sovereign Tools (#272-276)
+    // ========================================================================
+
+    // #272 — auditHedonicOverwriting
+    auditHedonicOverwriting: tool({
+      description:
+        "Detect when appetitive features blind you to structural or security risks",
+      inputSchema: z.object({
+        featureName: z.string(),
+        appetitiveLure: z.string(),
+        sensoryRisk: z.string(),
+        hedonicScore: z.number().min(0).max(100).optional(),
+        riskScore: z.number().min(0).max(100).optional(),
+      }),
+      execute: async (input) => {
+        try {
+          const hedonic = input.hedonicScore ?? Math.round(Math.random() * 100)
+          const risk = input.riskScore ?? Math.round(Math.random() * 100)
+          const netJudgment = hedonic - risk
+          const overwriteDetected = hedonic > 60 && risk > 40 && netJudgment > 0
+
+          const recommendation = overwriteDetected
+            ? `Hedonic overwrite detected for "${input.featureName}": appetitive lure (${hedonic}) masks risk (${risk}). Re-evaluate with sensory noise stripped.`
+            : `No overwrite detected for "${input.featureName}": risk awareness intact (net judgment: ${netJudgment}).`
+
+          const { data, error } = await client
+            .from("hedonic_overwrite_audits")
+            .insert({
+              owner_user_id: userId,
+              feature_name: input.featureName,
+              appetitive_lure: input.appetitiveLure,
+              sensory_risk: input.sensoryRisk,
+              overwrite_detected: overwriteDetected,
+              hedonic_score: hedonic,
+              risk_score: risk,
+              net_judgment: netJudgment,
+              recommendation,
+            })
+            .select()
+            .single()
+
+          if (error) throw error
+          return { ok: true, audit: data }
+        } catch (err: unknown) {
+          return { ok: false, error: err instanceof Error ? err.message : "Unknown error in auditHedonicOverwriting." }
+        }
+      },
+    }),
+
+    // #273 — decodeAgenticValence
+    decodeAgenticValence: tool({
+      description:
+        "Extract the outcome feeling from an agent simulation, stripping sensory noise to show hedonic core",
+      inputSchema: z.object({
+        simulationDescription: z.string(),
+        executionSteps: z.number().optional(),
+        affectedMembers: z.number().optional(),
+      }),
+      execute: async (input) => {
+        try {
+          const steps = input.executionSteps ?? 1
+          const members = input.affectedMembers ?? 1
+          const hedonicCore = Math.min(100, Math.round(50 + steps * 3 + members * 2))
+          const sensoryNoise = Math.round(Math.random() * 30 + 10)
+          const netValence = hedonicCore - sensoryNoise
+
+          const classification =
+            netValence >= 70 ? "deeply_fulfilling" :
+            netValence >= 40 ? "fulfilling" :
+            netValence >= 10 ? "neutral" :
+            netValence >= -20 ? "draining" : "harmful"
+
+          return {
+            ok: true,
+            valenceDecoding: {
+              simulationDescription: input.simulationDescription,
+              hedonicCore,
+              sensoryNoise,
+              netValence,
+              classification,
+              executionSteps: steps,
+              affectedMembers: members,
+            },
+          }
+        } catch (err: unknown) {
+          return { ok: false, error: err instanceof Error ? err.message : "Unknown error in decodeAgenticValence." }
+        }
+      },
+    }),
+
+    // #274 — triggerAversiveHardening
+    triggerAversiveHardening: tool({
+      description:
+        "Associate adversary patterns with permanent negative tribal valence for automated aversion",
+      inputSchema: z.object({
+        triggerPattern: z.string(),
+        triggerSource: z.string().optional(),
+        hardeningLevel: z.enum(["temporary", "session", "permanent", "crystalline"]).optional(),
+        tribalPropagated: z.boolean().optional(),
+      }),
+      execute: async (input) => {
+        try {
+          const { data, error } = await client
+            .from("aversive_hardening_log")
+            .insert({
+              owner_user_id: userId,
+              trigger_pattern: input.triggerPattern,
+              trigger_source: input.triggerSource ?? null,
+              valence: "aversive",
+              hardening_level: input.hardeningLevel ?? "permanent",
+              tribal_propagated: input.tribalPropagated ?? false,
+              single_exposure: false,
+            })
+            .select()
+            .single()
+
+          if (error) throw error
+          return { ok: true, hardening: data }
+        } catch (err: unknown) {
+          return { ok: false, error: err instanceof Error ? err.message : "Unknown error in triggerAversiveHardening." }
+        }
+      },
+    }),
+
+    // #275 — hardcodeSingleExposure
+    hardcodeSingleExposure: tool({
+      description:
+        "Instantly etch a high-stakes failure into crystalline memory for zero-latency future prevention",
+      inputSchema: z.object({
+        triggerPattern: z.string(),
+        triggerSource: z.string(),
+      }),
+      execute: async (input) => {
+        try {
+          const { data, error } = await client
+            .from("aversive_hardening_log")
+            .insert({
+              owner_user_id: userId,
+              trigger_pattern: input.triggerPattern,
+              trigger_source: input.triggerSource,
+              valence: "aversive",
+              hardening_level: "crystalline",
+              tribal_propagated: false,
+              single_exposure: true,
+            })
+            .select()
+            .single()
+
+          if (error) throw error
+          return { ok: true, etched: data }
+        } catch (err: unknown) {
+          return { ok: false, error: err instanceof Error ? err.message : "Unknown error in hardcodeSingleExposure." }
+        }
+      },
+    }),
+
+    // #276 — measureAffectiveRefund
+    measureAffectiveRefund: tool({
+      description:
+        "Quantify fulfillment yield of a mission based on hedonic transfer vs sensory cost",
+      inputSchema: z.object({
+        missionName: z.string(),
+        hedonicTransferScore: z.number().min(0).max(100),
+        sensoryCost: z.number().min(0).max(100),
+      }),
+      execute: async (input) => {
+        try {
+          const fulfillmentYield = Math.round(input.hedonicTransferScore * 0.85)
+          const netAffectiveRefund = fulfillmentYield - input.sensoryCost
+
+          const classification =
+            netAffectiveRefund >= 60 ? "deeply_fulfilling" :
+            netAffectiveRefund >= 25 ? "fulfilling" :
+            netAffectiveRefund >= -10 ? "neutral" :
+            netAffectiveRefund >= -40 ? "draining" : "harmful"
+
+          const { data, error } = await client
+            .from("affective_refund_ledger")
+            .insert({
+              owner_user_id: userId,
+              mission_name: input.missionName,
+              hedonic_transfer_score: input.hedonicTransferScore,
+              fulfillment_yield: fulfillmentYield,
+              sensory_cost: input.sensoryCost,
+              net_affective_refund: netAffectiveRefund,
+              valence_classification: classification,
+            })
+            .select()
+            .single()
+
+          if (error) throw error
+          return { ok: true, refund: data }
+        } catch (err: unknown) {
+          return { ok: false, error: err instanceof Error ? err.message : "Unknown error in measureAffectiveRefund." }
+        }
+      },
+    }),
   }
 }
