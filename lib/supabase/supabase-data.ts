@@ -2963,3 +2963,46 @@ export async function fetchDmResponseQueue(status?: string) {
   if (error) { console.error("fetchDmResponseQueue", error); return [] }
   return data ?? []
 }
+
+// DNS + RSI Ascent
+export async function fetchSovereignDnsZones() {
+  const supabase = getSupabaseClient()
+  if (!supabase) return []
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return []
+  const { data, error } = await supabase.from("sovereign_dns_zones").select("*").eq("owner_user_id", user.id).order("created_at", { ascending: false })
+  if (error) { console.error("fetchSovereignDnsZones", error); return [] }
+  return data ?? []
+}
+
+export async function fetchAgentWorkloads(status?: string) {
+  const supabase = getSupabaseClient()
+  if (!supabase) return []
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return []
+  let q = supabase.from("agent_parallel_workloads").select("*").eq("owner_user_id", user.id)
+  if (status) q = q.eq("status", status)
+  const { data, error } = await q.order("created_at", { ascending: false })
+  if (error) { console.error("fetchAgentWorkloads", error); return [] }
+  return data ?? []
+}
+
+export async function fetchRsiLearningSlope() {
+  const supabase = getSupabaseClient()
+  if (!supabase) return []
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return []
+  const { data, error } = await supabase.from("rsi_learning_slope").select("*").eq("owner_user_id", user.id).order("created_at", { ascending: false })
+  if (error) { console.error("fetchRsiLearningSlope", error); return [] }
+  return data ?? []
+}
+
+export async function fetchHardwareCompetitiveness() {
+  const supabase = getSupabaseClient()
+  if (!supabase) return []
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return []
+  const { data, error } = await supabase.from("hardware_competitiveness_index").select("*").eq("owner_user_id", user.id).order("created_at", { ascending: false })
+  if (error) { console.error("fetchHardwareCompetitiveness", error); return [] }
+  return data ?? []
+}

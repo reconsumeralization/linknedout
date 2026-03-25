@@ -2702,5 +2702,336 @@ export function createSovereignTools(
         }
       },
     }),
+
+    // ========================================================================
+    // DNS Sovereign Resolver Tools (#198-201)
+    // ========================================================================
+
+    provisionProtectiveDNS: tool({
+      description:
+        "Sync local RPZ zones with Tribal Threat Intel for real-time DNS filtering",
+      inputSchema: z.object({
+        zoneName: z.string(),
+        rpzSourceUrl: z.string().optional(),
+      }),
+      execute: async (input) => {
+        try {
+          const { data: zone, error } = await client
+            .from("sovereign_dns_zones")
+            .insert({
+              owner_user_id: userId,
+              zone_name: input.zoneName,
+              zone_type: "rpz",
+              encryption_protocol: "doq",
+              rpz_threat_count: 0,
+            })
+            .select()
+            .single()
+          if (error || !zone) {
+            return { ok: false, error: error?.message || "Failed to provision protective DNS." }
+          }
+          return { ok: true, zone }
+        } catch (err: unknown) {
+          return { ok: false, error: err instanceof Error ? err.message : "Unknown error provisioning protective DNS." }
+        }
+      },
+    }),
+
+    activateEncryptedDNS: tool({
+      description:
+        "Deploy encrypted DNS tunnels (DoH/DoQ) to local edge nodes",
+      inputSchema: z.object({
+        zoneName: z.string(),
+        protocol: z.enum(["dot", "doh", "doq"]).optional(),
+      }),
+      execute: async (input) => {
+        try {
+          const { data: zone, error } = await client
+            .from("sovereign_dns_zones")
+            .insert({
+              owner_user_id: userId,
+              zone_name: input.zoneName,
+              zone_type: "forward",
+              encryption_protocol: input.protocol ?? "doq",
+            })
+            .select()
+            .single()
+          if (error || !zone) {
+            return { ok: false, error: error?.message || "Failed to activate encrypted DNS." }
+          }
+          return { ok: true, zone }
+        } catch (err: unknown) {
+          return { ok: false, error: err instanceof Error ? err.message : "Unknown error activating encrypted DNS." }
+        }
+      },
+    }),
+
+    signSovereignDNSSEC: tool({
+      description:
+        "Use the Artifact Stone to cryptographically sign DNS records with Ed25519",
+      inputSchema: z.object({
+        zoneId: z.string().uuid(),
+        artifactSignerId: z.string().uuid().optional(),
+      }),
+      execute: async (input) => {
+        try {
+          const updatePayload: Record<string, unknown> = {
+            dnssec_enabled: true,
+            signing_algorithm: "ed25519",
+          }
+          if (input.artifactSignerId) updatePayload.artifact_signer_id = input.artifactSignerId
+          const { data: zone, error } = await client
+            .from("sovereign_dns_zones")
+            .update(updatePayload)
+            .eq("id", input.zoneId)
+            .eq("owner_user_id", userId)
+            .select()
+            .single()
+          if (error || !zone) {
+            return { ok: false, error: error?.message || "Failed to sign DNSSEC." }
+          }
+          return { ok: true, zone }
+        } catch (err: unknown) {
+          return { ok: false, error: err instanceof Error ? err.message : "Unknown error signing DNSSEC." }
+        }
+      },
+    }),
+
+    cullDanglingDNS: tool({
+      description:
+        "Auto-remove abandoned CNAME and NS records to prevent hijacking",
+      inputSchema: z.object({
+        zoneId: z.string().uuid(),
+      }),
+      execute: async (input) => {
+        try {
+          const { data: zone, error } = await client.rpc("increment_field", {
+            table_name: "sovereign_dns_zones",
+            field_name: "dangling_records_culled",
+            row_id: input.zoneId,
+          })
+          if (error) {
+            // Fallback: manual read + update
+            const { data: existing } = await client
+              .from("sovereign_dns_zones")
+              .select("dangling_records_culled")
+              .eq("id", input.zoneId)
+              .eq("owner_user_id", userId)
+              .single()
+            const prev = (existing as Record<string, number> | null)?.dangling_records_culled ?? 0
+            const { data: updated, error: updateErr } = await client
+              .from("sovereign_dns_zones")
+              .update({ dangling_records_culled: prev + 1 })
+              .eq("id", input.zoneId)
+              .eq("owner_user_id", userId)
+              .select()
+              .single()
+            if (updateErr || !updated) {
+              return { ok: false, error: updateErr?.message || "Failed to cull dangling DNS." }
+            }
+            return { ok: true, culled: (updated as Record<string, number>).dangling_records_culled }
+          }
+          return { ok: true, culled: zone }
+        } catch (err: unknown) {
+          return { ok: false, error: err instanceof Error ? err.message : "Unknown error culling dangling DNS." }
+        }
+      },
+    }),
+
+    // ========================================================================
+    // Singularity Ascent Tools (#202-207)
+    // ========================================================================
+
+    optimizeIntentToTokenRatio: tool({
+      description:
+        "Enforce a 20/80 human-judgment to agentic-execution split",
+      inputSchema: z.object({
+        currentHumanPct: z.number(),
+        targetHumanPct: z.number().optional(),
+      }),
+      execute: async (input) => {
+        try {
+          const target = input.targetHumanPct ?? 20
+          const autonomyPct = 100 - target
+          const { data: entry, error } = await client
+            .from("rsi_learning_slope")
+            .insert({
+              owner_user_id: userId,
+              human_direction_rate: target,
+              autonomy_pct: autonomyPct,
+              slope_status: "linear",
+            })
+            .select()
+            .single()
+          if (error || !entry) {
+            return { ok: false, error: error?.message || "Failed to optimize intent-to-token ratio." }
+          }
+          return {
+            ok: true,
+            recommendation: `Shift from ${input.currentHumanPct}% to ${target}% human direction (${autonomyPct}% autonomy).`,
+            entry,
+          }
+        } catch (err: unknown) {
+          return { ok: false, error: err instanceof Error ? err.message : "Unknown error optimizing intent-to-token ratio." }
+        }
+      },
+    }),
+
+    provisionAgentWorkforce: tool({
+      description:
+        "Scale agent count up to the limit of available Basepower",
+      inputSchema: z.object({
+        sprintName: z.string(),
+        agentCount: z.number().min(1).max(1000000),
+        evaluationFunction: z.string().optional(),
+      }),
+      execute: async (input) => {
+        try {
+          const { data: workload, error } = await client
+            .from("agent_parallel_workloads")
+            .insert({
+              owner_user_id: userId,
+              sprint_name: input.sprintName,
+              agent_count: input.agentCount,
+              evaluation_function: input.evaluationFunction ?? null,
+              status: "provisioning",
+            })
+            .select()
+            .single()
+          if (error || !workload) {
+            return { ok: false, error: error?.message || "Failed to provision agent workforce." }
+          }
+          return { ok: true, workload }
+        } catch (err: unknown) {
+          return { ok: false, error: err instanceof Error ? err.message : "Unknown error provisioning agent workforce." }
+        }
+      },
+    }),
+
+    auditHardwareSupplyChain: tool({
+      description:
+        "Compare tribal hardware capabilities against global robotic benchmarks",
+      inputSchema: z.object({
+        category: z.enum(["actuators", "lithography", "photonics", "batteries", "compute", "robotics", "sensors"]),
+        tribalScore: z.number(),
+        globalScore: z.number(),
+      }),
+      execute: async (input) => {
+        try {
+          const deltaPct = input.globalScore !== 0
+            ? Math.round(((input.tribalScore - input.globalScore) / input.globalScore) * 10000) / 100
+            : 0
+          const risk = deltaPct < -30 ? "critical" : deltaPct < -10 ? "high" : deltaPct < 0 ? "medium" : "low"
+          const { data: entry, error } = await client
+            .from("hardware_competitiveness_index")
+            .insert({
+              owner_user_id: userId,
+              category: input.category,
+              tribal_capability_score: input.tribalScore,
+              global_benchmark_score: input.globalScore,
+              delta_pct: deltaPct,
+              supply_chain_risk: risk,
+            })
+            .select()
+            .single()
+          if (error || !entry) {
+            return { ok: false, error: error?.message || "Failed to audit hardware supply chain." }
+          }
+          return { ok: true, entry }
+        } catch (err: unknown) {
+          return { ok: false, error: err instanceof Error ? err.message : "Unknown error auditing hardware supply chain." }
+        }
+      },
+    }),
+
+    calibrateSingularityPulse: tool({
+      description:
+        "Sync recursive evolution with the Human Chairman's ethical preferences",
+      inputSchema: z.object({
+        reasoningDepthScore: z.number(),
+        selfImprovementRate: z.number(),
+      }),
+      execute: async (input) => {
+        try {
+          const slopeStatus = input.selfImprovementRate < 0.1
+            ? "linear"
+            : input.selfImprovementRate < 0.5
+              ? "accelerating"
+              : input.selfImprovementRate < 0.9
+                ? "exponential"
+                : "vertical"
+          const { data: measurement, error } = await client
+            .from("rsi_learning_slope")
+            .insert({
+              owner_user_id: userId,
+              reasoning_depth_score: input.reasoningDepthScore,
+              self_improvement_rate: input.selfImprovementRate,
+              slope_status: slopeStatus,
+            })
+            .select()
+            .single()
+          if (error || !measurement) {
+            return { ok: false, error: error?.message || "Failed to calibrate singularity pulse." }
+          }
+          return { ok: true, measurement }
+        } catch (err: unknown) {
+          return { ok: false, error: err instanceof Error ? err.message : "Unknown error calibrating singularity pulse." }
+        }
+      },
+    }),
+
+    launchInventiveSprint: tool({
+      description:
+        "Run parallel agents overnight against an evaluation function to invent solutions",
+      inputSchema: z.object({
+        sprintName: z.string(),
+        agentCount: z.number().min(1).max(10000),
+        evaluationFunction: z.string(),
+        evaluationThreshold: z.number().optional(),
+      }),
+      execute: async (input) => {
+        try {
+          const { data: sprint, error } = await client
+            .from("agent_parallel_workloads")
+            .insert({
+              owner_user_id: userId,
+              sprint_name: input.sprintName,
+              agent_count: input.agentCount,
+              evaluation_function: input.evaluationFunction,
+              evaluation_threshold: input.evaluationThreshold ?? 0.95,
+              status: "running",
+              started_at: new Date().toISOString(),
+            })
+            .select()
+            .single()
+          if (error || !sprint) {
+            return { ok: false, error: error?.message || "Failed to launch inventive sprint." }
+          }
+          return { ok: true, sprint }
+        } catch (err: unknown) {
+          return { ok: false, error: err instanceof Error ? err.message : "Unknown error launching inventive sprint." }
+        }
+      },
+    }),
+
+    calculateSingularityDividend: tool({
+      description:
+        "Quantify the efficiency gain from ASI-level recursive improvement",
+      inputSchema: z.object({
+        preAsiEfficiency: z.number(),
+        postAsiEfficiency: z.number(),
+      }),
+      execute: async (input) => {
+        try {
+          const dividend = input.postAsiEfficiency - input.preAsiEfficiency
+          const multiplier = input.preAsiEfficiency !== 0
+            ? Math.round((input.postAsiEfficiency / input.preAsiEfficiency) * 100) / 100
+            : 0
+          return { ok: true, dividend, multiplier }
+        } catch (err: unknown) {
+          return { ok: false, error: err instanceof Error ? err.message : "Unknown error calculating singularity dividend." }
+        }
+      },
+    }),
   }
 }

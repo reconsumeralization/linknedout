@@ -2863,3 +2863,43 @@ export interface DmResponseEntry {
   responseStatus: "pending" | "drafted" | "sent" | "dismissed"
   createdAt: string
 }
+
+// ---------------------------------------------------------------------------
+// DNS Sovereign Resolver + RSI Singularity Ascent
+// ---------------------------------------------------------------------------
+
+export interface SovereignDnsZone {
+  id: string; ownerUserId: string; zoneName: string
+  zoneType: "primary" | "secondary" | "rpz" | "forward"
+  encryptionProtocol: "dot" | "doh" | "doq" | "plain"
+  dnssecEnabled: boolean; signingAlgorithm: string; artifactSignerId?: string
+  rpzThreatCount: number; danglingRecordsCulled: number
+  status: "active" | "disabled" | "culled"; createdAt: string
+}
+
+export interface AgentParallelWorkload {
+  id: string; ownerUserId: string; sprintName: string
+  agentCount: number; maxAgents: number
+  evaluationFunction?: string; evaluationThreshold: number
+  basepowerWattsAllocated: number
+  status: "provisioning" | "running" | "completed" | "failed" | "cancelled"
+  startedAt?: string; completedAt?: string; results?: Record<string, unknown>
+  createdAt: string
+}
+
+export interface RsiLearningSlopeEntry {
+  id: string; ownerUserId: string; measurementDate: string
+  reasoningDepthScore: number; tokensPerInsight: number
+  selfImprovementRate: number; humanDirectionRate: number
+  autonomyPct: number; singularityDistanceEstimate?: string
+  slopeStatus: "linear" | "accelerating" | "exponential" | "vertical"
+  createdAt: string
+}
+
+export interface HardwareCompetitivenessEntry {
+  id: string; ownerUserId: string
+  category: "actuators" | "lithography" | "photonics" | "batteries" | "compute" | "robotics" | "sensors"
+  tribalCapabilityScore: number; globalBenchmarkScore: number; deltaPct: number
+  supplyChainRisk: "low" | "medium" | "high" | "critical"
+  notes?: string; assessedAt: string; createdAt: string
+}
