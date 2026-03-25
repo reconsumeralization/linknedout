@@ -1,6 +1,7 @@
 ﻿import { createClient, type SupabaseClient, type SupabaseClientOptions } from "@supabase/supabase-js";
 
 let client: SupabaseClient | null = null
+let clientSourceKey: string | null = null // track which URL created the cached client
 let serverClient: SupabaseClient | null = null
 const userScopedClients = new Map<string, { client: SupabaseClient; createdAt: number }>()
 
@@ -80,19 +81,56 @@ const serverClientOptions: SupabaseClientOptions<"public"> = {
 }
 
 /**
+ * Read user-provided Supabase keys from localStorage (client-side only).
+ * Returns null on server or if keys are not set.
+ */
+function getUserSupabaseKeys(): { url: string; anonKey: string } | null {
+  if (typeof window === "undefined") return null
+  try {
+    const raw = localStorage.getItem("linkedout_user_keys")
+    if (!raw) return null
+    const parsed = JSON.parse(raw) as { supabaseUrl?: string; supabaseAnonKey?: string }
+    const url = parsed.supabaseUrl?.trim()
+    const anonKey = parsed.supabaseAnonKey?.trim()
+    if (url && anonKey) return { url, anonKey }
+    return null
+  } catch {
+    return null
+  }
+}
+
+/**
  * Get the public Supabase client (uses anon key, respects RLS)
- * Safe for client-side use
+ * Safe for client-side use.
+ * Priority: env vars → user-provided keys from localStorage
  */
 export function getSupabaseClient(): SupabaseClient | null {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL
-  const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+  // Try env vars first
+  let url = process.env.NEXT_PUBLIC_SUPABASE_URL
+  let anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+
+  // Fallback to user-provided keys (client-side only)
+  if (!url || !anonKey) {
+    const userKeys = getUserSupabaseKeys()
+    if (userKeys) {
+      url = userKeys.url
+      anonKey = userKeys.anonKey
+    }
+  }
 
   if (!url || !anonKey) {
     return null
   }
 
+  // Invalidate cache if the URL changed (user updated their keys)
+  if (client && clientSourceKey && clientSourceKey !== url) {
+    client = null
+    clientSourceKey = null
+  }
+
   if (!client) {
     client = createClient(url, anonKey, defaultClientOptions)
+    clientSourceKey = url
   }
 
   return client

@@ -39,11 +39,15 @@ import { z } from "zod";
 // Maximum execution duration for long-running AI analyses
 export const maxDuration = 300;
 
-// Initialize OpenAI client - API key is server-side only (no NEXT_PUBLIC_ prefix)
-const openai = createOpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
+// OpenAI: resolved per-request from user header or env var
 const HAS_OPENAI_API_KEY = Boolean(process.env.OPENAI_API_KEY?.trim());
+
+function resolveOpenAI(req: Request) {
+  const userKey = req.headers.get("x-user-openai-key")?.trim();
+  const apiKey = userKey || process.env.OPENAI_API_KEY;
+  if (!apiKey) return null;
+  return createOpenAI({ apiKey });
+}
 const CORS_ALLOW_ORIGIN =
   process.env.CORS_ALLOWED_ORIGIN ||
   process.env.NEXT_PUBLIC_APP_URL ||
@@ -1135,17 +1139,18 @@ function generateRequestId(): string {
  * Get the language model instance based on model identifier or strategy
  * Falls back to default model if invalid/unknown model requested
  */
-function getModel(modelId?: string, strategy?: ModelStrategy) {
+function getModel(modelId?: string, strategy?: ModelStrategy, openaiProvider?: ReturnType<typeof createOpenAI> | null) {
   let selectedModel = DEFAULT_MODEL;
-  
+
   if (strategy && strategy in MODEL_STRATEGIES) {
     selectedModel = MODEL_STRATEGIES[strategy];
   } else if (modelId && modelId in MODEL_CONFIGS) {
     selectedModel = modelId;
   }
-  
+
   const config = MODEL_CONFIGS[selectedModel];
-  return openai(config.modelId);
+  const provider = openaiProvider || createOpenAI({ apiKey: process.env.OPENAI_API_KEY || "" });
+  return provider(config.modelId);
 }
 
 /**
@@ -1887,10 +1892,12 @@ export async function POST(req: Request): Promise<Response> {
   const requestId = generateRequestId();
   let requestContext: RequestContext | undefined;
 
-  if (!HAS_OPENAI_API_KEY) {
+  // Resolve OpenAI from user-provided header or server env
+  const resolvedOpenAI = resolveOpenAI(req);
+  if (!resolvedOpenAI) {
     return new Response(
       JSON.stringify({
-        error: "Server is missing OPENAI_API_KEY. Chat generation is disabled.",
+        error: "No OpenAI API key available. Configure your key in Settings, or set OPENAI_API_KEY on the server.",
         code: "CONFIGURATION_ERROR",
         requestId,
         timestamp: new Date().toISOString(),
@@ -2089,7 +2096,7 @@ export async function POST(req: Request): Promise<Response> {
     );
 
     // Get the appropriate model based on validated request
-    const model = getModel(effectiveModelId);
+    const model = getModel(effectiveModelId, undefined, resolvedOpenAI);
     const modelConfig = getModelConfig(effectiveModelId);
 
     // Log request start

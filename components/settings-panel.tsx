@@ -15,11 +15,16 @@ import {
 } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
 import { clearOnboardingDismissed, clearWelcomeSeen } from "@/components/onboarding-card"
-import { getSupabaseClient } from "@/lib/supabase/supabase"
+import { getSupabaseClient, resetSupabaseClients } from "@/lib/supabase/supabase"
+import { getUserKeys, setUserKeys, clearUserKeys, hasUserSupabase, hasUserOpenAI, type UserKeys } from "@/lib/shared/user-keys"
 import { cn } from "@/lib/shared/utils"
+import { Input } from "@/components/ui/input"
 import {
   ArrowRight,
   Bot,
+  CheckCircle2,
+  Database,
+  Key,
   LayoutDashboard,
   Linkedin,
   Loader2,
@@ -32,6 +37,7 @@ import {
   Unlock,
   Wifi,
   Wrench,
+  XCircle,
   type LucideIcon,
 } from "lucide-react"
 import { useTheme } from "next-themes"
@@ -116,9 +122,70 @@ export function SettingsPanel({ onNavigate }: SettingsPanelProps) {
   const [shareError, setShareError] = useState<string | null>(null)
   const [shareSuccess, setShareSuccess] = useState<string | null>(null)
 
+  // User-provided keys state
+  const [userKeysState, setUserKeysState] = useState<UserKeys>({ supabaseUrl: "", supabaseAnonKey: "", openaiApiKey: "" })
+  const [keysSaved, setKeysSaved] = useState(false)
+  const [testingConnection, setTestingConnection] = useState(false)
+  const [connectionResult, setConnectionResult] = useState<"success" | "error" | null>(null)
+
+  useEffect(() => {
+    setUserKeysState(getUserKeys())
+  }, [])
+
+  const handleSaveKeys = useCallback(() => {
+    setUserKeys(userKeysState)
+    // Reset cached Supabase clients so they pick up new keys
+    resetSupabaseClients()
+    setKeysSaved(true)
+    setConnectionResult(null)
+    toast.success("Backend keys saved.")
+    setTimeout(() => setKeysSaved(false), 3000)
+  }, [userKeysState])
+
+  const handleClearKeys = useCallback(() => {
+    clearUserKeys()
+    resetSupabaseClients()
+    setUserKeysState({ supabaseUrl: "", supabaseAnonKey: "", openaiApiKey: "" })
+    setConnectionResult(null)
+    toast.success("Backend keys cleared.")
+  }, [])
+
+  const handleTestConnection = useCallback(async () => {
+    setTestingConnection(true)
+    setConnectionResult(null)
+    try {
+      // Save first so client picks up new keys
+      setUserKeys(userKeysState)
+      resetSupabaseClients()
+      const client = getSupabaseClient()
+      if (!client) {
+        setConnectionResult("error")
+        toast.error("No Supabase URL/key configured.")
+        return
+      }
+      // Simple health check — get session (will fail if keys are invalid)
+      const { error } = await client.auth.getSession()
+      if (error) {
+        setConnectionResult("error")
+        toast.error(`Supabase connection failed: ${error.message}`)
+      } else {
+        setConnectionResult("success")
+        toast.success("Supabase connected successfully!")
+      }
+    } catch (e) {
+      setConnectionResult("error")
+      toast.error(e instanceof Error ? e.message : "Connection failed.")
+    } finally {
+      setTestingConnection(false)
+    }
+  }, [userKeysState])
+
   const supabasePublicEnvConfigured = Boolean(
     process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
   )
+  const hasUserSupabaseKeys = hasUserSupabase()
+  const hasUserOpenAIKey = hasUserOpenAI()
+  const supabaseConfigured = supabasePublicEnvConfigured || hasUserSupabaseKeys
   const [hasSession, setHasSession] = useState(false)
   useEffect(() => {
     const supabase = getSupabaseClient()
@@ -290,9 +357,14 @@ export function SettingsPanel({ onNavigate }: SettingsPanelProps) {
   const statusItems = [
     { label: "Theme state", value: themeLabel, ok: mounted },
     {
-      label: "Supabase public env",
-      value: supabasePublicEnvConfigured ? "Configured" : "Missing",
-      ok: supabasePublicEnvConfigured,
+      label: "Supabase",
+      value: supabaseConfigured ? (supabasePublicEnvConfigured ? "Env configured" : "User keys") : "Not configured",
+      ok: supabaseConfigured,
+    },
+    {
+      label: "OpenAI API key",
+      value: hasUserOpenAIKey ? "User key set" : "Not configured",
+      ok: hasUserOpenAIKey,
     },
     { label: "Guided onboarding controls", value: "Ready", ok: true },
   ]
@@ -319,6 +391,101 @@ export function SettingsPanel({ onNavigate }: SettingsPanelProps) {
           </div>
         </header>
 
+        {/* Backend Configuration — user-provided keys */}
+        <Card className="border-primary/20">
+          <CardHeader>
+            <CardTitle className="text-base flex items-center gap-2">
+              <Database className="h-4 w-4" />
+              Backend Configuration
+            </CardTitle>
+            <CardDescription>
+              Connect your own Supabase project and AI provider. Keys are stored locally in your browser and sent securely with each request.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="supabase-url" className="text-xs font-medium flex items-center gap-1.5">
+                <Database className="h-3 w-3" />
+                Supabase URL
+              </Label>
+              <Input
+                id="supabase-url"
+                type="url"
+                placeholder="https://your-project.supabase.co"
+                value={userKeysState.supabaseUrl}
+                onChange={(e) => setUserKeysState((prev) => ({ ...prev, supabaseUrl: e.target.value }))}
+                className="font-mono text-xs"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="supabase-anon-key" className="text-xs font-medium flex items-center gap-1.5">
+                <Key className="h-3 w-3" />
+                Supabase Anon Key
+              </Label>
+              <Input
+                id="supabase-anon-key"
+                type="password"
+                placeholder="eyJhbGciOiJIUzI1NiIs..."
+                value={userKeysState.supabaseAnonKey}
+                onChange={(e) => setUserKeysState((prev) => ({ ...prev, supabaseAnonKey: e.target.value }))}
+                className="font-mono text-xs"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="openai-key" className="text-xs font-medium flex items-center gap-1.5">
+                <Key className="h-3 w-3" />
+                OpenAI API Key
+              </Label>
+              <Input
+                id="openai-key"
+                type="password"
+                placeholder="sk-..."
+                value={userKeysState.openaiApiKey}
+                onChange={(e) => setUserKeysState((prev) => ({ ...prev, openaiApiKey: e.target.value }))}
+                className="font-mono text-xs"
+              />
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <Button size="sm" onClick={handleSaveKeys} className="gap-1.5">
+                {keysSaved ? <CheckCircle2 className="h-3.5 w-3.5" /> : null}
+                {keysSaved ? "Saved" : "Save Keys"}
+              </Button>
+              <Button size="sm" variant="outline" onClick={handleTestConnection} disabled={testingConnection} className="gap-1.5">
+                {testingConnection ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}
+                Test Connection
+              </Button>
+              <Button size="sm" variant="ghost" onClick={handleClearKeys} className="text-muted-foreground">
+                Clear All
+              </Button>
+            </div>
+            {connectionResult === "success" ? (
+              <div className="flex items-center gap-2 text-xs text-emerald-600 dark:text-emerald-400">
+                <CheckCircle2 className="h-3.5 w-3.5" />
+                Supabase connected successfully
+              </div>
+            ) : connectionResult === "error" ? (
+              <div className="flex items-center gap-2 text-xs text-destructive">
+                <XCircle className="h-3.5 w-3.5" />
+                Connection failed — check your URL and key
+              </div>
+            ) : null}
+            <div className="flex flex-wrap gap-3 pt-1">
+              <div className="flex items-center gap-1.5">
+                <span className={cn("inline-block h-2 w-2 rounded-full", supabaseConfigured ? "bg-emerald-500" : "bg-amber-500")} />
+                <span className="text-[10px] text-muted-foreground">Supabase {supabaseConfigured ? (supabasePublicEnvConfigured ? "(env)" : "(user)") : "Not set"}</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <span className={cn("inline-block h-2 w-2 rounded-full", hasUserOpenAIKey ? "bg-emerald-500" : "bg-amber-500")} />
+                <span className="text-[10px] text-muted-foreground">OpenAI {hasUserOpenAIKey ? "Configured" : "Not set"}</span>
+              </div>
+            </div>
+            <p className="text-[10px] text-muted-foreground">
+              Need a Supabase project? <a href="https://supabase.com/dashboard" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">Create one free</a>.
+              Then run the migrations from the <code className="rounded bg-muted px-1 py-0.5">supabase/migrations/</code> folder.
+            </p>
+          </CardContent>
+        </Card>
+
         {onNavigate ? (
           <Card className="border-primary/10 bg-primary/5">
             <CardHeader className="pb-2">
@@ -330,9 +497,9 @@ export function SettingsPanel({ onNavigate }: SettingsPanelProps) {
             <CardContent className="pt-0">
               <div className="flex flex-wrap items-center gap-3">
                 <div className="flex items-center gap-2 rounded-md border border-border/80 bg-background/60 px-3 py-2">
-                  <span className={`inline-block h-2 w-2 rounded-full ${supabasePublicEnvConfigured ? "bg-emerald-500" : "bg-amber-500"}`} />
-                  <span className="text-xs">Supabase env</span>
-                  <span className="text-xs text-muted-foreground">{supabasePublicEnvConfigured ? "Set" : "Missing"}</span>
+                  <span className={`inline-block h-2 w-2 rounded-full ${supabaseConfigured ? "bg-emerald-500" : "bg-amber-500"}`} />
+                  <span className="text-xs">Supabase</span>
+                  <span className="text-xs text-muted-foreground">{supabaseConfigured ? "Connected" : "Not configured"}</span>
                 </div>
                 <div className="flex items-center gap-2 rounded-md border border-border/80 bg-background/60 px-3 py-2">
                   <span className={`inline-block h-2 w-2 rounded-full ${hasSession ? "bg-emerald-500" : "bg-amber-500"}`} />
@@ -363,7 +530,7 @@ export function SettingsPanel({ onNavigate }: SettingsPanelProps) {
                 Setup and onboarding
               </CardTitle>
               <CardDescription>
-                Sign in with Supabase (see .env.example) to unlock Email, Network Insights, and Agent Control. The conversational setup checklist is on the Dashboard, and AI Assistant can guide CSV/PDF imports once you are ready.
+                Enter your Supabase and OpenAI keys above, then sign in to unlock Email, Network Insights, and Agent Control. The conversational setup checklist is on the Dashboard.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-2">
@@ -719,9 +886,9 @@ export function SettingsPanel({ onNavigate }: SettingsPanelProps) {
           </CardHeader>
           <CardContent className="space-y-2 text-sm text-muted-foreground">
             <p>
-              LinkedOut - LinkedIn CRM and Tribe Intelligence. Environment and
-              API keys are configured via <code className="rounded bg-muted px-1 py-0.5 text-xs">.env.local</code> and
-              documented in <code className="rounded bg-muted px-1 py-0.5 text-xs">.env.example</code>.
+              LinkedOut — AI-powered LinkedIn CRM &amp; Tribe Intelligence Platform.
+              Backend keys are configured per-user in the Backend Configuration section above.
+              Server operators can also set keys via environment variables.
             </p>
           </CardContent>
         </Card>

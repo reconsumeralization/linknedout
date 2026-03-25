@@ -203,12 +203,12 @@ export function OnboardingCard({
     {
       id: "supabase",
       done: hasSupabaseConfigured,
-      label: "Wire up Supabase",
+      label: "Connect Supabase",
       description: hasSupabaseConfigured
-        ? "The public URL and anon key are present, so the app can talk to Supabase."
-        : "Add NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY to .env.local to unlock the full workspace.",
-      actionLabel: "Open setup guide",
-      linkHref: "/setup",
+        ? "Supabase is connected — the app can read and write your data."
+        : "Enter your Supabase URL and anon key in Settings to unlock the full workspace.",
+      actionLabel: "Open Settings",
+      actionView: "settings" as ActiveView,
     },
     {
       id: "sign-in",
@@ -308,11 +308,11 @@ export function OnboardingCard({
         eyebrow: "Start here",
         title: "Let's get Supabase connected first.",
         body:
-          "Once the public keys are in place, the rest of onboarding gets short: sign in, import profiles, and start asking the workspace questions.",
+          "Go to Settings and enter your Supabase URL and anon key. Once connected, sign in, import profiles, and start asking the workspace questions.",
         primaryAction: {
-          kind: "link",
-          label: "Open setup guide",
-          href: "/setup",
+          kind: "navigate",
+          label: "Open Settings",
+          view: "settings",
         },
       }
     : !hasAuth
@@ -373,7 +373,7 @@ export function OnboardingCard({
               <ul className="space-y-2 text-sm text-muted-foreground">
                 <li className="flex items-center gap-2">
                   <ShieldCheck className="h-4 w-4 shrink-0 text-primary" />
-                  Connect Supabase, then sign in to unlock CRM, Email, Network, and Agents
+                  Enter your Supabase + OpenAI keys in Settings to unlock CRM, Email, Network, and Agents
                 </li>
                 <li className="flex items-center gap-2">
                   <Upload className="h-4 w-4 shrink-0 text-primary" />

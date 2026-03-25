@@ -27,7 +27,7 @@ describe("OnboardingCard", () => {
 
     expect(screen.getByText("Let's get Supabase connected first.")).toBeInTheDocument()
     expect(screen.getByText("0 of 3 core steps")).toBeInTheDocument()
-    expect(screen.getAllByRole("link", { name: "Open setup guide" })).toHaveLength(2)
+    expect(screen.getAllByRole("button", { name: /Open Settings/i }).length).toBeGreaterThanOrEqual(1)
     expect(screen.getByText("Import your first profiles")).toBeInTheDocument()
     expect(screen.getByRole("button", { name: "Import CSV/PDF" })).toBeInTheDocument()
   })

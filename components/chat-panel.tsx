@@ -12,6 +12,7 @@ import { importLinkedInPdf } from "@/lib/linkedin/linkedin-pdf-parser"
 import { PERSONAS } from "@/lib/shared/personas"
 import { processRealtimeToolCallsFromServerEvent } from "@/lib/realtime/realtime-client"
 import { resolveSupabaseAccessToken } from "@/lib/supabase/supabase-client-auth"
+import { getUserKeyHeaders } from "@/lib/shared/user-keys"
 import {
   dispatchTribeDesignPreviewEvent,
   extractTribeDesignPreviewEventDetail,
@@ -192,7 +193,10 @@ export function ChatPanel({ activeView = "chat", csvData, importLabel, onImportP
 
   const { messages, input, handleInputChange, handleSubmit, isLoading, setMessages, setInput } = useChat({
     api: "/api/chat",
-    headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : undefined,
+    headers: {
+      ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+      ...getUserKeyHeaders(),
+    },
     body: {
       personaId: selectedPersonaId,
       csvData: csvData ?? undefined,
@@ -335,7 +339,10 @@ export function ChatPanel({ activeView = "chat", csvData, importLabel, onImportP
     try {
       discoveryResponse = await fetch("/api/realtime/session", {
         cache: "no-store",
-        headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : undefined,
+        headers: {
+      ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+      ...getUserKeyHeaders(),
+    },
       })
     } catch (error) {
       const message = error instanceof Error ? error.message : "Network error"
