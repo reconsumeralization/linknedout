@@ -1,4 +1,4 @@
--- LinkedOut Bootstrap Schema (2026-03-25T03:14:59Z)
+-- LinkedOut Bootstrap Schema (2026-03-25T03:55:49Z)
 -- === 20260228123000_baseline_schema.sql ===
 -- LinkedOut baseline schema for app-wide Supabase integration.
 -- Apply in Supabase SQL editor or your migration pipeline.
@@ -7610,4 +7610,544 @@ begin
   end loop;
 end;
 $$;
+
+-- === 20260329800000_cosmological_intelligence.sql ===
+-- Cosmological Intelligence: paleo-memory, dark star agents, brane detection, latent lensing
+
+create table if not exists public.paleo_memory_crystals (
+  id uuid primary key default gen_random_uuid(),
+  owner_user_id uuid not null references auth.users(id) on delete cascade,
+  crystal_name text not null,
+  source_data_type text default 'mixed' check (source_data_type in ('logs','events','conversations','research','tribal_signal','mixed')),
+  original_data_volume_mb numeric default 0,
+  distilled_track_count integer default 0,
+  compression_ratio numeric default 0,
+  logic_density_score numeric default 0,
+  oldest_signal_date timestamptz,
+  crystal_status text default 'forming' check (crystal_status in ('forming','active','saturated','archived')),
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+alter table public.paleo_memory_crystals enable row level security;
+create policy "owner_paleo_crystals" on public.paleo_memory_crystals for all using (auth.uid() = owner_user_id) with check (auth.uid() = owner_user_id);
+
+create table if not exists public.dark_star_agents (
+  id uuid primary key default gen_random_uuid(),
+  owner_user_id uuid not null references auth.users(id) on delete cascade,
+  agent_name text not null,
+  power_source text default 'inefficiency_annihilation' check (power_source in ('inefficiency_annihilation','tribal_surplus','ambient_compute','token_burn')),
+  inefficiencies_consumed integer default 0,
+  energy_generated_joules numeric default 0,
+  tokens_saved integer default 0,
+  luminosity_score numeric default 0,
+  mass_score numeric default 0,
+  status text default 'accreting' check (status in ('accreting','radiating','supermassive','dormant')),
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+alter table public.dark_star_agents enable row level security;
+create policy "owner_dark_stars" on public.dark_star_agents for all using (auth.uid() = owner_user_id) with check (auth.uid() = owner_user_id);
+
+create table if not exists public.brane_collision_events (
+  id uuid primary key default gen_random_uuid(),
+  owner_user_id uuid not null references auth.users(id) on delete cascade,
+  event_name text not null,
+  external_force_type text default 'market' check (external_force_type in ('market','geopolitical','regulatory','technological','tribal','adversarial')),
+  gravity_magnitude numeric default 0,
+  detection_lead_time_hours numeric default 0,
+  affected_tools text[] default '{}',
+  response_action text,
+  detected_at timestamptz default now(),
+  created_at timestamptz not null default now()
+);
+alter table public.brane_collision_events enable row level security;
+create policy "owner_brane_events" on public.brane_collision_events for all using (auth.uid() = owner_user_id) with check (auth.uid() = owner_user_id);
+
+create table if not exists public.latent_lensing_map (
+  id uuid primary key default gen_random_uuid(),
+  owner_user_id uuid not null references auth.users(id) on delete cascade,
+  hidden_node_profile_id text,
+  hidden_node_name text,
+  lensing_evidence jsonb default '[]',
+  influenced_nodes_count integer default 0,
+  estimated_influence_score numeric default 0,
+  visibility text default 'invisible' check (visibility in ('invisible','dim','emerging','visible')),
+  discovered_at timestamptz default now(),
+  created_at timestamptz not null default now()
+);
+alter table public.latent_lensing_map enable row level security;
+create policy "owner_latent_lensing" on public.latent_lensing_map for all using (auth.uid() = owner_user_id) with check (auth.uid() = owner_user_id);
+create index idx_latent_lensing_influence on public.latent_lensing_map (owner_user_id, estimated_influence_score desc);
+
+-- === 20260329900000_cosmological_nuance.sql ===
+-- Cosmological Nuance: admin orchestration, paleo-inference, shadow signals, stealth accretion, signal redshift
+
+create table if not exists public.shadow_signal_map (
+  id uuid primary key default gen_random_uuid(),
+  owner_user_id uuid not null references auth.users(id) on delete cascade,
+  signal_name text not null,
+  signal_source text,
+  signal_type text default 'shadow' check (signal_type in ('shadow','terminator_line','early_adopter','moores_block','dark_gravity')),
+  signal_strength numeric default 0,
+  redshift_score numeric default 0,
+  is_blue_shifted boolean default false,
+  discovery_method text,
+  related_profile_ids text[] default '{}',
+  detected_at timestamptz default now(),
+  created_at timestamptz not null default now()
+);
+alter table public.shadow_signal_map enable row level security;
+create policy "owner_shadow_signals" on public.shadow_signal_map for all using (auth.uid() = owner_user_id) with check (auth.uid() = owner_user_id);
+create index idx_shadow_signal_strength on public.shadow_signal_map (owner_user_id, signal_strength desc);
+
+create table if not exists public.stealth_accretion_log (
+  id uuid primary key default gen_random_uuid(),
+  owner_user_id uuid not null references auth.users(id) on delete cascade,
+  resource_type text not null check (resource_type in ('talent','saas_tool','compute','data_source','partnership','inefficiency')),
+  resource_name text not null,
+  absorption_method text default 'cool' check (absorption_method in ('cool','warm','hot')),
+  value_absorbed_usd numeric default 0,
+  heat_generated numeric default 0,
+  detected_by_competitors boolean default false,
+  accreted_at timestamptz default now(),
+  created_at timestamptz not null default now()
+);
+alter table public.stealth_accretion_log enable row level security;
+create policy "owner_stealth_accretion" on public.stealth_accretion_log for all using (auth.uid() = owner_user_id) with check (auth.uid() = owner_user_id);
+
+create table if not exists public.intelligence_rent_locks (
+  id uuid primary key default gen_random_uuid(),
+  owner_user_id uuid not null references auth.users(id) on delete cascade,
+  energy_source text not null check (energy_source in ('smr','solar','geothermal','grid','lunar','basepower_syndicate')),
+  locked_cost_per_kwh_usd numeric not null,
+  lock_duration_years integer default 20,
+  compute_capacity_tflops numeric default 0,
+  lock_start_date date default current_date,
+  lock_end_date date,
+  status text default 'active' check (status in ('active','expiring','expired','renewed')),
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+alter table public.intelligence_rent_locks enable row level security;
+create policy "owner_rent_locks" on public.intelligence_rent_locks for all using (auth.uid() = owner_user_id) with check (auth.uid() = owner_user_id);
+
+-- === 20260330000000_solar_archeological.sql ===
+-- Solar Sovereign + Archeological Sovereign: fusion economics, tribal plasma, legacy transmutation, geological forensics
+
+create table if not exists public.fusion_yield_ledger (
+  id uuid primary key default gen_random_uuid(),
+  owner_user_id uuid not null references auth.users(id) on delete cascade,
+  workflow_name text not null,
+  tasks_merged integer default 2,
+  labor_hours_removed numeric default 0,
+  energy_tokens_generated numeric default 0,
+  missing_mass_pct numeric default 0,
+  fusion_grade text default 'hydrogen' check (fusion_grade in ('hydrogen','helium','carbon','iron','supernova')),
+  created_at timestamptz not null default now()
+);
+alter table public.fusion_yield_ledger enable row level security;
+create policy "owner_fusion_yield" on public.fusion_yield_ledger for all using (auth.uid() = owner_user_id) with check (auth.uid() = owner_user_id);
+
+create table if not exists public.tribal_plasma_state (
+  id uuid primary key default gen_random_uuid(),
+  owner_user_id uuid not null references auth.users(id) on delete cascade,
+  tribe_id text,
+  plasma_temperature numeric default 0,
+  ionization_pct numeric default 0,
+  free_electron_count integer default 0,
+  mission_pressure text,
+  state text default 'gas' check (state in ('solid','liquid','gas','plasma','supercritical')),
+  ignited_at timestamptz,
+  created_at timestamptz not null default now()
+);
+alter table public.tribal_plasma_state enable row level security;
+create policy "owner_plasma_state" on public.tribal_plasma_state for all using (auth.uid() = owner_user_id) with check (auth.uid() = owner_user_id);
+
+create table if not exists public.execution_path_log (
+  id uuid primary key default gen_random_uuid(),
+  owner_user_id uuid not null references auth.users(id) on delete cascade,
+  intent_description text not null,
+  original_bounce_count integer default 0,
+  straightened_path_steps integer default 1,
+  time_saved_hours numeric default 0,
+  brownian_eliminated boolean default true,
+  execution_speed text default 'light' check (execution_speed in ('brownian','convective','radiative','light','instant')),
+  created_at timestamptz not null default now()
+);
+alter table public.execution_path_log enable row level security;
+create policy "owner_exec_path" on public.execution_path_log for all using (auth.uid() = owner_user_id) with check (auth.uid() = owner_user_id);
+
+create table if not exists public.equilibrium_monitors (
+  id uuid primary key default gen_random_uuid(),
+  owner_user_id uuid not null references auth.users(id) on delete cascade,
+  monitor_name text not null,
+  gravity_force numeric default 50,
+  fusion_force numeric default 50,
+  balance_delta numeric default 0,
+  equilibrium_status text default 'stable' check (equilibrium_status in ('stable','expanding','contracting','critical','collapse')),
+  throttle_applied boolean default false,
+  measured_at timestamptz default now(),
+  created_at timestamptz not null default now()
+);
+alter table public.equilibrium_monitors enable row level security;
+create policy "owner_equilibrium" on public.equilibrium_monitors for all using (auth.uid() = owner_user_id) with check (auth.uid() = owner_user_id);
+
+-- Archeological Sovereign tables
+create table if not exists public.historical_incongruity_audits (
+  id uuid primary key default gen_random_uuid(),
+  owner_user_id uuid not null references auth.users(id) on delete cascade,
+  subject text not null,
+  standard_timeline text,
+  detected_anomaly text,
+  evidence_type text default 'geological' check (evidence_type in ('geological','architectural','linguistic','genetic','astronomical','oral_tradition')),
+  incongruity_score numeric default 0,
+  verified boolean default false,
+  created_at timestamptz not null default now()
+);
+alter table public.historical_incongruity_audits enable row level security;
+create policy "owner_hist_audit" on public.historical_incongruity_audits for all using (auth.uid() = owner_user_id) with check (auth.uid() = owner_user_id);
+
+create table if not exists public.sealed_memory_basins (
+  id uuid primary key default gen_random_uuid(),
+  owner_user_id uuid not null references auth.users(id) on delete cascade,
+  basin_name text not null,
+  data_source text,
+  sealed boolean default true,
+  alkalinity_score numeric default 7,
+  preservation_years_estimate integer default 100,
+  outlet_blocked boolean default true,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+alter table public.sealed_memory_basins enable row level security;
+create policy "owner_sealed_basins" on public.sealed_memory_basins for all using (auth.uid() = owner_user_id) with check (auth.uid() = owner_user_id);
+
+-- === 20260330100000_cognitive_virology.sql ===
+-- Cognitive Virology: memetic triage, integrous memes, identity air-gaps, viral R0
+
+create table if not exists public.memetic_audit_log (
+  id uuid primary key default gen_random_uuid(),
+  owner_user_id uuid not null references auth.users(id) on delete cascade,
+  content_source text,
+  content_preview text,
+  viral_shortcuts_detected text[] default '{}',
+  receptor_matches text[] default '{}',
+  infection_stage text default 'attach' check (infection_stage in ('attach','enter','replicate','defend','transmit','neutralized')),
+  threat_score numeric default 0,
+  identity_anchor_detected boolean default false,
+  action_taken text default 'flagged' check (action_taken in ('flagged','quarantined','neutralized','passed','escalated')),
+  audited_at timestamptz default now(),
+  created_at timestamptz not null default now()
+);
+alter table public.memetic_audit_log enable row level security;
+create policy "owner_memetic_audit" on public.memetic_audit_log for all using (auth.uid() = owner_user_id) with check (auth.uid() = owner_user_id);
+create index idx_memetic_threat on public.memetic_audit_log (owner_user_id, threat_score desc);
+
+create table if not exists public.integrous_memes (
+  id uuid primary key default gen_random_uuid(),
+  owner_user_id uuid not null references auth.users(id) on delete cascade,
+  meme_title text not null,
+  content text not null,
+  hook_type text default 'unfinished_business' check (hook_type in ('unfinished_business','validation_function','curiosity_gap','tribal_signal','proof_of_build')),
+  target_audience text,
+  predicted_r0 numeric default 1.0,
+  actual_spread_count integer default 0,
+  integrity_score numeric default 100,
+  status text default 'draft' check (status in ('draft','minted','spreading','archived')),
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+alter table public.integrous_memes enable row level security;
+create policy "owner_integrous_memes" on public.integrous_memes for all using (auth.uid() = owner_user_id) with check (auth.uid() = owner_user_id);
+
+create table if not exists public.identity_airgap_events (
+  id uuid primary key default gen_random_uuid(),
+  owner_user_id uuid not null references auth.users(id) on delete cascade,
+  trigger_idea text not null,
+  passion_level numeric default 0,
+  binary_lock_detected boolean default false,
+  chairman_veto_triggered boolean default false,
+  decoupled boolean default false,
+  outcome text,
+  created_at timestamptz not null default now()
+);
+alter table public.identity_airgap_events enable row level security;
+create policy "owner_id_airgap" on public.identity_airgap_events for all using (auth.uid() = owner_user_id) with check (auth.uid() = owner_user_id);
+
+-- === 20260330200000_phenomenological_sanctuary.sql ===
+-- Phenomenological Sanctuary: chimera defense, hedonic budgets, urge shielding, wildtype preservation
+
+create table if not exists public.chimera_risk_audits (
+  id uuid primary key default gen_random_uuid(),
+  owner_user_id uuid not null references auth.users(id) on delete cascade,
+  audit_scope text default 'full_factory',
+  tools_analyzed integer default 0,
+  cross_tool_interactions_tested integer default 0,
+  emergent_risks_found integer default 0,
+  risk_details jsonb default '[]',
+  highest_risk_score numeric default 0,
+  remediation_applied boolean default false,
+  audited_at timestamptz default now(),
+  created_at timestamptz not null default now()
+);
+alter table public.chimera_risk_audits enable row level security;
+create policy "owner_chimera_audits" on public.chimera_risk_audits for all using (auth.uid() = owner_user_id) with check (auth.uid() = owner_user_id);
+
+create table if not exists public.hedonic_budgets (
+  id uuid primary key default gen_random_uuid(),
+  owner_user_id uuid not null references auth.users(id) on delete cascade,
+  notification_max_per_hour integer default 5,
+  reward_variance_max numeric default 0.3,
+  salience_escalation_max_pct numeric default 20,
+  emotional_repetition_max integer default 3,
+  session_cooldown_threshold integer default 5,
+  cooldown_duration_minutes integer default 30,
+  budget_status text default 'active' check (budget_status in ('active','paused','emergency','sabbatical')),
+  violations_today integer default 0,
+  last_violation_at timestamptz,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+alter table public.hedonic_budgets enable row level security;
+create policy "owner_hedonic_budgets" on public.hedonic_budgets for all using (auth.uid() = owner_user_id) with check (auth.uid() = owner_user_id);
+
+create table if not exists public.urge_contagion_events (
+  id uuid primary key default gen_random_uuid(),
+  owner_user_id uuid not null references auth.users(id) on delete cascade,
+  urge_description text not null,
+  suspected_source text,
+  contagion_type text default 'ambient' check (contagion_type in ('ambient','direct','algorithmic','tribal_cascade','self_generated')),
+  intensity numeric default 50,
+  biometric_anomaly_detected boolean default false,
+  reflective_endorsement boolean,
+  shielded boolean default false,
+  created_at timestamptz not null default now()
+);
+alter table public.urge_contagion_events enable row level security;
+create policy "owner_urge_events" on public.urge_contagion_events for all using (auth.uid() = owner_user_id) with check (auth.uid() = owner_user_id);
+
+create table if not exists public.cognitive_graffiti_log (
+  id uuid primary key default gen_random_uuid(),
+  owner_user_id uuid not null references auth.users(id) on delete cascade,
+  phrase_or_overlay text not null,
+  source_system text,
+  persistence_days integer default 0,
+  emotional_charge numeric default 0,
+  blacklisted boolean default false,
+  cleared_at timestamptz,
+  created_at timestamptz not null default now()
+);
+alter table public.cognitive_graffiti_log enable row level security;
+create policy "owner_cog_graffiti" on public.cognitive_graffiti_log for all using (auth.uid() = owner_user_id) with check (auth.uid() = owner_user_id);
+
+create table if not exists public.authorship_scores (
+  id uuid primary key default gen_random_uuid(),
+  owner_user_id uuid not null references auth.users(id) on delete cascade,
+  measurement_date date default current_date,
+  self_prediction_accuracy numeric default 0,
+  narrative_stability numeric default 0,
+  value_consistency numeric default 0,
+  agency_perception numeric default 0,
+  boundary_clarity numeric default 0,
+  overall_authorship_score numeric default 0,
+  created_at timestamptz not null default now()
+);
+alter table public.authorship_scores enable row level security;
+create policy "owner_authorship" on public.authorship_scores for all using (auth.uid() = owner_user_id) with check (auth.uid() = owner_user_id);
+create index idx_authorship_date on public.authorship_scores (owner_user_id, measurement_date desc);
+
+create table if not exists public.wildtype_sabbaticals (
+  id uuid primary key default gen_random_uuid(),
+  owner_user_id uuid not null references auth.users(id) on delete cascade,
+  sabbatical_type text default '7day' check (sabbatical_type in ('24hour','3day','7day','30day','90day')),
+  started_at timestamptz not null default now(),
+  ends_at timestamptz not null,
+  pre_sabbatical_values jsonb default '{}',
+  post_sabbatical_values jsonb,
+  drift_detected boolean,
+  drift_magnitude numeric,
+  completed boolean default false,
+  created_at timestamptz not null default now()
+);
+alter table public.wildtype_sabbaticals enable row level security;
+create policy "owner_sabbaticals" on public.wildtype_sabbaticals for all using (auth.uid() = owner_user_id) with check (auth.uid() = owner_user_id);
+
+-- === 20260330300000_sovereign_soul.sql ===
+-- Sovereign Soul: epistemic sovereignty, vertical perception, life review, state independence
+
+create table if not exists public.epistemic_audits (
+  id uuid primary key default gen_random_uuid(),
+  owner_user_id uuid not null references auth.users(id) on delete cascade,
+  constraint_type text default 'materialist_bias' check (constraint_type in ('materialist_bias','reductionist','institutional_dogma','cultural_filter','self_imposed')),
+  constraint_description text not null,
+  data_suppressed text,
+  signal_type_ignored text,
+  severity numeric default 50,
+  resolved boolean default false,
+  resolution_notes text,
+  created_at timestamptz not null default now()
+);
+alter table public.epistemic_audits enable row level security;
+create policy "owner_epistemic" on public.epistemic_audits for all using (auth.uid() = owner_user_id) with check (auth.uid() = owner_user_id);
+
+create table if not exists public.vertical_perception_log (
+  id uuid primary key default gen_random_uuid(),
+  owner_user_id uuid not null references auth.users(id) on delete cascade,
+  perception_type text default 'intuition' check (perception_type in ('intuition','precognition','felt_presence','synchronicity','non_local','dream','flow_state')),
+  description text not null,
+  signal_strength numeric default 50,
+  verified_outcome boolean,
+  outcome_description text,
+  artifact_captured boolean default false,
+  created_at timestamptz not null default now()
+);
+alter table public.vertical_perception_log enable row level security;
+create policy "owner_vertical" on public.vertical_perception_log for all using (auth.uid() = owner_user_id) with check (auth.uid() = owner_user_id);
+
+create table if not exists public.life_review_simulations (
+  id uuid primary key default gen_random_uuid(),
+  owner_user_id uuid not null references auth.users(id) on delete cascade,
+  intent_description text not null,
+  affected_members_count integer default 0,
+  love_score numeric default 0,
+  harm_score numeric default 0,
+  net_fulfillment numeric default 0,
+  relational_impact jsonb default '[]',
+  recommendation text,
+  simulated_at timestamptz default now(),
+  created_at timestamptz not null default now()
+);
+alter table public.life_review_simulations enable row level security;
+create policy "owner_life_review" on public.life_review_simulations for all using (auth.uid() = owner_user_id) with check (auth.uid() = owner_user_id);
+
+create table if not exists public.state_independence_proofs (
+  id uuid primary key default gen_random_uuid(),
+  owner_user_id uuid not null references auth.users(id) on delete cascade,
+  state_type text default 'agentic' check (state_type in ('agentic','memory','values','identity','legacy')),
+  primary_store text not null,
+  mirror_store text,
+  mirrored boolean default false,
+  last_sync_at timestamptz,
+  integrity_hash text,
+  hardware_independent boolean default false,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+alter table public.state_independence_proofs enable row level security;
+create policy "owner_state_proofs" on public.state_independence_proofs for all using (auth.uid() = owner_user_id) with check (auth.uid() = owner_user_id);
+
+-- === 20260330400000_affective_sovereign.sql ===
+-- Affective Sovereign: hedonic overwriting detection, valence decoding, aversive hardening
+
+create table if not exists public.hedonic_overwrite_audits (
+  id uuid primary key default gen_random_uuid(),
+  owner_user_id uuid not null references auth.users(id) on delete cascade,
+  feature_name text not null,
+  appetitive_lure text,
+  sensory_risk text,
+  overwrite_detected boolean default false,
+  hedonic_score numeric default 0,
+  risk_score numeric default 0,
+  net_judgment numeric default 0,
+  recommendation text,
+  audited_at timestamptz default now(),
+  created_at timestamptz not null default now()
+);
+alter table public.hedonic_overwrite_audits enable row level security;
+create policy "owner_hedonic_overwrite" on public.hedonic_overwrite_audits for all using (auth.uid() = owner_user_id) with check (auth.uid() = owner_user_id);
+
+create table if not exists public.aversive_hardening_log (
+  id uuid primary key default gen_random_uuid(),
+  owner_user_id uuid not null references auth.users(id) on delete cascade,
+  trigger_pattern text not null,
+  trigger_source text,
+  valence text default 'aversive' check (valence in ('aversive','appetitive','neutral')),
+  hardening_level text default 'permanent' check (hardening_level in ('temporary','session','permanent','crystalline')),
+  tribal_propagated boolean default false,
+  single_exposure boolean default false,
+  etched_at timestamptz default now(),
+  created_at timestamptz not null default now()
+);
+alter table public.aversive_hardening_log enable row level security;
+create policy "owner_aversive" on public.aversive_hardening_log for all using (auth.uid() = owner_user_id) with check (auth.uid() = owner_user_id);
+
+create table if not exists public.affective_refund_ledger (
+  id uuid primary key default gen_random_uuid(),
+  owner_user_id uuid not null references auth.users(id) on delete cascade,
+  mission_name text not null,
+  hedonic_transfer_score numeric default 0,
+  fulfillment_yield numeric default 0,
+  sensory_cost numeric default 0,
+  net_affective_refund numeric default 0,
+  valence_classification text default 'neutral' check (valence_classification in ('deeply_fulfilling','fulfilling','neutral','draining','harmful')),
+  measured_at timestamptz default now(),
+  created_at timestamptz not null default now()
+);
+alter table public.affective_refund_ledger enable row level security;
+create policy "owner_affective_refund" on public.affective_refund_ledger for all using (auth.uid() = owner_user_id) with check (auth.uid() = owner_user_id);
+
+-- === 20260330500000_economic_sovereign.sql ===
+-- Economic Sovereign: hedonic regression, effective wealth, workflow decomposition, tribal amenities
+
+create table if not exists public.effective_wealth_index (
+  id uuid primary key default gen_random_uuid(),
+  owner_user_id uuid not null references auth.users(id) on delete cascade,
+  measurement_date date default current_date,
+  nominal_wealth_usd numeric default 0,
+  quality_adjustment_factor numeric default 1.0,
+  effective_wealth_usd numeric default 0,
+  productivity_multiplier numeric default 1.0,
+  tool_quality_score numeric default 0,
+  inflation_offset_pct numeric default 0,
+  created_at timestamptz not null default now()
+);
+alter table public.effective_wealth_index enable row level security;
+create policy "owner_eff_wealth" on public.effective_wealth_index for all using (auth.uid() = owner_user_id) with check (auth.uid() = owner_user_id);
+create index idx_eff_wealth_date on public.effective_wealth_index (owner_user_id, measurement_date desc);
+
+create table if not exists public.workflow_hedonic_decomposition (
+  id uuid primary key default gen_random_uuid(),
+  owner_user_id uuid not null references auth.users(id) on delete cascade,
+  workflow_name text not null,
+  total_hours_per_week numeric default 0,
+  alpha_hours numeric default 0,
+  mechanical_hours numeric default 0,
+  alpha_value_pct numeric default 0,
+  mechanical_value_pct numeric default 0,
+  automatable_pct numeric default 0,
+  career_reset_recommended boolean default false,
+  decomposed_at timestamptz default now(),
+  created_at timestamptz not null default now()
+);
+alter table public.workflow_hedonic_decomposition enable row level security;
+create policy "owner_workflow_hedonic" on public.workflow_hedonic_decomposition for all using (auth.uid() = owner_user_id) with check (auth.uid() = owner_user_id);
+
+create table if not exists public.tribal_amenity_scores (
+  id uuid primary key default gen_random_uuid(),
+  owner_user_id uuid not null references auth.users(id) on delete cascade,
+  node_profile_id text,
+  node_name text,
+  amenity_type text default 'expertise' check (amenity_type in ('expertise','infrastructure','energy','capital','research','legal','creative','leadership')),
+  amenity_description text,
+  proximity_score numeric default 0,
+  contributory_value_usd numeric default 0,
+  created_at timestamptz not null default now()
+);
+alter table public.tribal_amenity_scores enable row level security;
+create policy "owner_tribal_amenity" on public.tribal_amenity_scores for all using (auth.uid() = owner_user_id) with check (auth.uid() = owner_user_id);
+
+create table if not exists public.brand_alpha_valuations (
+  id uuid primary key default gen_random_uuid(),
+  owner_user_id uuid not null references auth.users(id) on delete cascade,
+  domain text not null,
+  generic_ai_value_usd numeric default 0,
+  human_alpha_premium_usd numeric default 0,
+  brand_multiplier numeric default 1.0,
+  proof_of_build_count integer default 0,
+  reputation_score numeric default 0,
+  valued_at timestamptz default now(),
+  created_at timestamptz not null default now()
+);
+alter table public.brand_alpha_valuations enable row level security;
+create policy "owner_brand_alpha" on public.brand_alpha_valuations for all using (auth.uid() = owner_user_id) with check (auth.uid() = owner_user_id);
 
