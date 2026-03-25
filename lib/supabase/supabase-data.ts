@@ -3184,3 +3184,47 @@ export async function fetchGeopoliticalCosts() {
   if (error) { console.error("fetchGeopoliticalCosts", error); return [] }
   return data ?? []
 }
+
+// ---------------------------------------------------------------------------
+// Cosmological Intelligence
+// ---------------------------------------------------------------------------
+
+export async function fetchPaleoMemoryCrystals() {
+  const supabase = getSupabaseClient()
+  if (!supabase) return []
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return []
+  const { data, error } = await supabase.from("paleo_memory_crystals").select("*").eq("owner_user_id", user.id).order("created_at", { ascending: false })
+  if (error) { console.error("fetchPaleoMemoryCrystals", error); return [] }
+  return data ?? []
+}
+
+export async function fetchDarkStarAgents() {
+  const supabase = getSupabaseClient()
+  if (!supabase) return []
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return []
+  const { data, error } = await supabase.from("dark_star_agents").select("*").eq("owner_user_id", user.id).order("created_at", { ascending: false })
+  if (error) { console.error("fetchDarkStarAgents", error); return [] }
+  return data ?? []
+}
+
+export async function fetchBraneCollisions() {
+  const supabase = getSupabaseClient()
+  if (!supabase) return []
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return []
+  const { data, error } = await supabase.from("brane_collision_events").select("*").eq("owner_user_id", user.id).order("created_at", { ascending: false })
+  if (error) { console.error("fetchBraneCollisions", error); return [] }
+  return data ?? []
+}
+
+export async function fetchLatentLensingMap() {
+  const supabase = getSupabaseClient()
+  if (!supabase) return []
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return []
+  const { data, error } = await supabase.from("latent_lensing_map").select("*").eq("owner_user_id", user.id).order("estimated_influence_score", { ascending: false })
+  if (error) { console.error("fetchLatentLensingMap", error); return [] }
+  return data ?? []
+}

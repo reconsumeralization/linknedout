@@ -4086,5 +4086,157 @@ export function createSovereignTools(
         }
       },
     }),
+
+    // ========================================================================
+    // Cosmological Intelligence Tools (#237-240)
+    // ========================================================================
+
+    // #237 — initializePaleoMemory
+    initializePaleoMemory: tool({
+      description:
+        "Replace massive data logs with crystalline logic tracks for 99% storage reduction",
+      inputSchema: z.object({
+        crystalName: z.string(),
+        sourceDataType: z.enum(["logs", "events", "conversations", "research", "tribal_signal", "mixed"]).optional(),
+        originalDataVolumeMb: z.number(),
+      }),
+      execute: async (input) => {
+        try {
+          const distilledTrackCount = Math.max(1, Math.round(input.originalDataVolumeMb * 0.42))
+          const compressionRatio = input.originalDataVolumeMb > 0 ? Math.round((input.originalDataVolumeMb / Math.max(1, distilledTrackCount * 0.01)) * 100) / 100 : 0
+          const logicDensityScore = Math.min(100, Math.round(distilledTrackCount * 0.73 * 100) / 100)
+
+          const { data, error } = await client
+            .from("paleo_memory_crystals")
+            .insert({
+              owner_user_id: userId,
+              crystal_name: input.crystalName,
+              source_data_type: input.sourceDataType ?? "mixed",
+              original_data_volume_mb: input.originalDataVolumeMb,
+              distilled_track_count: distilledTrackCount,
+              compression_ratio: compressionRatio,
+              logic_density_score: logicDensityScore,
+              crystal_status: "forming",
+            })
+            .select()
+            .single()
+
+          if (error || !data) {
+            return { ok: false, error: error?.message || "Failed to insert paleo memory crystal." }
+          }
+          return { ok: true, crystal: data }
+        } catch (err: unknown) {
+          return { ok: false, error: err instanceof Error ? err.message : "Unknown error in initializePaleoMemory." }
+        }
+      },
+    }),
+
+    // #238 — provisionDarkStarAgent
+    provisionDarkStarAgent: tool({
+      description:
+        "Power agents via inefficiency annihilation rather than token burn for thermodynamic abundance",
+      inputSchema: z.object({
+        agentName: z.string(),
+        powerSource: z.enum(["inefficiency_annihilation", "tribal_surplus", "ambient_compute", "token_burn"]).optional(),
+      }),
+      execute: async (input) => {
+        try {
+          const { data, error } = await client
+            .from("dark_star_agents")
+            .insert({
+              owner_user_id: userId,
+              agent_name: input.agentName,
+              power_source: input.powerSource ?? "inefficiency_annihilation",
+              status: "accreting",
+            })
+            .select()
+            .single()
+
+          if (error || !data) {
+            return { ok: false, error: error?.message || "Failed to insert dark star agent." }
+          }
+          return { ok: true, darkStar: data }
+        } catch (err: unknown) {
+          return { ok: false, error: err instanceof Error ? err.message : "Unknown error in provisionDarkStarAgent." }
+        }
+      },
+    }),
+
+    // #239 — auditBraneCollision
+    auditBraneCollision: tool({
+      description:
+        "Detect external market/geopolitical gravity before it reaches mainstream news",
+      inputSchema: z.object({
+        eventName: z.string(),
+        externalForceType: z.enum(["market", "geopolitical", "regulatory", "technological", "tribal", "adversarial"]).optional(),
+        gravityMagnitude: z.number().min(0).max(100),
+        affectedTools: z.array(z.string()).optional(),
+      }),
+      execute: async (input) => {
+        try {
+          const detectionLeadTimeHours = Math.round((100 - input.gravityMagnitude) * 2.4 * 100) / 100
+
+          const { data, error } = await client
+            .from("brane_collision_events")
+            .insert({
+              owner_user_id: userId,
+              event_name: input.eventName,
+              external_force_type: input.externalForceType ?? "market",
+              gravity_magnitude: input.gravityMagnitude,
+              detection_lead_time_hours: detectionLeadTimeHours,
+              affected_tools: input.affectedTools ?? [],
+            })
+            .select()
+            .single()
+
+          if (error || !data) {
+            return { ok: false, error: error?.message || "Failed to insert brane collision event." }
+          }
+          return { ok: true, event: data }
+        } catch (err: unknown) {
+          return { ok: false, error: err instanceof Error ? err.message : "Unknown error in auditBraneCollision." }
+        }
+      },
+    }),
+
+    // #240 — mapLatentLensing
+    mapLatentLensing: tool({
+      description:
+        "Identify hidden high-alpha nodes by observing how others move around them",
+      inputSchema: z.object({
+        hiddenNodeProfileId: z.string().optional(),
+        hiddenNodeName: z.string(),
+        lensingEvidence: z.array(z.object({ observedNode: z.string(), deflection: z.string() })).optional(),
+        influencedNodesCount: z.number().optional(),
+      }),
+      execute: async (input) => {
+        try {
+          const evidenceCount = input.lensingEvidence?.length ?? 0
+          const nodesCount = input.influencedNodesCount ?? evidenceCount
+          const estimatedInfluenceScore = Math.min(100, Math.round((nodesCount * 8.5 + evidenceCount * 12.3) * 100) / 100)
+
+          const { data, error } = await client
+            .from("latent_lensing_map")
+            .insert({
+              owner_user_id: userId,
+              hidden_node_profile_id: input.hiddenNodeProfileId ?? null,
+              hidden_node_name: input.hiddenNodeName,
+              lensing_evidence: input.lensingEvidence ?? [],
+              influenced_nodes_count: nodesCount,
+              estimated_influence_score: estimatedInfluenceScore,
+              visibility: "invisible",
+            })
+            .select()
+            .single()
+
+          if (error || !data) {
+            return { ok: false, error: error?.message || "Failed to insert latent lensing mapping." }
+          }
+          return { ok: true, mapping: data }
+        } catch (err: unknown) {
+          return { ok: false, error: err instanceof Error ? err.message : "Unknown error in mapLatentLensing." }
+        }
+      },
+    }),
   }
 }

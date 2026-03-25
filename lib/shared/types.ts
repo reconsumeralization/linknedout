@@ -3081,3 +3081,63 @@ export interface GeopoliticalCostEntry {
   assessmentDate: string
   createdAt: string
 }
+
+// ---------------------------------------------------------------------------
+// Cosmological Intelligence
+// ---------------------------------------------------------------------------
+
+export interface PaleoMemoryCrystal {
+  id: string
+  ownerUserId: string
+  crystalName: string
+  sourceDataType: "logs" | "events" | "conversations" | "research" | "tribal_signal" | "mixed"
+  originalDataVolumeMb: number
+  distilledTrackCount: number
+  compressionRatio: number
+  logicDensityScore: number
+  oldestSignalDate?: string
+  crystalStatus: "forming" | "active" | "saturated" | "archived"
+  createdAt: string
+  updatedAt: string
+}
+
+export interface DarkStarAgent {
+  id: string
+  ownerUserId: string
+  agentName: string
+  powerSource: "inefficiency_annihilation" | "tribal_surplus" | "ambient_compute" | "token_burn"
+  inefficienciesConsumed: number
+  energyGeneratedJoules: number
+  tokensSaved: number
+  luminosityScore: number
+  massScore: number
+  status: "accreting" | "radiating" | "supermassive" | "dormant"
+  createdAt: string
+  updatedAt: string
+}
+
+export interface BraneCollisionEvent {
+  id: string
+  ownerUserId: string
+  eventName: string
+  externalForceType: "market" | "geopolitical" | "regulatory" | "technological" | "tribal" | "adversarial"
+  gravityMagnitude: number
+  detectionLeadTimeHours: number
+  affectedTools: string[]
+  responseAction?: string
+  detectedAt: string
+  createdAt: string
+}
+
+export interface LatentLensingEntry {
+  id: string
+  ownerUserId: string
+  hiddenNodeProfileId?: string
+  hiddenNodeName: string
+  lensingEvidence: Array<{ observedNode: string; deflection: string }>
+  influencedNodesCount: number
+  estimatedInfluenceScore: number
+  visibility: "invisible" | "dim" | "emerging" | "visible"
+  discoveredAt: string
+  createdAt: string
+}
