@@ -3048,3 +3048,36 @@ export interface VisualQaResult {
   overallScore: number; passed: boolean
   testedAt: string; createdAt: string
 }
+
+// ---------------------------------------------------------------------------
+// Geopolitical Integrity: Narrative Auditing & Cost Ledger
+// ---------------------------------------------------------------------------
+
+export interface NarrativeAuditEntry {
+  id: string
+  ownerUserId: string
+  headline: string
+  sourceOutlet?: string
+  sourceUrl?: string
+  primarySourceUrl?: string
+  biasDeltaScore: number
+  prunedFacts: unknown[]
+  languageSourcesChecked: string[]
+  narrativeClassification: "neutral" | "selective_framing" | "omission" | "propaganda" | "verified"
+  auditedAt: string
+  createdAt: string
+}
+
+export interface GeopoliticalCostEntry {
+  id: string
+  ownerUserId: string
+  conflictName: string
+  region?: string
+  capitalCostUsd: number
+  humanCostEstimate: number
+  infrastructureDestroyedPct: number
+  tribalExposurePct: number
+  tariffClassification: "minimal" | "moderate" | "severe" | "catastrophic"
+  assessmentDate: string
+  createdAt: string
+}

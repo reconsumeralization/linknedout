@@ -3160,3 +3160,27 @@ export async function fetchVisualQaResults() {
   if (error) { console.error("fetchVisualQaResults", error); return [] }
   return data ?? []
 }
+
+// ---------------------------------------------------------------------------
+// Geopolitical Integrity
+// ---------------------------------------------------------------------------
+
+export async function fetchNarrativeAudits() {
+  const supabase = getSupabaseClient()
+  if (!supabase) return []
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return []
+  const { data, error } = await supabase.from("narrative_audit_log").select("*").eq("owner_user_id", user.id).order("created_at", { ascending: false })
+  if (error) { console.error("fetchNarrativeAudits", error); return [] }
+  return data ?? []
+}
+
+export async function fetchGeopoliticalCosts() {
+  const supabase = getSupabaseClient()
+  if (!supabase) return []
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return []
+  const { data, error } = await supabase.from("geopolitical_cost_ledger").select("*").eq("owner_user_id", user.id).order("created_at", { ascending: false })
+  if (error) { console.error("fetchGeopoliticalCosts", error); return [] }
+  return data ?? []
+}
