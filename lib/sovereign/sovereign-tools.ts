@@ -2067,5 +2067,326 @@ export function createSovereignTools(
         }
       },
     }),
+
+    // ========================================================================
+    // Diplomatic Integrity Tools (#161-164)
+    // ========================================================================
+
+    auditProxyInfluence: tool({
+      description:
+        "Scan friend-introductions for external financial incentives or hidden bias",
+      inputSchema: z.object({
+        subjectName: z.string(),
+        relationshipType: z.string().optional(),
+        linkedEntity: z.string().optional(),
+        linkedCountry: z.string().optional(),
+      }),
+      execute: async (input) => {
+        try {
+          const { data: audit, error } = await client
+            .from("proxy_influence_audit")
+            .insert({
+              analyst_user_id: userId,
+              subject_name: input.subjectName,
+              relationship_type: input.relationshipType ?? "friend",
+              linked_entity: input.linkedEntity ?? null,
+              linked_country: input.linkedCountry ?? null,
+            })
+            .select()
+            .single()
+
+          if (error || !audit) {
+            return { ok: false, error: error?.message || "Failed to create proxy influence audit." }
+          }
+
+          return { ok: true, audit }
+        } catch (err: unknown) {
+          return { ok: false, error: err instanceof Error ? err.message : "Unknown error auditing proxy influence." }
+        }
+      },
+    }),
+
+    verifyDiplomaticLure: tool({
+      description:
+        "Audit a meeting request or proposal for semantic validity and proof of build",
+      inputSchema: z.object({
+        lureLabel: z.string(),
+        lureType: z.enum(["document", "meeting_request", "introduction", "proposal", "letter", "gift", "invitation"]).optional(),
+        claimedIntent: z.string().optional(),
+        sourceEntity: z.string().optional(),
+      }),
+      execute: async (input) => {
+        try {
+          const { data: review, error } = await client
+            .from("diplomatic_lure_registry")
+            .insert({
+              reviewer_user_id: userId,
+              lure_label: input.lureLabel,
+              lure_type: input.lureType ?? "document",
+              claimed_intent: input.claimedIntent ?? null,
+              source_entity: input.sourceEntity ?? null,
+            })
+            .select()
+            .single()
+
+          if (error || !review) {
+            return { ok: false, error: error?.message || "Failed to verify diplomatic lure." }
+          }
+
+          return { ok: true, review }
+        } catch (err: unknown) {
+          return { ok: false, error: err instanceof Error ? err.message : "Unknown error verifying diplomatic lure." }
+        }
+      },
+    }),
+
+    calculateDiplomaticRefund: tool({
+      description:
+        "Quantify time and reputational capital lost to unverified lobbying",
+      inputSchema: z.object({
+        incidentLabel: z.string(),
+        timeLostMinutes: z.number().optional(),
+        financialExposureUsd: z.number().optional(),
+        rootCause: z.string().optional(),
+      }),
+      execute: async (input) => {
+        try {
+          const reputationalCostScore = (input.timeLostMinutes ?? 0) * 0.1 + (input.financialExposureUsd ?? 0) * 0.01
+
+          const { data: refund, error } = await client
+            .from("diplomatic_refund_ledger")
+            .insert({
+              user_id: userId,
+              incident_label: input.incidentLabel,
+              time_lost_minutes: input.timeLostMinutes ?? 0,
+              financial_exposure_usd: input.financialExposureUsd ?? 0,
+              reputational_cost_score: Math.round(reputationalCostScore * 100) / 100,
+              root_cause: input.rootCause ?? null,
+            })
+            .select()
+            .single()
+
+          if (error || !refund) {
+            return { ok: false, error: error?.message || "Failed to calculate diplomatic refund." }
+          }
+
+          return { ok: true, refund }
+        } catch (err: unknown) {
+          return { ok: false, error: err instanceof Error ? err.message : "Unknown error calculating diplomatic refund." }
+        }
+      },
+    }),
+
+    enforceHandshakeSovereignty: tool({
+      description:
+        "Require Artifact verification for high-stakes Human Alpha sessions",
+      inputSchema: z.object({
+        sessionLabel: z.string(),
+        participants: z.array(z.object({ name: z.string(), role: z.string().optional() })),
+        stakesLevel: z.enum(["standard", "elevated", "high", "critical", "sovereign"]).optional(),
+      }),
+      execute: async (input) => {
+        try {
+          const stakesLevel = input.stakesLevel ?? "standard"
+          const sovereigntyScore = stakesLevel === "sovereign" ? 100
+            : stakesLevel === "critical" ? 85
+            : stakesLevel === "high" ? 70
+            : stakesLevel === "elevated" ? 50
+            : 30
+
+          const { data: gate, error } = await client
+            .from("handshake_sovereignty_gates")
+            .insert({
+              user_id: userId,
+              session_label: input.sessionLabel,
+              participants: input.participants,
+              stakes_level: stakesLevel,
+              sovereignty_score: sovereigntyScore,
+              session_status: "pending",
+              started_at: new Date().toISOString(),
+            })
+            .select()
+            .single()
+
+          if (error || !gate) {
+            return { ok: false, error: error?.message || "Failed to enforce handshake sovereignty." }
+          }
+
+          return { ok: true, gate }
+        } catch (err: unknown) {
+          return { ok: false, error: err instanceof Error ? err.message : "Unknown error enforcing handshake sovereignty." }
+        }
+      },
+    }),
+
+    // ========================================================================
+    // Blockade Bypass Tools (#165-168)
+    // ========================================================================
+
+    auditVendorOpenness: tool({
+      description:
+        "Rank SaaS vendors by agentic friction and calculate lock-in tariff",
+      inputSchema: z.object({
+        vendorName: z.string(),
+        productName: z.string(),
+        apiAvailability: z.enum(["full", "partial", "read_only", "none", "deprecated"]).optional(),
+        monthlyCostUsd: z.number().optional(),
+        mcpSupport: z.boolean().optional(),
+      }),
+      execute: async (input) => {
+        try {
+          let frictionScore = 0
+          const apiAvail = input.apiAvailability ?? "none"
+          if (apiAvail === "none") frictionScore += 40
+          else if (apiAvail === "deprecated") frictionScore += 35
+          else if (apiAvail === "read_only") frictionScore += 20
+          else if (apiAvail === "partial") frictionScore += 10
+          if (!input.mcpSupport) frictionScore += 20
+          if ((input.monthlyCostUsd ?? 0) > 500) frictionScore += 10
+          frictionScore = Math.min(frictionScore, 100)
+
+          const lockInTariff = frictionScore * (input.monthlyCostUsd ?? 0) / 100
+
+          const { data: audit, error } = await client
+            .from("vendor_openness_audit")
+            .insert({
+              user_id: userId,
+              vendor_name: input.vendorName,
+              product_name: input.productName,
+              api_availability: apiAvail,
+              mcp_support: input.mcpSupport ?? false,
+              monthly_cost_usd: input.monthlyCostUsd ?? 0,
+              friction_score: frictionScore,
+              lock_in_tariff_usd: lockInTariff,
+              bypass_method: "none",
+            })
+            .select()
+            .single()
+
+          if (error || !audit) {
+            return { ok: false, error: error?.message || "Failed to audit vendor." }
+          }
+
+          return { ok: true, audit }
+        } catch (err: unknown) {
+          return { ok: false, error: err instanceof Error ? err.message : "Unknown error auditing vendor." }
+        }
+      },
+    }),
+
+    executeVisualBypass: tool({
+      description:
+        "Swap blocked API calls for visual computer-use via MolmoWeb",
+      inputSchema: z.object({
+        targetApp: z.string(),
+        targetWorkflow: z.string(),
+        interactionBlueprint: z.array(z.object({
+          step: z.number(),
+          action: z.string(),
+          description: z.string().optional(),
+        })).optional(),
+      }),
+      execute: async (input) => {
+        try {
+          const blueprint = input.interactionBlueprint ?? []
+
+          const { data: bypass, error } = await client
+            .from("visual_bypass_registry")
+            .insert({
+              creator_user_id: userId,
+              target_app: input.targetApp,
+              target_workflow: input.targetWorkflow,
+              interaction_blueprint: blueprint,
+              steps_count: blueprint.length,
+              model_used: "molmo-8b",
+              status: "draft",
+            })
+            .select()
+            .single()
+
+          if (error || !bypass) {
+            return { ok: false, error: error?.message || "Failed to register visual bypass." }
+          }
+
+          return { ok: true, bypass }
+        } catch (err: unknown) {
+          return { ok: false, error: err instanceof Error ? err.message : "Unknown error executing visual bypass." }
+        }
+      },
+    }),
+
+    provisionSovereignMCP: tool({
+      description:
+        "Deploy un-throttled local MCP protocol servers on sovereign hardware",
+      inputSchema: z.object({
+        nodeName: z.string(),
+        hardwareType: z.enum(["one_charge", "lambda", "cloud", "edge", "sovereign_stone", "custom"]).optional(),
+        endpointUrl: z.string().optional(),
+        connectedApps: z.array(z.string()).optional(),
+      }),
+      execute: async (input) => {
+        try {
+          const { data: node, error } = await client
+            .from("sovereign_mcp_nodes")
+            .insert({
+              user_id: userId,
+              node_name: input.nodeName,
+              hardware_type: input.hardwareType ?? "cloud",
+              endpoint_url: input.endpointUrl ?? null,
+              connected_apps: input.connectedApps ?? [],
+              status: "provisioning",
+            })
+            .select()
+            .single()
+
+          if (error || !node) {
+            return { ok: false, error: error?.message || "Failed to provision MCP node." }
+          }
+
+          return { ok: true, node }
+        } catch (err: unknown) {
+          return { ok: false, error: err instanceof Error ? err.message : "Unknown error provisioning MCP node." }
+        }
+      },
+    }),
+
+    certifyAgenticIntent: tool({
+      description:
+        "Sign agent output with biometric pulse to prove Human Alpha origin",
+      inputSchema: z.object({
+        agentName: z.string(),
+        intentDescription: z.string(),
+        outgoingTarget: z.string().optional(),
+        certificationLevel: z.enum(["standard", "verified", "sovereign", "tribal_broadcast"]).optional(),
+      }),
+      execute: async (input) => {
+        try {
+          const biometricHash = `pulse_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`
+
+          const { data: cert, error } = await client
+            .from("agentic_intent_certs")
+            .insert({
+              user_id: userId,
+              agent_name: input.agentName,
+              intent_description: input.intentDescription,
+              biometric_pulse_hash: biometricHash,
+              certification_level: input.certificationLevel ?? "standard",
+              is_certified: true,
+              outgoing_target: input.outgoingTarget ?? null,
+              expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+            })
+            .select()
+            .single()
+
+          if (error || !cert) {
+            return { ok: false, error: error?.message || "Failed to certify intent." }
+          }
+
+          return { ok: true, cert }
+        } catch (err: unknown) {
+          return { ok: false, error: err instanceof Error ? err.message : "Unknown error certifying intent." }
+        }
+      },
+    }),
   }
 }

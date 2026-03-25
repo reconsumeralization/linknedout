@@ -2540,3 +2540,139 @@ export interface ObservabilityRefundEntry {
   sanitizationRulesApplied: number
   createdAt: string
 }
+
+// ---------------------------------------------------------------------------
+// Diplomatic Integrity: Proxy Influence Auditing & Handshake Sovereignty
+// ---------------------------------------------------------------------------
+
+export interface ProxyInfluenceAudit {
+  id: string
+  analystUserId: string
+  subjectName: string
+  relationshipType: string
+  externalFinancialIncentives: Array<{ source: string; amountUsd?: number; description?: string }>
+  biasIndicators: Record<string, unknown>
+  influenceScore: number
+  riskLevel: "low" | "medium" | "high" | "critical"
+  linkedEntity?: string
+  linkedCountry?: string
+  verificationStatus: "pending" | "investigating" | "verified_clean" | "verified_compromised" | "archived"
+  evidenceRefs: string[]
+  createdAt: string
+  updatedAt: string
+}
+
+export interface DiplomaticLureReview {
+  id: string
+  reviewerUserId: string
+  lureLabel: string
+  lureType: "document" | "meeting_request" | "introduction" | "proposal" | "letter" | "gift" | "invitation"
+  claimedIntent?: string
+  semanticValidityScore: number
+  proofOfBuildPresent: boolean
+  proofDetails: Record<string, unknown>
+  sourceEntity?: string
+  sourceCountry?: string
+  verdict: "unreviewed" | "legitimate" | "suspicious" | "confirmed_lure" | "rejected"
+  timeSavedMinutes: number
+  createdAt: string
+}
+
+export interface DiplomaticRefundEntry {
+  id: string
+  userId: string
+  incidentLabel: string
+  timeLostMinutes: number
+  reputationalCostScore: number
+  financialExposureUsd: number
+  rootCause?: string
+  proxyAuditId?: string
+  lureId?: string
+  refundStatus: "calculated" | "acknowledged" | "mitigated" | "closed"
+  lessonsLearned?: string
+  createdAt: string
+}
+
+export interface HandshakeSovereigntyGate {
+  id: string
+  userId: string
+  sessionLabel: string
+  participants: Array<{ name: string; role?: string; verified?: boolean }>
+  artifactVerified: boolean
+  artifactId?: string
+  biometricPulseConfirmed: boolean
+  stakesLevel: "standard" | "elevated" | "high" | "critical" | "sovereign"
+  sovereigntyScore: number
+  sessionStatus: "pending" | "verified" | "in_progress" | "completed" | "rejected" | "escalated"
+  startedAt?: string
+  completedAt?: string
+  createdAt: string
+}
+
+// ---------------------------------------------------------------------------
+// Blockade Bypass: Vendor Openness & Sovereign MCP Infrastructure
+// ---------------------------------------------------------------------------
+
+export interface VendorOpennessAudit {
+  id: string
+  userId: string
+  vendorName: string
+  productName: string
+  apiAvailability: "full" | "partial" | "read_only" | "none" | "deprecated"
+  mcpSupport: boolean
+  rateLimitHitsMonthly: number
+  monthlyCostUsd: number
+  frictionScore: number
+  lockInTariffUsd: number
+  bypassMethod?: "api" | "visual" | "mcp_local" | "hybrid" | "none"
+  bypassSuccessRate: number
+  lastAuditAt: string
+  createdAt: string
+  updatedAt: string
+}
+
+export interface SovereignMcpNode {
+  id: string
+  userId: string
+  nodeName: string
+  hardwareType: "one_charge" | "lambda" | "cloud" | "edge" | "sovereign_stone" | "custom"
+  endpointUrl?: string
+  connectedApps: string[]
+  uptimePct: number
+  requestsServed: number
+  lastHealthCheckAt?: string
+  status: "provisioning" | "online" | "degraded" | "offline" | "decommissioned"
+  createdAt: string
+  updatedAt: string
+}
+
+export interface VisualBypassBlueprint {
+  id: string
+  creatorUserId: string
+  targetApp: string
+  targetWorkflow: string
+  interactionBlueprint: Array<{ step: number; action: string; selector?: string; description?: string }>
+  stepsCount: number
+  successRate: number
+  avgExecutionTimeMs: number
+  modelUsed: string
+  tribalShared: boolean
+  usageCount: number
+  status: "draft" | "tested" | "verified" | "deprecated"
+  createdAt: string
+  updatedAt: string
+}
+
+export interface AgenticIntentCert {
+  id: string
+  userId: string
+  agentName: string
+  intentDescription: string
+  biometricPulseHash?: string
+  artifactId?: string
+  certificationLevel: "standard" | "verified" | "sovereign" | "tribal_broadcast"
+  isCertified: boolean
+  outgoingTarget?: string
+  expiresAt?: string
+  createdAt: string
+}

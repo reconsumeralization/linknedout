@@ -2714,3 +2714,98 @@ export async function fetchObservabilityRefunds() {
   if (error) { console.error("fetchObservabilityRefunds", error); return [] }
   return data ?? []
 }
+
+// Diplomatic Integrity
+
+export async function fetchProxyInfluenceAudits(riskLevel?: string) {
+  const supabase = getSupabaseClient()
+  if (!supabase) return []
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return []
+  let query = supabase.from("proxy_influence_audit").select("*").eq("analyst_user_id", user.id).order("created_at", { ascending: false })
+  if (riskLevel) query = query.eq("risk_level", riskLevel)
+  const { data, error } = await query
+  if (error) { console.error("fetchProxyInfluenceAudits", error); return [] }
+  return data ?? []
+}
+
+export async function fetchDiplomaticLureReviews(verdict?: string) {
+  const supabase = getSupabaseClient()
+  if (!supabase) return []
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return []
+  let query = supabase.from("diplomatic_lure_registry").select("*").eq("reviewer_user_id", user.id).order("created_at", { ascending: false })
+  if (verdict) query = query.eq("verdict", verdict)
+  const { data, error } = await query
+  if (error) { console.error("fetchDiplomaticLureReviews", error); return [] }
+  return data ?? []
+}
+
+export async function fetchDiplomaticRefunds() {
+  const supabase = getSupabaseClient()
+  if (!supabase) return []
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return []
+  const { data, error } = await supabase.from("diplomatic_refund_ledger").select("*").eq("user_id", user.id).order("created_at", { ascending: false })
+  if (error) { console.error("fetchDiplomaticRefunds", error); return [] }
+  return data ?? []
+}
+
+export async function fetchHandshakeSovereigntyGates(status?: string) {
+  const supabase = getSupabaseClient()
+  if (!supabase) return []
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return []
+  let query = supabase.from("handshake_sovereignty_gates").select("*").eq("user_id", user.id).order("created_at", { ascending: false })
+  if (status) query = query.eq("session_status", status)
+  const { data, error } = await query
+  if (error) { console.error("fetchHandshakeSovereigntyGates", error); return [] }
+  return data ?? []
+}
+
+// Blockade Bypass
+export async function fetchVendorOpennessAudits() {
+  const supabase = getSupabaseClient()
+  if (!supabase) return []
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return []
+  const { data, error } = await supabase.from("vendor_openness_audit").select("*").eq("user_id", user.id).order("friction_score", { ascending: false })
+  if (error) { console.error("fetchVendorOpennessAudits", error); return [] }
+  return data ?? []
+}
+
+export async function fetchSovereignMcpNodes(status?: string) {
+  const supabase = getSupabaseClient()
+  if (!supabase) return []
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return []
+  let query = supabase.from("sovereign_mcp_nodes").select("*").eq("user_id", user.id).order("created_at", { ascending: false })
+  if (status) query = query.eq("status", status)
+  const { data, error } = await query
+  if (error) { console.error("fetchSovereignMcpNodes", error); return [] }
+  return data ?? []
+}
+
+export async function fetchVisualBypasses(app?: string) {
+  const supabase = getSupabaseClient()
+  if (!supabase) return []
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return []
+  let query = supabase.from("visual_bypass_registry").select("*").eq("creator_user_id", user.id).order("created_at", { ascending: false })
+  if (app) query = query.eq("target_app", app)
+  const { data, error } = await query
+  if (error) { console.error("fetchVisualBypasses", error); return [] }
+  return data ?? []
+}
+
+export async function fetchAgenticIntentCerts(level?: string) {
+  const supabase = getSupabaseClient()
+  if (!supabase) return []
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return []
+  let query = supabase.from("agentic_intent_certs").select("*").eq("user_id", user.id).order("created_at", { ascending: false })
+  if (level) query = query.eq("certification_level", level)
+  const { data, error } = await query
+  if (error) { console.error("fetchAgenticIntentCerts", error); return [] }
+  return data ?? []
+}

@@ -211,6 +211,12 @@ function getSuggestedPrompts(activeView: ActiveView, hasImportedProfiles: boolea
       "Browse a website visually using Molmo local vision",
       "Compile my intent into invisible WebAssembly code",
       "Deploy a consultant agent for regulatory strategy",
+      "Audit a contact for proxy influence or hidden bias",
+      "Verify a meeting request for diplomatic legitimacy",
+      "Calculate diplomatic refund for wasted executive time",
+      "Audit a vendor for agentic friction and lock-in tariff",
+      "Provision a sovereign MCP server on local hardware",
+      "Certify an agent's intent with biometric pulse",
     ],
     globe: [
       "Show me governance arcs for active proposals",
