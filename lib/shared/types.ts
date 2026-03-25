@@ -2903,3 +2903,72 @@ export interface HardwareCompetitivenessEntry {
   supplyChainRisk: "low" | "medium" | "high" | "critical"
   notes?: string; assessedAt: string; createdAt: string
 }
+
+// ---------------------------------------------------------------------------
+// Nuance & Resilience + Sovereign Health & Atoms (#208-221)
+// ---------------------------------------------------------------------------
+
+export interface ThermodynamicPolicy {
+  id: string; ownerUserId: string
+  maxTokenBurnRate: number; maxBasepowerWatts: number
+  cooldownMinutes: number; joulesPerOutcomeThreshold: number
+  lowInferenceMode: boolean
+  policyStatus: "active" | "paused" | "emergency"
+  createdAt: string; updatedAt: string
+}
+
+export interface ShadowDecisionLog {
+  id: string; ownerUserId: string
+  decisionScope: "routine" | "moderate" | "strategic"
+  decisionSummary: string; alignmentConfidence: number
+  autoExecuted: boolean; requiresReview: boolean
+  chairmanVerdict?: string; createdAt: string
+}
+
+export interface FulfillmentLedgerEntry {
+  id: string; ownerUserId: string
+  missionId?: string; happinessScore: number; meaningScore: number
+  purposeAlignmentPct: number; notes?: string
+  measuredAt: string; createdAt: string
+}
+
+export interface GhostStateReconciliation {
+  id: string; ownerUserId: string
+  commandId: string; predictedResult: Record<string, unknown>
+  actualResult?: Record<string, unknown>; latencyMs: number
+  reconciled: boolean; reconciledAt?: string; createdAt: string
+}
+
+export interface AtomicInventoryEntry {
+  id: string; ownerUserId: string
+  elementName: string; elementSymbol?: string
+  category: "raw" | "refined" | "composite" | "isotope" | "synthetic"
+  quantityKg: number; sourceLocation?: string
+  supplyChainStatus: "available" | "scarce" | "critical" | "embargo" | "lunar"
+  estimatedCostPerKgUsd?: number; notes?: string
+  createdAt: string; updatedAt: string
+}
+
+export interface TemporalMapEntry {
+  id: string; ownerUserId: string
+  systemEpochMs: number; biologicalTimestamp: string
+  agentActionsBatched: number; compressionRatio: number
+  reviewStatus: "pending" | "reviewed" | "skipped"
+  summary?: string; createdAt: string
+}
+
+export interface FulfillmentMetric {
+  id: string; ownerUserId: string
+  projectId?: string; missionName?: string
+  purposeIncreased: boolean; fulfillmentYield: number
+  burnoutRisk: number; restRecommended: boolean
+  biometricStressLevel: number; createdAt: string
+}
+
+export interface ZkReputationCredential {
+  id: string; ownerUserId: string
+  credentialType: "proof_of_build" | "skill_level" | "tribal_rank" | "mission_complete" | "trade_certification"
+  credentialName: string; credentialLevel: number
+  proofHash?: string; verifiable: boolean
+  issuedAt: string; expiresAt?: string; createdAt: string
+}

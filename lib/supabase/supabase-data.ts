@@ -3006,3 +3006,69 @@ export async function fetchHardwareCompetitiveness() {
   if (error) { console.error("fetchHardwareCompetitiveness", error); return [] }
   return data ?? []
 }
+
+// ---------------------------------------------------------------------------
+// Nuance & Resilience + Sovereign Health & Atoms (#208-221)
+// ---------------------------------------------------------------------------
+
+export async function fetchThermodynamicPolicies() {
+  const supabase = getSupabaseClient()
+  if (!supabase) return []
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return []
+  const { data, error } = await supabase.from("thermodynamic_policy").select("*").eq("owner_user_id", user.id).order("created_at", { ascending: false })
+  if (error) { console.error("fetchThermodynamicPolicies", error); return [] }
+  return data ?? []
+}
+
+export async function fetchShadowDecisions(requiresReview?: boolean) {
+  const supabase = getSupabaseClient()
+  if (!supabase) return []
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return []
+  let q = supabase.from("shadow_decision_logs").select("*").eq("owner_user_id", user.id)
+  if (requiresReview !== undefined) q = q.eq("requires_review", requiresReview)
+  const { data, error } = await q.order("created_at", { ascending: false })
+  if (error) { console.error("fetchShadowDecisions", error); return [] }
+  return data ?? []
+}
+
+export async function fetchFulfillmentLedger() {
+  const supabase = getSupabaseClient()
+  if (!supabase) return []
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return []
+  const { data, error } = await supabase.from("fulfillment_ledger").select("*").eq("owner_user_id", user.id).order("measured_at", { ascending: false })
+  if (error) { console.error("fetchFulfillmentLedger", error); return [] }
+  return data ?? []
+}
+
+export async function fetchAtomicInventory() {
+  const supabase = getSupabaseClient()
+  if (!supabase) return []
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return []
+  const { data, error } = await supabase.from("atomic_inventory").select("*").eq("owner_user_id", user.id).order("created_at", { ascending: false })
+  if (error) { console.error("fetchAtomicInventory", error); return [] }
+  return data ?? []
+}
+
+export async function fetchTemporalMap() {
+  const supabase = getSupabaseClient()
+  if (!supabase) return []
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return []
+  const { data, error } = await supabase.from("temporal_map").select("*").eq("owner_user_id", user.id).order("created_at", { ascending: false })
+  if (error) { console.error("fetchTemporalMap", error); return [] }
+  return data ?? []
+}
+
+export async function fetchZkCredentials() {
+  const supabase = getSupabaseClient()
+  if (!supabase) return []
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return []
+  const { data, error } = await supabase.from("zk_reputation_vault").select("*").eq("owner_user_id", user.id).order("created_at", { ascending: false })
+  if (error) { console.error("fetchZkCredentials", error); return [] }
+  return data ?? []
+}

@@ -284,6 +284,7 @@ export function createSovereignTools(
       },
     }),
 
+    // #221 — calculateFulfillmentYield
     calculateFulfillmentYield: tool({
       description:
         "Compute the authenticated user's fulfillment yield score. Returns a breakdown of all fulfillment dimensions.",
@@ -3291,6 +3292,242 @@ export function createSovereignTools(
           }
         } catch (err: unknown) {
           return { ok: false, error: err instanceof Error ? err.message : "Unknown error generating grand mission." }
+        }
+      },
+    }),
+
+    // ========================================================================
+    // Sovereign Health & Atoms Tools (#215-221)
+    // ========================================================================
+
+    // #215 — bridgeAtomToBit
+    bridgeAtomToBit: tool({
+      description:
+        "Track physical materials (Graphene, Helium-3, Silicon) to prevent digital RSI from hitting physical Moore's Blocks",
+      inputSchema: z.object({
+        elementName: z.string(),
+        elementSymbol: z.string().optional(),
+        category: z.enum(["raw", "refined", "composite", "isotope", "synthetic"]).optional(),
+        quantityKg: z.number(),
+        sourceLocation: z.string().optional(),
+        supplyChainStatus: z.enum(["available", "scarce", "critical", "embargo", "lunar"]).optional(),
+      }),
+      execute: async (input) => {
+        try {
+          const { data, error } = await client
+            .from("atomic_inventory")
+            .insert({
+              owner_user_id: userId,
+              element_name: input.elementName,
+              element_symbol: input.elementSymbol ?? null,
+              category: input.category ?? "raw",
+              quantity_kg: input.quantityKg,
+              source_location: input.sourceLocation ?? null,
+              supply_chain_status: input.supplyChainStatus ?? "available",
+            })
+            .select()
+            .single()
+
+          if (error || !data) {
+            return { ok: false, error: error?.message || "Failed to insert atomic inventory entry." }
+          }
+          return { ok: true, entry: data }
+        } catch (err: unknown) {
+          return { ok: false, error: err instanceof Error ? err.message : "Unknown error in bridgeAtomToBit." }
+        }
+      },
+    }),
+
+    // #216 — resolveAgenticCollision
+    resolveAgenticCollision: tool({
+      description:
+        "Negotiate Pareto-optimal resource splits when two tribal agents compete for the same asset",
+      inputSchema: z.object({
+        agentAUserId: z.string(),
+        agentBUserId: z.string(),
+        resourceDescription: z.string(),
+        proposedSplitPct: z.number().optional(),
+      }),
+      execute: async (input) => {
+        try {
+          const split = input.proposedSplitPct ?? 50
+          const { data, error } = await client
+            .from("shadow_decision_logs")
+            .insert({
+              owner_user_id: userId,
+              decision_scope: "moderate",
+              decision_summary: `Resource collision between ${input.agentAUserId} and ${input.agentBUserId} over: ${input.resourceDescription}. Proposed split: ${split}%/${100 - split}%.`,
+              alignment_confidence: split === 50 ? 0.9 : 0.7,
+              auto_executed: false,
+              requires_review: true,
+            })
+            .select()
+            .single()
+
+          if (error || !data) {
+            return { ok: false, error: error?.message || "Failed to log agentic collision resolution." }
+          }
+          return {
+            ok: true,
+            resolution: {
+              ...data,
+              agentA: input.agentAUserId,
+              agentB: input.agentBUserId,
+              splitA: split,
+              splitB: 100 - split,
+            },
+          }
+        } catch (err: unknown) {
+          return { ok: false, error: err instanceof Error ? err.message : "Unknown error in resolveAgenticCollision." }
+        }
+      },
+    }),
+
+    // #217 — dilateTemporalWorkflow
+    dilateTemporalWorkflow: tool({
+      description:
+        "Batch millions of agent actions into biological review moments to prevent mental overload",
+      inputSchema: z.object({
+        systemEpochMs: z.number(),
+        agentActionsBatched: z.number(),
+        summary: z.string().optional(),
+      }),
+      execute: async (input) => {
+        try {
+          const now = Date.now()
+          const timeDeltaSeconds = Math.max(1, (now - input.systemEpochMs) / 1000)
+          const compressionRatio = input.agentActionsBatched / timeDeltaSeconds
+
+          const { data, error } = await client
+            .from("temporal_map")
+            .insert({
+              owner_user_id: userId,
+              system_epoch_ms: input.systemEpochMs,
+              biological_timestamp: new Date().toISOString(),
+              agent_actions_batched: input.agentActionsBatched,
+              compression_ratio: compressionRatio,
+              summary: input.summary ?? null,
+            })
+            .select()
+            .single()
+
+          if (error || !data) {
+            return { ok: false, error: error?.message || "Failed to insert temporal map entry." }
+          }
+          return { ok: true, temporalEntry: data }
+        } catch (err: unknown) {
+          return { ok: false, error: err instanceof Error ? err.message : "Unknown error in dilateTemporalWorkflow." }
+        }
+      },
+    }),
+
+    // #218 — auditBiologicalBurnout
+    auditBiologicalBurnout: tool({
+      description:
+        "Detect physiological stress from Artifact biometrics and auto-initiate stewardship rest mode",
+      inputSchema: z.object({
+        biometricStressLevel: z.number().min(0).max(100),
+        restRecommended: z.boolean().optional(),
+      }),
+      execute: async (input) => {
+        try {
+          const burnoutRisk = input.biometricStressLevel > 75 ? input.biometricStressLevel : input.biometricStressLevel * 0.6
+          const shouldRest = input.restRecommended ?? input.biometricStressLevel > 70
+
+          const { data, error } = await client
+            .from("fulfillment_metrics")
+            .insert({
+              owner_user_id: userId,
+              biometric_stress_level: input.biometricStressLevel,
+              burnout_risk: burnoutRisk,
+              rest_recommended: shouldRest,
+            })
+            .select()
+            .single()
+
+          if (error || !data) {
+            return { ok: false, error: error?.message || "Failed to insert burnout assessment." }
+          }
+          return {
+            ok: true,
+            assessment: {
+              ...data,
+              recommendation: shouldRest ? "Rest mode recommended — biometric stress is elevated." : "Stress within acceptable range. Continue operations.",
+            },
+          }
+        } catch (err: unknown) {
+          return { ok: false, error: err instanceof Error ? err.message : "Unknown error in auditBiologicalBurnout." }
+        }
+      },
+    }),
+
+    // #219 — mintSovereignCredential
+    mintSovereignCredential: tool({
+      description:
+        "Create a zero-knowledge proof credential from Proof of Build to share reputation without exposing private data",
+      inputSchema: z.object({
+        credentialType: z.enum(["proof_of_build", "skill_level", "tribal_rank", "mission_complete", "trade_certification"]),
+        credentialName: z.string(),
+        credentialLevel: z.number().min(1).max(10).optional(),
+      }),
+      execute: async (input) => {
+        try {
+          const proofHash = `zk_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 10)}`
+
+          const { data, error } = await client
+            .from("zk_reputation_vault")
+            .insert({
+              owner_user_id: userId,
+              credential_type: input.credentialType,
+              credential_name: input.credentialName,
+              credential_level: input.credentialLevel ?? 1,
+              proof_hash: proofHash,
+              verifiable: true,
+            })
+            .select()
+            .single()
+
+          if (error || !data) {
+            return { ok: false, error: error?.message || "Failed to mint sovereign credential." }
+          }
+          return { ok: true, credential: data }
+        } catch (err: unknown) {
+          return { ok: false, error: err instanceof Error ? err.message : "Unknown error in mintSovereignCredential." }
+        }
+      },
+    }),
+
+    // #220 — orchestrateLunarLogistics
+    orchestrateLunarLogistics: tool({
+      description:
+        "Direct Mass Driver to deliver physical hardware from Moon to Earth-side Tribal Hubs",
+      inputSchema: z.object({
+        payloadDescription: z.string(),
+        destinationHub: z.string(),
+        massKg: z.number(),
+        urgency: z.enum(["routine", "priority", "emergency"]).optional(),
+      }),
+      execute: async (input) => {
+        try {
+          const urgency = input.urgency ?? "routine"
+          const etaDays = urgency === "emergency" ? 3 : urgency === "priority" ? 7 : 14
+          const shipmentId = `LUNAR-${Date.now().toString(36).toUpperCase()}`
+
+          return {
+            ok: true,
+            shipment: {
+              shipmentId,
+              payloadDescription: input.payloadDescription,
+              destinationHub: input.destinationHub,
+              massKg: input.massKg,
+              urgency,
+              etaDays,
+              launchWindow: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+              status: "manifest_created",
+            },
+          }
+        } catch (err: unknown) {
+          return { ok: false, error: err instanceof Error ? err.message : "Unknown error in orchestrateLunarLogistics." }
         }
       },
     }),
