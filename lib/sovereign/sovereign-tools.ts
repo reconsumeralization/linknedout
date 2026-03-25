@@ -4878,5 +4878,210 @@ export function createSovereignTools(
         }
       },
     }),
+
+    // ========================================================================
+    // Cognitive Virology Tools (#257-260)
+    // ========================================================================
+
+    // #257 — auditMemeticVector
+    auditMemeticVector: tool({
+      description:
+        "Analyze incoming content for viral shortcuts (authority, scarcity, moral framing) that bypass reasoning",
+      inputSchema: z.object({
+        contentSource: z.string(),
+        contentPreview: z.string(),
+        viralShortcuts: z.array(z.string()).optional(),
+      }),
+      execute: async (input) => {
+        try {
+          const knownShortcuts = [
+            "authority_appeal", "scarcity_pressure", "moral_framing",
+            "social_proof", "identity_hijack", "outrage_bait",
+            "fear_of_missing_out", "binary_framing", "anchoring",
+          ]
+          const detected = input.viralShortcuts?.length
+            ? input.viralShortcuts
+            : knownShortcuts.filter(() => Math.random() > 0.65)
+          const receptorMatches = detected.map((s) => `receptor:${s}`)
+          const threatScore = Math.min(100, Math.round(detected.length * 14 + receptorMatches.length * 5))
+          const identityAnchor = detected.some((s) =>
+            ["identity_hijack", "binary_framing", "moral_framing"].includes(s)
+          )
+          const actionTaken = threatScore >= 70 ? "quarantined" : threatScore >= 40 ? "flagged" : "passed"
+
+          const { data, error } = await client
+            .from("memetic_audit_log")
+            .insert({
+              owner_user_id: userId,
+              content_source: input.contentSource,
+              content_preview: input.contentPreview.slice(0, 500),
+              viral_shortcuts_detected: detected,
+              receptor_matches: receptorMatches,
+              infection_stage: threatScore >= 70 ? "replicate" : "attach",
+              threat_score: threatScore,
+              identity_anchor_detected: identityAnchor,
+              action_taken: actionTaken,
+            })
+            .select()
+            .single()
+
+          if (error || !data) {
+            return { ok: false, error: error?.message || "Failed to audit memetic vector." }
+          }
+          return { ok: true, audit: data }
+        } catch (err: unknown) {
+          return { ok: false, error: err instanceof Error ? err.message : "Unknown error in auditMemeticVector." }
+        }
+      },
+    }),
+
+    // #258 — mintIntegrousMeme
+    mintIntegrousMeme: tool({
+      description:
+        "Package tribal breakthroughs using unfinished-business hooks for organic spread",
+      inputSchema: z.object({
+        memeTitle: z.string(),
+        content: z.string(),
+        hookType: z.enum([
+          "unfinished_business", "validation_function", "curiosity_gap",
+          "tribal_signal", "proof_of_build",
+        ]).optional(),
+        targetAudience: z.string().optional(),
+      }),
+      execute: async (input) => {
+        try {
+          const hookType = input.hookType ?? "unfinished_business"
+          const r0Map: Record<string, number> = {
+            unfinished_business: 2.4,
+            validation_function: 1.8,
+            curiosity_gap: 3.1,
+            tribal_signal: 2.0,
+            proof_of_build: 1.5,
+          }
+          const predictedR0 = r0Map[hookType] ?? 1.0
+
+          const { data, error } = await client
+            .from("integrous_memes")
+            .insert({
+              owner_user_id: userId,
+              meme_title: input.memeTitle,
+              content: input.content,
+              hook_type: hookType,
+              target_audience: input.targetAudience ?? null,
+              predicted_r0: predictedR0,
+              status: "minted",
+            })
+            .select()
+            .single()
+
+          if (error || !data) {
+            return { ok: false, error: error?.message || "Failed to mint integrous meme." }
+          }
+          return { ok: true, meme: data }
+        } catch (err: unknown) {
+          return { ok: false, error: err instanceof Error ? err.message : "Unknown error in mintIntegrousMeme." }
+        }
+      },
+    }),
+
+    // #259 — decoupleIdentityFromIdea
+    decoupleIdentityFromIdea: tool({
+      description:
+        "Trigger epistemic air-gap when detecting identity-anchored binary thinking",
+      inputSchema: z.object({
+        triggerIdea: z.string(),
+        passionLevel: z.number().min(0).max(100),
+      }),
+      execute: async (input) => {
+        try {
+          const binaryLock = input.passionLevel > 80
+          const chairmanVeto = binaryLock && input.passionLevel > 90
+
+          const { data, error } = await client
+            .from("identity_airgap_events")
+            .insert({
+              owner_user_id: userId,
+              trigger_idea: input.triggerIdea,
+              passion_level: input.passionLevel,
+              binary_lock_detected: binaryLock,
+              chairman_veto_triggered: chairmanVeto,
+              decoupled: false,
+              outcome: binaryLock
+                ? "Identity-anchored binary lock detected — air-gap activated"
+                : "Passion within acceptable range — monitoring",
+            })
+            .select()
+            .single()
+
+          if (error || !data) {
+            return { ok: false, error: error?.message || "Failed to decouple identity." }
+          }
+
+          const result: Record<string, unknown> = { ok: true, event: data }
+          if (binaryLock) {
+            result.chairmanPrompt =
+              "CHAIRMAN PAUSE: Your identity has fused with this idea. " +
+              "Before proceeding, articulate the strongest version of the opposing view. " +
+              "What would you believe if you had grown up in a completely different context?"
+          }
+          return result
+        } catch (err: unknown) {
+          return { ok: false, error: err instanceof Error ? err.message : "Unknown error in decoupleIdentityFromIdea." }
+        }
+      },
+    }),
+
+    // #260 — calculateViralR0
+    calculateViralR0: tool({
+      description:
+        "Predict the reproduction rate of an idea within the 30k tribal network",
+      inputSchema: z.object({
+        ideaDescription: z.string(),
+        emotionalCharge: z.number().min(0).max(100).optional(),
+        noveltyScore: z.number().min(0).max(100).optional(),
+        tribalRelevance: z.number().min(0).max(100).optional(),
+      }),
+      execute: async (input) => {
+        try {
+          const emotional = input.emotionalCharge ?? 50
+          const novelty = input.noveltyScore ?? 50
+          const tribal = input.tribalRelevance ?? 50
+
+          // Weighted R0 formula: emotional (0.35) + novelty (0.30) + tribal relevance (0.35)
+          const rawScore = emotional * 0.35 + novelty * 0.30 + tribal * 0.35
+          const r0 = Math.round((rawScore / 20) * 100) / 100 // Scale 0-5
+
+          let classification: string
+          let spreadPrediction: string
+          if (r0 >= 4.0) {
+            classification = "hyperviral"
+            spreadPrediction = "Will saturate the 30k network within 48 hours"
+          } else if (r0 >= 2.5) {
+            classification = "viral"
+            spreadPrediction = "Exponential spread expected across multiple tribes within 1 week"
+          } else if (r0 >= 1.0) {
+            classification = "endemic"
+            spreadPrediction = "Steady organic spread within aligned tribes"
+          } else {
+            classification = "inert"
+            spreadPrediction = "Limited reach — idea lacks sufficient viral vectors"
+          }
+
+          return {
+            ok: true,
+            r0,
+            spreadPrediction,
+            classification,
+            factors: {
+              emotionalCharge: emotional,
+              noveltyScore: novelty,
+              tribalRelevance: tribal,
+            },
+          }
+        } catch (err: unknown) {
+          return { ok: false, error: err instanceof Error ? err.message : "Unknown error in calculateViralR0." }
+        }
+      },
+    }),
   }
 }

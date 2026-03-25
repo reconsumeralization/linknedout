@@ -3316,3 +3316,39 @@ export async function fetchSealedBasins() {
   if (error) { console.error("fetchSealedBasins", error); return [] }
   return data ?? []
 }
+
+// Cognitive Virology
+
+export async function fetchMemeticAudits(minThreat?: number) {
+  const supabase = getSupabaseClient()
+  if (!supabase) return []
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return []
+  let query = supabase.from("memetic_audit_log").select("*").eq("owner_user_id", user.id).order("threat_score", { ascending: false })
+  if (minThreat !== undefined) query = query.gte("threat_score", minThreat)
+  const { data, error } = await query
+  if (error) { console.error("fetchMemeticAudits", error); return [] }
+  return data ?? []
+}
+
+export async function fetchIntegrousMemes(status?: string) {
+  const supabase = getSupabaseClient()
+  if (!supabase) return []
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return []
+  let query = supabase.from("integrous_memes").select("*").eq("owner_user_id", user.id).order("created_at", { ascending: false })
+  if (status) query = query.eq("status", status)
+  const { data, error } = await query
+  if (error) { console.error("fetchIntegrousMemes", error); return [] }
+  return data ?? []
+}
+
+export async function fetchIdentityAirgapEvents() {
+  const supabase = getSupabaseClient()
+  if (!supabase) return []
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return []
+  const { data, error } = await supabase.from("identity_airgap_events").select("*").eq("owner_user_id", user.id).order("created_at", { ascending: false })
+  if (error) { console.error("fetchIdentityAirgapEvents", error); return [] }
+  return data ?? []
+}

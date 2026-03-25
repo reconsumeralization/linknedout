@@ -3266,3 +3266,47 @@ export interface SealedMemoryBasin {
   createdAt: string
   updatedAt: string
 }
+
+// Cognitive Virology
+
+export interface MemeticAuditEntry {
+  id: string
+  ownerUserId: string
+  contentSource?: string
+  contentPreview?: string
+  viralShortcutsDetected: string[]
+  receptorMatches: string[]
+  infectionStage: "attach" | "enter" | "replicate" | "defend" | "transmit" | "neutralized"
+  threatScore: number
+  identityAnchorDetected: boolean
+  actionTaken: "flagged" | "quarantined" | "neutralized" | "passed" | "escalated"
+  auditedAt: string
+  createdAt: string
+}
+
+export interface IntegrousMeme {
+  id: string
+  ownerUserId: string
+  memeTitle: string
+  content: string
+  hookType: "unfinished_business" | "validation_function" | "curiosity_gap" | "tribal_signal" | "proof_of_build"
+  targetAudience?: string
+  predictedR0: number
+  actualSpreadCount: number
+  integrityScore: number
+  status: "draft" | "minted" | "spreading" | "archived"
+  createdAt: string
+  updatedAt: string
+}
+
+export interface IdentityAirgapEvent {
+  id: string
+  ownerUserId: string
+  triggerIdea: string
+  passionLevel: number
+  binaryLockDetected: boolean
+  chairmanVetoTriggered: boolean
+  decoupled: boolean
+  outcome?: string
+  createdAt: string
+}
