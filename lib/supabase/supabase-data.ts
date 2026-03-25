@@ -3352,3 +3352,63 @@ export async function fetchIdentityAirgapEvents() {
   if (error) { console.error("fetchIdentityAirgapEvents", error); return [] }
   return data ?? []
 }
+
+// Phenomenological Sanctuary
+
+export async function fetchChimeraAudits(minRiskScore?: number) {
+  const supabase = getSupabaseClient()
+  if (!supabase) return []
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return []
+  let query = supabase.from("chimera_risk_audits").select("*").eq("owner_user_id", user.id).order("audited_at", { ascending: false })
+  if (minRiskScore !== undefined) query = query.gte("highest_risk_score", minRiskScore)
+  const { data, error } = await query
+  if (error) { console.error("fetchChimeraAudits", error); return [] }
+  return data ?? []
+}
+
+export async function fetchHedonicBudget() {
+  const supabase = getSupabaseClient()
+  if (!supabase) return null
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return null
+  const { data, error } = await supabase.from("hedonic_budgets").select("*").eq("owner_user_id", user.id).single()
+  if (error) { console.error("fetchHedonicBudget", error); return null }
+  return data ?? null
+}
+
+export async function fetchUrgeContagionEvents(shieldedOnly?: boolean) {
+  const supabase = getSupabaseClient()
+  if (!supabase) return []
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return []
+  let query = supabase.from("urge_contagion_events").select("*").eq("owner_user_id", user.id).order("created_at", { ascending: false })
+  if (shieldedOnly) query = query.eq("shielded", true)
+  const { data, error } = await query
+  if (error) { console.error("fetchUrgeContagionEvents", error); return [] }
+  return data ?? []
+}
+
+export async function fetchAuthorshipScores(limit?: number) {
+  const supabase = getSupabaseClient()
+  if (!supabase) return []
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return []
+  let query = supabase.from("authorship_scores").select("*").eq("owner_user_id", user.id).order("measurement_date", { ascending: false })
+  if (limit) query = query.limit(limit)
+  const { data, error } = await query
+  if (error) { console.error("fetchAuthorshipScores", error); return [] }
+  return data ?? []
+}
+
+export async function fetchWildtypeSabbaticals(activeOnly?: boolean) {
+  const supabase = getSupabaseClient()
+  if (!supabase) return []
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return []
+  let query = supabase.from("wildtype_sabbaticals").select("*").eq("owner_user_id", user.id).order("created_at", { ascending: false })
+  if (activeOnly) query = query.eq("completed", false)
+  const { data, error } = await query
+  if (error) { console.error("fetchWildtypeSabbaticals", error); return [] }
+  return data ?? []
+}

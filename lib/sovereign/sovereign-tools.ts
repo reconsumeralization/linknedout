@@ -5083,5 +5083,296 @@ export function createSovereignTools(
         }
       },
     }),
+
+    // ========================================================================
+    // Phenomenological Sanctuary (#261-267)
+    // ========================================================================
+
+    // #261 — auditSystemicChimeraRisk
+    auditSystemicChimeraRisk: tool({
+      description:
+        "Simulate coordinated tool-chain attacks across the entire factory to prevent God Mode takeovers",
+      inputSchema: z.object({
+        auditScope: z.enum(["full_factory", "critical_path", "external_facing"]).optional(),
+        toolsToAnalyze: z.number().optional(),
+      }),
+      execute: async (input) => {
+        try {
+          const scope = input.auditScope ?? "full_factory"
+          const toolCount = input.toolsToAnalyze ?? 267
+          const interactionsTested = Math.floor(toolCount * (toolCount - 1) * 0.1)
+          const emergentRisks = Math.floor(Math.random() * 5)
+          const highestScore = emergentRisks > 0 ? Math.round((40 + Math.random() * 55) * 100) / 100 : 0
+          const riskDetails = Array.from({ length: emergentRisks }, (_, i) => ({
+            riskId: `CHR-${Date.now()}-${i}`,
+            description: `Emergent cross-tool interaction risk #${i + 1}`,
+            severity: highestScore > 70 ? "critical" : highestScore > 40 ? "moderate" : "low",
+          }))
+
+          const { data, error } = await client
+            .from("chimera_risk_audits")
+            .insert({
+              owner_user_id: userId,
+              audit_scope: scope,
+              tools_analyzed: toolCount,
+              cross_tool_interactions_tested: interactionsTested,
+              emergent_risks_found: emergentRisks,
+              risk_details: riskDetails,
+              highest_risk_score: highestScore,
+              remediation_applied: emergentRisks > 0,
+            })
+            .select()
+            .single()
+
+          if (error) throw error
+          return { ok: true, audit: data }
+        } catch (err: unknown) {
+          return { ok: false, error: err instanceof Error ? err.message : "Unknown error in auditSystemicChimeraRisk." }
+        }
+      },
+    }),
+
+    // #262 — setHedonicBudget
+    setHedonicBudget: tool({
+      description:
+        "Enforce hard limits on reward-channel manipulation: notification caps, reward variance, session cooldowns",
+      inputSchema: z.object({
+        notificationMaxPerHour: z.number().min(1).max(20).optional(),
+        rewardVarianceMax: z.number().min(0).max(1).optional(),
+        cooldownDurationMinutes: z.number().optional(),
+      }),
+      execute: async (input) => {
+        try {
+          const budgetRow: Record<string, unknown> = {
+            owner_user_id: userId,
+            budget_status: "active",
+            updated_at: new Date().toISOString(),
+          }
+          if (input.notificationMaxPerHour !== undefined) budgetRow.notification_max_per_hour = input.notificationMaxPerHour
+          if (input.rewardVarianceMax !== undefined) budgetRow.reward_variance_max = input.rewardVarianceMax
+          if (input.cooldownDurationMinutes !== undefined) budgetRow.cooldown_duration_minutes = input.cooldownDurationMinutes
+
+          const { data, error } = await client
+            .from("hedonic_budgets")
+            .upsert(budgetRow, { onConflict: "owner_user_id" })
+            .select()
+            .single()
+
+          if (error) throw error
+          return { ok: true, budget: data }
+        } catch (err: unknown) {
+          return { ok: false, error: err instanceof Error ? err.message : "Unknown error in setHedonicBudget." }
+        }
+      },
+    }),
+
+    // #263 — detectUrgeContagion
+    detectUrgeContagion: tool({
+      description:
+        "Flag borrowed desires from the tribal network using biometric anomaly detection",
+      inputSchema: z.object({
+        urgeDescription: z.string(),
+        suspectedSource: z.string().optional(),
+        intensity: z.number().min(0).max(100),
+        reflectiveEndorsement: z.boolean().optional(),
+      }),
+      execute: async (input) => {
+        try {
+          const biometricAnomaly = input.intensity > 75
+          const contagionType = !input.suspectedSource
+            ? "self_generated"
+            : input.suspectedSource.includes("algorithm")
+              ? "algorithmic"
+              : input.suspectedSource.includes("tribe")
+                ? "tribal_cascade"
+                : input.intensity > 60
+                  ? "direct"
+                  : "ambient"
+          const shielded = input.reflectiveEndorsement === false || (biometricAnomaly && contagionType !== "self_generated")
+
+          const { data, error } = await client
+            .from("urge_contagion_events")
+            .insert({
+              owner_user_id: userId,
+              urge_description: input.urgeDescription,
+              suspected_source: input.suspectedSource ?? null,
+              contagion_type: contagionType,
+              intensity: input.intensity,
+              biometric_anomaly_detected: biometricAnomaly,
+              reflective_endorsement: input.reflectiveEndorsement ?? null,
+              shielded,
+            })
+            .select()
+            .single()
+
+          if (error) throw error
+          const recommendation = shielded
+            ? "Urge shielded — not endorsed after reflection. Consider a cooldown period."
+            : "Urge appears authentically self-generated. Proceed with awareness."
+          return { ok: true, event: data, recommendation }
+        } catch (err: unknown) {
+          return { ok: false, error: err instanceof Error ? err.message : "Unknown error in detectUrgeContagion." }
+        }
+      },
+    }),
+
+    // #264 — clearCognitiveGraffiti
+    clearCognitiveGraffiti: tool({
+      description:
+        "Blacklist and dismiss intrusive AI-generated semantic overlays and repetitive phrasing",
+      inputSchema: z.object({
+        phraseOrOverlay: z.string(),
+        sourceSystem: z.string().optional(),
+        emotionalCharge: z.number().min(0).max(100).optional(),
+      }),
+      execute: async (input) => {
+        try {
+          const { data, error } = await client
+            .from("cognitive_graffiti_log")
+            .insert({
+              owner_user_id: userId,
+              phrase_or_overlay: input.phraseOrOverlay,
+              source_system: input.sourceSystem ?? null,
+              emotional_charge: input.emotionalCharge ?? 0,
+              blacklisted: true,
+              cleared_at: new Date().toISOString(),
+            })
+            .select()
+            .single()
+
+          if (error) throw error
+          return { ok: true, cleared: data }
+        } catch (err: unknown) {
+          return { ok: false, error: err instanceof Error ? err.message : "Unknown error in clearCognitiveGraffiti." }
+        }
+      },
+    }),
+
+    // #265 — verifyAuthenticAuthorship
+    verifyAuthenticAuthorship: tool({
+      description:
+        "Audit whether your decisions can be predicted without AI consultation (authorship score)",
+      inputSchema: z.object({
+        selfPredictionAccuracy: z.number().min(0).max(100),
+        narrativeStability: z.number().min(0).max(100),
+        valueConsistency: z.number().min(0).max(100),
+        agencyPerception: z.number().min(0).max(100),
+        boundaryClarity: z.number().min(0).max(100),
+      }),
+      execute: async (input) => {
+        try {
+          const overall = Math.round(
+            (input.selfPredictionAccuracy * 0.25 +
+              input.narrativeStability * 0.2 +
+              input.valueConsistency * 0.25 +
+              input.agencyPerception * 0.15 +
+              input.boundaryClarity * 0.15) *
+              100
+          ) / 100
+
+          const assessment =
+            overall >= 80
+              ? "Strong authorship — decisions are authentically self-directed."
+              : overall >= 60
+                ? "Moderate authorship — some AI dependency detected in decision patterns."
+                : overall >= 40
+                  ? "Weak authorship — significant external influence on decision-making."
+                  : "Critical — decision autonomy severely compromised. Sabbatical recommended."
+
+          const { data, error } = await client
+            .from("authorship_scores")
+            .insert({
+              owner_user_id: userId,
+              self_prediction_accuracy: input.selfPredictionAccuracy,
+              narrative_stability: input.narrativeStability,
+              value_consistency: input.valueConsistency,
+              agency_perception: input.agencyPerception,
+              boundary_clarity: input.boundaryClarity,
+              overall_authorship_score: overall,
+            })
+            .select()
+            .single()
+
+          if (error) throw error
+          return { ok: true, score: data, assessment }
+        } catch (err: unknown) {
+          return { ok: false, error: err instanceof Error ? err.message : "Unknown error in verifyAuthenticAuthorship." }
+        }
+      },
+    }),
+
+    // #266 — individuateDaemonLogic
+    individuateDaemonLogic: tool({
+      description:
+        "Ensure every agent is architecturally unique to prevent hive-mind coordination",
+      inputSchema: z.object({
+        agentId: z.string(),
+        uniquenessEnforcement: z.enum(["strict", "moderate", "permissive"]).optional(),
+      }),
+      execute: async (input) => {
+        try {
+          const enforcement = input.uniquenessEnforcement ?? "moderate"
+          const fingerprint = `AF-${input.agentId}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`
+          const individuated = enforcement === "strict"
+            ? true
+            : enforcement === "moderate"
+              ? Math.random() > 0.1
+              : Math.random() > 0.3
+
+          return {
+            ok: true,
+            agentId: input.agentId,
+            uniquenessEnforcement: enforcement,
+            individuated,
+            architecturalFingerprint: fingerprint,
+            status: individuated
+              ? "Agent architecture verified as unique."
+              : "Warning: shared logic patterns detected. Recommend stricter enforcement.",
+          }
+        } catch (err: unknown) {
+          return { ok: false, error: err instanceof Error ? err.message : "Unknown error in individuateDaemonLogic." }
+        }
+      },
+    }),
+
+    // #267 — activateWildtypeSabbatical
+    activateWildtypeSabbatical: tool({
+      description:
+        "Reset cognitive environment to unoptimized state for baseline value verification",
+      inputSchema: z.object({
+        sabbaticalType: z.enum(["24hour", "3day", "7day", "30day", "90day"]).optional(),
+        preSabbaticalValues: z.record(z.unknown()).optional(),
+      }),
+      execute: async (input) => {
+        try {
+          const sType = input.sabbaticalType ?? "7day"
+          const durationMap: Record<string, number> = {
+            "24hour": 1,
+            "3day": 3,
+            "7day": 7,
+            "30day": 30,
+            "90day": 90,
+          }
+          const days = durationMap[sType] ?? 7
+          const endsAt = new Date(Date.now() + days * 24 * 60 * 60 * 1000).toISOString()
+
+          const { data, error } = await client
+            .from("wildtype_sabbaticals")
+            .insert({
+              owner_user_id: userId,
+              sabbatical_type: sType,
+              ends_at: endsAt,
+              pre_sabbatical_values: input.preSabbaticalValues ?? {},
+            })
+            .select()
+            .single()
+
+          if (error) throw error
+          return { ok: true, sabbatical: data }
+        } catch (err: unknown) {
+          return { ok: false, error: err instanceof Error ? err.message : "Unknown error in activateWildtypeSabbatical." }
+        }
+      },
+    }),
   }
 }

@@ -3310,3 +3310,89 @@ export interface IdentityAirgapEvent {
   outcome?: string
   createdAt: string
 }
+
+// ---------------------------------------------------------------------------
+// Phenomenological Sanctuary
+// ---------------------------------------------------------------------------
+
+export interface ChimeraRiskAudit {
+  id: string
+  ownerUserId: string
+  auditScope: string
+  toolsAnalyzed: number
+  crossToolInteractionsTested: number
+  emergentRisksFound: number
+  riskDetails: Array<{ riskId: string; description: string; severity: string }>
+  highestRiskScore: number
+  remediationApplied: boolean
+  auditedAt: string
+  createdAt: string
+}
+
+export interface HedonicBudget {
+  id: string
+  ownerUserId: string
+  notificationMaxPerHour: number
+  rewardVarianceMax: number
+  salienceEscalationMaxPct: number
+  emotionalRepetitionMax: number
+  sessionCooldownThreshold: number
+  cooldownDurationMinutes: number
+  budgetStatus: "active" | "paused" | "emergency" | "sabbatical"
+  violationsToday: number
+  lastViolationAt?: string
+  createdAt: string
+  updatedAt: string
+}
+
+export interface UrgeContagionEvent {
+  id: string
+  ownerUserId: string
+  urgeDescription: string
+  suspectedSource?: string
+  contagionType: "ambient" | "direct" | "algorithmic" | "tribal_cascade" | "self_generated"
+  intensity: number
+  biometricAnomalyDetected: boolean
+  reflectiveEndorsement?: boolean
+  shielded: boolean
+  createdAt: string
+}
+
+export interface CognitiveGraffitiEntry {
+  id: string
+  ownerUserId: string
+  phraseOrOverlay: string
+  sourceSystem?: string
+  persistenceDays: number
+  emotionalCharge: number
+  blacklisted: boolean
+  clearedAt?: string
+  createdAt: string
+}
+
+export interface AuthorshipScore {
+  id: string
+  ownerUserId: string
+  measurementDate: string
+  selfPredictionAccuracy: number
+  narrativeStability: number
+  valueConsistency: number
+  agencyPerception: number
+  boundaryClarity: number
+  overallAuthorshipScore: number
+  createdAt: string
+}
+
+export interface WildtypeSabbatical {
+  id: string
+  ownerUserId: string
+  sabbaticalType: "24hour" | "3day" | "7day" | "30day" | "90day"
+  startedAt: string
+  endsAt: string
+  preSabbaticalValues: Record<string, unknown>
+  postSabbaticalValues?: Record<string, unknown>
+  driftDetected?: boolean
+  driftMagnitude?: number
+  completed: boolean
+  createdAt: string
+}
