@@ -2972,3 +2972,41 @@ export interface ZkReputationCredential {
   proofHash?: string; verifiable: boolean
   issuedAt: string; expiresAt?: string; createdAt: string
 }
+
+// ---------------------------------------------------------------------------
+// Validation & Integrity
+// ---------------------------------------------------------------------------
+
+export interface ObjectiveFunction {
+  id: string; ownerUserId: string
+  missionName: string; targetVariables: Array<{ name: string; target: number; weight?: number }>
+  constraints: string[]; optimizationDirection: "maximize" | "minimize" | "target" | "pareto"
+  successThreshold: number; currentBestScore: number; iterationsCompleted: number
+  status: "draft" | "active" | "converging" | "solved" | "failed"
+  createdAt: string; updatedAt: string
+}
+
+export interface ReasoningAuditLog {
+  id: string; ownerUserId: string
+  solutionId?: string; reasoningChain: string[]
+  adversarialCritique?: string; purityScore: number
+  isGenuineReasoning: boolean; shortcutDetected: boolean
+  reproducibleByQuarantine?: boolean
+  auditedAt: string; createdAt: string
+}
+
+export interface PhysicalVerificationState {
+  id: string; ownerUserId: string
+  deviceType: "xenobot" | "vehicle" | "smr" | "drone" | "industrial" | "neo_lab"
+  proposedAction: string; simulationResult: Record<string, unknown>
+  safetyScore: number; physicsViolationDetected: boolean
+  approved: boolean; approvedAt?: string; createdAt: string
+}
+
+export interface HumanAlphaGate {
+  id: string; ownerUserId: string
+  gateType: "mission_approval" | "physical_actuation" | "budget_release" | "tribal_decision" | "emergency_override"
+  artifactSignatureHash?: string; biometricConfirmed: boolean
+  validationSummary?: string; decision?: "approved" | "rejected" | "deferred"
+  signedAt?: string; createdAt: string
+}

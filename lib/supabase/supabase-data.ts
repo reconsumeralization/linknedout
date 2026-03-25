@@ -3072,3 +3072,47 @@ export async function fetchZkCredentials() {
   if (error) { console.error("fetchZkCredentials", error); return [] }
   return data ?? []
 }
+
+// ---------------------------------------------------------------------------
+// Validation & Integrity
+// ---------------------------------------------------------------------------
+
+export async function fetchObjectiveFunctions() {
+  const supabase = getSupabaseClient()
+  if (!supabase) return []
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return []
+  const { data, error } = await supabase.from("objective_functions").select("*").eq("owner_user_id", user.id).order("created_at", { ascending: false })
+  if (error) { console.error("fetchObjectiveFunctions", error); return [] }
+  return data ?? []
+}
+
+export async function fetchReasoningAudits() {
+  const supabase = getSupabaseClient()
+  if (!supabase) return []
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return []
+  const { data, error } = await supabase.from("reasoning_audit_logs").select("*").eq("owner_user_id", user.id).order("created_at", { ascending: false })
+  if (error) { console.error("fetchReasoningAudits", error); return [] }
+  return data ?? []
+}
+
+export async function fetchPhysicalVerifications() {
+  const supabase = getSupabaseClient()
+  if (!supabase) return []
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return []
+  const { data, error } = await supabase.from("physical_verification_states").select("*").eq("owner_user_id", user.id).order("created_at", { ascending: false })
+  if (error) { console.error("fetchPhysicalVerifications", error); return [] }
+  return data ?? []
+}
+
+export async function fetchHumanAlphaGates() {
+  const supabase = getSupabaseClient()
+  if (!supabase) return []
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return []
+  const { data, error } = await supabase.from("human_alpha_gates").select("*").eq("owner_user_id", user.id).order("created_at", { ascending: false })
+  if (error) { console.error("fetchHumanAlphaGates", error); return [] }
+  return data ?? []
+}
