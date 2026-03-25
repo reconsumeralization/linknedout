@@ -3141,3 +3141,49 @@ export interface LatentLensingEntry {
   discoveredAt: string
   createdAt: string
 }
+
+// ---------------------------------------------------------------------------
+// Cosmological Nuance
+// ---------------------------------------------------------------------------
+
+export interface ShadowSignalEntry {
+  id: string
+  ownerUserId: string
+  signalName: string
+  signalSource?: string
+  signalType: "shadow" | "terminator_line" | "early_adopter" | "moores_block" | "dark_gravity"
+  signalStrength: number
+  redshiftScore: number
+  isBlueshifted: boolean
+  discoveryMethod?: string
+  relatedProfileIds: string[]
+  detectedAt: string
+  createdAt: string
+}
+
+export interface StealthAccretionEntry {
+  id: string
+  ownerUserId: string
+  resourceType: "talent" | "saas_tool" | "compute" | "data_source" | "partnership" | "inefficiency"
+  resourceName: string
+  absorptionMethod: "cool" | "warm" | "hot"
+  valueAbsorbedUsd: number
+  heatGenerated: number
+  detectedByCompetitors: boolean
+  accretedAt: string
+  createdAt: string
+}
+
+export interface IntelligenceRentLock {
+  id: string
+  ownerUserId: string
+  energySource: "smr" | "solar" | "geothermal" | "grid" | "lunar" | "basepower_syndicate"
+  lockedCostPerKwhUsd: number
+  lockDurationYears: number
+  computeCapacityTflops: number
+  lockStartDate: string
+  lockEndDate?: string
+  status: "active" | "expiring" | "expired" | "renewed"
+  createdAt: string
+  updatedAt: string
+}

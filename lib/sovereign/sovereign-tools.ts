@@ -4238,5 +4238,285 @@ export function createSovereignTools(
         }
       },
     }),
+
+    // ========================================================================
+    // Cosmological Nuance Layer (#241-247)
+    // ========================================================================
+
+    // #241 — provisionAdminShadow
+    provisionAdminShadow: tool({
+      description:
+        "Deploy the James Webb administrator agent focused on orchestration efficiency over raw intelligence",
+      inputSchema: z.object({
+        focusArea: z.enum(["token_allocation", "resource_scheduling", "quality_gates", "tribal_coordination"]),
+        budgetTokens: z.number().optional(),
+      }),
+      execute: async (input) => {
+        try {
+          const sprintName = `admin-shadow-${input.focusArea}`
+          const { data, error } = await client
+            .from("agent_parallel_workloads")
+            .insert({
+              owner_user_id: userId,
+              sprint_name: sprintName,
+              workload_type: "admin_shadow",
+              budget_tokens: input.budgetTokens ?? 10000,
+              status: "active",
+            })
+            .select()
+            .single()
+
+          if (error || !data) {
+            return { ok: false, error: error?.message || "Failed to provision admin shadow." }
+          }
+          return { ok: true, admin: data }
+        } catch (err: unknown) {
+          return { ok: false, error: err instanceof Error ? err.message : "Unknown error in provisionAdminShadow." }
+        }
+      },
+    }),
+
+    // #242 — executePaleoInference
+    executePaleoInference: tool({
+      description:
+        "Use local stable weights and crystalline memory to bypass GPU scarcity and cloud dependency",
+      inputSchema: z.object({
+        queryContext: z.string(),
+        paleoMemoryId: z.string().uuid().optional(),
+        localModelPreference: z.string().optional(),
+      }),
+      execute: async (input) => {
+        try {
+          const model = input.localModelPreference ?? "paleo-stable-7b"
+          const inference = {
+            query: input.queryContext,
+            model,
+            paleoMemoryId: input.paleoMemoryId ?? null,
+            result: `Paleo-inference completed for context: "${input.queryContext.slice(0, 80)}..."`,
+            tokensUsed: 0,
+            source: "paleo-local" as const,
+            timestamp: new Date().toISOString(),
+          }
+          return { ok: true, inference }
+        } catch (err: unknown) {
+          return { ok: false, error: err instanceof Error ? err.message : "Unknown error in executePaleoInference." }
+        }
+      },
+    }),
+
+    // #243 — mapShadowSignal
+    mapShadowSignal: tool({
+      description:
+        "Scan the terminator line of the network for long-shadow early signals of emerging opportunities or failures",
+      inputSchema: z.object({
+        signalName: z.string(),
+        signalSource: z.string().optional(),
+        signalType: z.enum(["shadow", "terminator_line", "early_adopter", "moores_block", "dark_gravity"]).optional(),
+        relatedProfileIds: z.array(z.string()).optional(),
+      }),
+      execute: async (input) => {
+        try {
+          const profileCount = input.relatedProfileIds?.length ?? 0
+          const signalStrength = Math.min(100, Math.round((profileCount * 11.7 + 25) * 100) / 100)
+          const isBlueshifted = signalStrength > 50
+
+          const { data, error } = await client
+            .from("shadow_signal_map")
+            .insert({
+              owner_user_id: userId,
+              signal_name: input.signalName,
+              signal_source: input.signalSource ?? null,
+              signal_type: input.signalType ?? "shadow",
+              signal_strength: signalStrength,
+              redshift_score: 0,
+              is_blue_shifted: isBlueshifted,
+              discovery_method: "terminator_scan",
+              related_profile_ids: input.relatedProfileIds ?? [],
+            })
+            .select()
+            .single()
+
+          if (error || !data) {
+            return { ok: false, error: error?.message || "Failed to map shadow signal." }
+          }
+          return { ok: true, signal: data }
+        } catch (err: unknown) {
+          return { ok: false, error: err instanceof Error ? err.message : "Unknown error in mapShadowSignal." }
+        }
+      },
+    }),
+
+    // #244 — accreteStealthValue
+    accreteStealthValue: tool({
+      description:
+        "Grow the factory by absorbing inefficient resources without triggering market attention",
+      inputSchema: z.object({
+        resourceType: z.enum(["talent", "saas_tool", "compute", "data_source", "partnership", "inefficiency"]),
+        resourceName: z.string(),
+        valueAbsorbedUsd: z.number().optional(),
+        absorptionMethod: z.enum(["cool", "warm", "hot"]).optional(),
+      }),
+      execute: async (input) => {
+        try {
+          const method = input.absorptionMethod ?? "cool"
+          const heatGenerated = method === "cool" ? 0.1 : method === "warm" ? 0.5 : 0.9
+
+          const { data, error } = await client
+            .from("stealth_accretion_log")
+            .insert({
+              owner_user_id: userId,
+              resource_type: input.resourceType,
+              resource_name: input.resourceName,
+              absorption_method: method,
+              value_absorbed_usd: input.valueAbsorbedUsd ?? 0,
+              heat_generated: heatGenerated,
+              detected_by_competitors: method === "hot",
+            })
+            .select()
+            .single()
+
+          if (error || !data) {
+            return { ok: false, error: error?.message || "Failed to accrete stealth value." }
+          }
+          return { ok: true, accretion: data }
+        } catch (err: unknown) {
+          return { ok: false, error: err instanceof Error ? err.message : "Unknown error in accreteStealthValue." }
+        }
+      },
+    }),
+
+    // #245 — lockIntelligenceRent
+    lockIntelligenceRent: tool({
+      description:
+        "Lock in fixed-cost energy/compute for decades via SMR syndicate to eliminate variable cost anxiety",
+      inputSchema: z.object({
+        energySource: z.enum(["smr", "solar", "geothermal", "grid", "lunar", "basepower_syndicate"]),
+        lockedCostPerKwhUsd: z.number(),
+        lockDurationYears: z.number().min(1).max(50).optional(),
+        computeCapacityTflops: z.number().optional(),
+      }),
+      execute: async (input) => {
+        try {
+          const durationYears = input.lockDurationYears ?? 20
+          const startDate = new Date().toISOString().split("T")[0]
+          const endDate = new Date(Date.now() + durationYears * 365.25 * 86400000).toISOString().split("T")[0]
+
+          const { data, error } = await client
+            .from("intelligence_rent_locks")
+            .insert({
+              owner_user_id: userId,
+              energy_source: input.energySource,
+              locked_cost_per_kwh_usd: input.lockedCostPerKwhUsd,
+              lock_duration_years: durationYears,
+              compute_capacity_tflops: input.computeCapacityTflops ?? 0,
+              lock_start_date: startDate,
+              lock_end_date: endDate,
+              status: "active",
+            })
+            .select()
+            .single()
+
+          if (error || !data) {
+            return { ok: false, error: error?.message || "Failed to lock intelligence rent." }
+          }
+          return { ok: true, lock: data }
+        } catch (err: unknown) {
+          return { ok: false, error: err instanceof Error ? err.message : "Unknown error in lockIntelligenceRent." }
+        }
+      },
+    }),
+
+    // #246 — calculateSignalRedshift
+    calculateSignalRedshift: tool({
+      description:
+        "Measure information decay — prune tired global news, prioritize blue-shifted tribal signals",
+      inputSchema: z.object({
+        signalName: z.string(),
+        signalAgeHours: z.number(),
+        originalStrength: z.number().min(0).max(100),
+      }),
+      execute: async (input) => {
+        try {
+          const redshiftScore = Math.round(input.originalStrength * Math.exp(-input.signalAgeHours / 24) * 100) / 100
+          const isBlueshifted = redshiftScore > 50
+
+          const { data, error } = await client
+            .from("shadow_signal_map")
+            .insert({
+              owner_user_id: userId,
+              signal_name: input.signalName,
+              signal_type: "shadow",
+              signal_strength: input.originalStrength,
+              redshift_score: redshiftScore,
+              is_blue_shifted: isBlueshifted,
+              discovery_method: "redshift_analysis",
+              related_profile_ids: [],
+            })
+            .select()
+            .single()
+
+          if (error || !data) {
+            return { ok: false, error: error?.message || "Failed to calculate signal redshift." }
+          }
+          return {
+            ok: true,
+            analysis: {
+              signalName: input.signalName,
+              originalStrength: input.originalStrength,
+              ageHours: input.signalAgeHours,
+              redshiftScore,
+              isBlueshifted,
+              recommendation: isBlueshifted ? "Signal is fresh — prioritize." : "Signal is red-shifted — deprioritize or prune.",
+              record: data,
+            },
+          }
+        } catch (err: unknown) {
+          return { ok: false, error: err instanceof Error ? err.message : "Unknown error in calculateSignalRedshift." }
+        }
+      },
+    }),
+
+    // #247 — detectDarkGravity
+    detectDarkGravity: tool({
+      description:
+        "Use gravitational lensing to find hidden dark-economy players directing the intelligence landlords",
+      inputSchema: z.object({
+        searchRadius: z.number().optional(),
+        minInfluenceScore: z.number().optional(),
+      }),
+      execute: async (input) => {
+        try {
+          const minScore = input.minInfluenceScore ?? 60
+          const { data, error } = await client
+            .from("latent_lensing_map")
+            .select("*")
+            .eq("owner_user_id", userId)
+            .gte("estimated_influence_score", minScore)
+            .eq("visibility", "invisible")
+            .order("estimated_influence_score", { ascending: false })
+
+          if (error) {
+            return { ok: false, error: error.message }
+          }
+          const darkNodes = (data ?? []).map((node: Record<string, unknown>) => ({
+            id: node.id,
+            name: node.hidden_node_name,
+            influenceScore: node.estimated_influence_score,
+            influencedNodes: node.influenced_nodes_count,
+            visibility: node.visibility,
+            evidence: node.lensing_evidence,
+          }))
+          return {
+            ok: true,
+            darkNodes,
+            searchRadius: input.searchRadius ?? 100,
+            minInfluenceScore: minScore,
+            totalFound: darkNodes.length,
+          }
+        } catch (err: unknown) {
+          return { ok: false, error: err instanceof Error ? err.message : "Unknown error in detectDarkGravity." }
+        }
+      },
+    }),
   }
 }

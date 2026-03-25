@@ -3228,3 +3228,37 @@ export async function fetchLatentLensingMap() {
   if (error) { console.error("fetchLatentLensingMap", error); return [] }
   return data ?? []
 }
+
+// ---------------------------------------------------------------------------
+// Cosmological Nuance
+// ---------------------------------------------------------------------------
+
+export async function fetchShadowSignals() {
+  const supabase = getSupabaseClient()
+  if (!supabase) return []
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return []
+  const { data, error } = await supabase.from("shadow_signal_map").select("*").eq("owner_user_id", user.id).order("signal_strength", { ascending: false })
+  if (error) { console.error("fetchShadowSignals", error); return [] }
+  return data ?? []
+}
+
+export async function fetchStealthAccretions() {
+  const supabase = getSupabaseClient()
+  if (!supabase) return []
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return []
+  const { data, error } = await supabase.from("stealth_accretion_log").select("*").eq("owner_user_id", user.id).order("accreted_at", { ascending: false })
+  if (error) { console.error("fetchStealthAccretions", error); return [] }
+  return data ?? []
+}
+
+export async function fetchIntelligenceRentLocks() {
+  const supabase = getSupabaseClient()
+  if (!supabase) return []
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return []
+  const { data, error } = await supabase.from("intelligence_rent_locks").select("*").eq("owner_user_id", user.id).order("lock_start_date", { ascending: false })
+  if (error) { console.error("fetchIntelligenceRentLocks", error); return [] }
+  return data ?? []
+}
