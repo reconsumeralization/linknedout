@@ -3412,3 +3412,51 @@ export async function fetchWildtypeSabbaticals(activeOnly?: boolean) {
   if (error) { console.error("fetchWildtypeSabbaticals", error); return [] }
   return data ?? []
 }
+
+export async function fetchEpistemicAudits(resolvedOnly?: boolean) {
+  const supabase = getSupabaseClient()
+  if (!supabase) return []
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return []
+  let query = supabase.from("epistemic_audits").select("*").eq("owner_user_id", user.id).order("created_at", { ascending: false })
+  if (resolvedOnly !== undefined) query = query.eq("resolved", resolvedOnly)
+  const { data, error } = await query
+  if (error) { console.error("fetchEpistemicAudits", error); return [] }
+  return data ?? []
+}
+
+export async function fetchVerticalPerceptions(perceptionType?: string) {
+  const supabase = getSupabaseClient()
+  if (!supabase) return []
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return []
+  let query = supabase.from("vertical_perception_log").select("*").eq("owner_user_id", user.id).order("created_at", { ascending: false })
+  if (perceptionType) query = query.eq("perception_type", perceptionType)
+  const { data, error } = await query
+  if (error) { console.error("fetchVerticalPerceptions", error); return [] }
+  return data ?? []
+}
+
+export async function fetchLifeReviewSimulations(limit?: number) {
+  const supabase = getSupabaseClient()
+  if (!supabase) return []
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return []
+  let query = supabase.from("life_review_simulations").select("*").eq("owner_user_id", user.id).order("simulated_at", { ascending: false })
+  if (limit) query = query.limit(limit)
+  const { data, error } = await query
+  if (error) { console.error("fetchLifeReviewSimulations", error); return [] }
+  return data ?? []
+}
+
+export async function fetchStateIndependenceProofs(stateType?: string) {
+  const supabase = getSupabaseClient()
+  if (!supabase) return []
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return []
+  let query = supabase.from("state_independence_proofs").select("*").eq("owner_user_id", user.id).order("created_at", { ascending: false })
+  if (stateType) query = query.eq("state_type", stateType)
+  const { data, error } = await query
+  if (error) { console.error("fetchStateIndependenceProofs", error); return [] }
+  return data ?? []
+}

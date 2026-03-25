@@ -3396,3 +3396,56 @@ export interface WildtypeSabbatical {
   completed: boolean
   createdAt: string
 }
+
+export interface EpistemicAudit {
+  id: string
+  ownerUserId: string
+  constraintType: "materialist_bias" | "reductionist" | "institutional_dogma" | "cultural_filter" | "self_imposed"
+  constraintDescription: string
+  dataSuppressed?: string
+  signalTypeIgnored?: string
+  severity: number
+  resolved: boolean
+  resolutionNotes?: string
+  createdAt: string
+}
+
+export interface VerticalPerceptionEntry {
+  id: string
+  ownerUserId: string
+  perceptionType: "intuition" | "precognition" | "felt_presence" | "synchronicity" | "non_local" | "dream" | "flow_state"
+  description: string
+  signalStrength: number
+  verifiedOutcome?: boolean
+  outcomeDescription?: string
+  artifactCaptured: boolean
+  createdAt: string
+}
+
+export interface LifeReviewSimulation {
+  id: string
+  ownerUserId: string
+  intentDescription: string
+  affectedMembersCount: number
+  loveScore: number
+  harmScore: number
+  netFulfillment: number
+  relationalImpact: unknown[]
+  recommendation?: string
+  simulatedAt: string
+  createdAt: string
+}
+
+export interface StateIndependenceProof {
+  id: string
+  ownerUserId: string
+  stateType: "agentic" | "memory" | "values" | "identity" | "legacy"
+  primaryStore: string
+  mirrorStore?: string
+  mirrored: boolean
+  lastSyncAt?: string
+  integrityHash?: string
+  hardwareIndependent: boolean
+  createdAt: string
+  updatedAt: string
+}

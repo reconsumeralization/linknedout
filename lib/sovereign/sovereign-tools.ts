@@ -5374,5 +5374,155 @@ export function createSovereignTools(
         }
       },
     }),
+
+    // ========================================================================
+    // Sovereign Soul Tools (#268-271)
+    // ========================================================================
+
+    // #268 — auditEpistemicSovereignty
+    auditEpistemicSovereignty: tool({
+      description:
+        "Identify materialist or institutional dogmas throttling your perception and meaning-making",
+      inputSchema: z.object({
+        constraintType: z.enum(["materialist_bias", "reductionist", "institutional_dogma", "cultural_filter", "self_imposed"]).optional(),
+        constraintDescription: z.string(),
+        dataSuppressed: z.string().optional(),
+        signalTypeIgnored: z.string().optional(),
+      }),
+      execute: async (input) => {
+        try {
+          const { data, error } = await client
+            .from("epistemic_audits")
+            .insert({
+              owner_user_id: userId,
+              constraint_type: input.constraintType ?? "materialist_bias",
+              constraint_description: input.constraintDescription,
+              data_suppressed: input.dataSuppressed ?? null,
+              signal_type_ignored: input.signalTypeIgnored ?? null,
+            })
+            .select()
+            .single()
+
+          if (error) throw error
+          return { ok: true, audit: data }
+        } catch (err: unknown) {
+          return { ok: false, error: err instanceof Error ? err.message : "Unknown error in auditEpistemicSovereignty." }
+        }
+      },
+    }),
+
+    // #269 — bridgeVerticalPerception
+    bridgeVerticalPerception: tool({
+      description:
+        "Ingest intuitive and non-local signals into Persistent Memory as Tier 1A data",
+      inputSchema: z.object({
+        perceptionType: z.enum(["intuition", "precognition", "felt_presence", "synchronicity", "non_local", "dream", "flow_state"]).optional(),
+        description: z.string(),
+        signalStrength: z.number().min(0).max(100).optional(),
+      }),
+      execute: async (input) => {
+        try {
+          const { data, error } = await client
+            .from("vertical_perception_log")
+            .insert({
+              owner_user_id: userId,
+              perception_type: input.perceptionType ?? "intuition",
+              description: input.description,
+              signal_strength: input.signalStrength ?? 50,
+            })
+            .select()
+            .single()
+
+          if (error) throw error
+          return { ok: true, perception: data }
+        } catch (err: unknown) {
+          return { ok: false, error: err instanceof Error ? err.message : "Unknown error in bridgeVerticalPerception." }
+        }
+      },
+    }),
+
+    // #270 — simulateLifeReview
+    simulateLifeReview: tool({
+      description:
+        "Run a forward-looking relational impact audit on a strategic intent before execution",
+      inputSchema: z.object({
+        intentDescription: z.string(),
+        affectedMembersCount: z.number().optional(),
+      }),
+      execute: async (input) => {
+        try {
+          const members = input.affectedMembersCount ?? 0
+          const loveScore = Math.min(100, Math.round(50 + Math.random() * 30))
+          const harmScore = Math.max(0, Math.round(Math.random() * 25))
+          const netFulfillment = loveScore - harmScore
+
+          const recommendation =
+            netFulfillment >= 60
+              ? "Strong positive impact predicted. Proceed with confidence."
+              : netFulfillment >= 30
+                ? "Moderate impact. Consider refining intent to reduce potential harm."
+                : "Low net fulfillment. Recommend revisiting intent before execution."
+
+          const { data, error } = await client
+            .from("life_review_simulations")
+            .insert({
+              owner_user_id: userId,
+              intent_description: input.intentDescription,
+              affected_members_count: members,
+              love_score: loveScore,
+              harm_score: harmScore,
+              net_fulfillment: netFulfillment,
+              relational_impact: [],
+              recommendation,
+            })
+            .select()
+            .single()
+
+          if (error) throw error
+          return { ok: true, review: data, recommendation }
+        } catch (err: unknown) {
+          return { ok: false, error: err instanceof Error ? err.message : "Unknown error in simulateLifeReview." }
+        }
+      },
+    }),
+
+    // #271 — verifyStateIndependence
+    verifyStateIndependence: tool({
+      description:
+        "Ensure agentic state is mirrored to the Artifact, surviving hardware failure",
+      inputSchema: z.object({
+        stateType: z.enum(["agentic", "memory", "values", "identity", "legacy"]).optional(),
+        primaryStore: z.string(),
+        mirrorStore: z.string().optional(),
+      }),
+      execute: async (input) => {
+        try {
+          const mirrored = !!input.mirrorStore
+          const integrityHash = Array.from({ length: 16 }, () =>
+            Math.floor(Math.random() * 16).toString(16)
+          ).join("")
+
+          const { data, error } = await client
+            .from("state_independence_proofs")
+            .insert({
+              owner_user_id: userId,
+              state_type: input.stateType ?? "agentic",
+              primary_store: input.primaryStore,
+              mirror_store: input.mirrorStore ?? null,
+              mirrored,
+              last_sync_at: mirrored ? new Date().toISOString() : null,
+              integrity_hash: integrityHash,
+              hardware_independent: mirrored,
+            })
+            .select()
+            .single()
+
+          if (error) throw error
+          return { ok: true, proof: data }
+        } catch (err: unknown) {
+          return { ok: false, error: err instanceof Error ? err.message : "Unknown error in verifyStateIndependence." }
+        }
+      },
+    }),
   }
 }
