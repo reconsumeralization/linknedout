@@ -2809,3 +2809,50 @@ export async function fetchAgenticIntentCerts(level?: string) {
   if (error) { console.error("fetchAgenticIntentCerts", error); return [] }
   return data ?? []
 }
+
+// Forensic Accountability
+export async function fetchAccountabilityGaps(status?: string) {
+  const supabase = getSupabaseClient()
+  if (!supabase) return []
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return []
+  let query = supabase.from("accountability_gap_audit").select("*").eq("analyst_user_id", user.id).order("created_at", { ascending: false })
+  if (status) query = query.eq("status", status)
+  const { data, error } = await query
+  if (error) { console.error("fetchAccountabilityGaps", error); return [] }
+  return data ?? []
+}
+
+export async function fetchEconomicSanctions(sanctionStatus?: string) {
+  const supabase = getSupabaseClient()
+  if (!supabase) return []
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return []
+  let query = supabase.from("economic_sanction_ledger").select("*").eq("enforcer_user_id", user.id).order("created_at", { ascending: false })
+  if (sanctionStatus) query = query.eq("sanction_status", sanctionStatus)
+  const { data, error } = await query
+  if (error) { console.error("fetchEconomicSanctions", error); return [] }
+  return data ?? []
+}
+
+export async function fetchHiddenNarratives(verificationStatus?: string) {
+  const supabase = getSupabaseClient()
+  if (!supabase) return []
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return []
+  let query = supabase.from("hidden_narrative_reconstructions").select("*").eq("analyst_user_id", user.id).order("created_at", { ascending: false })
+  if (verificationStatus) query = query.eq("verification_status", verificationStatus)
+  const { data, error } = await query
+  if (error) { console.error("fetchHiddenNarratives", error); return [] }
+  return data ?? []
+}
+
+export async function fetchNetworkHygieneReports() {
+  const supabase = getSupabaseClient()
+  if (!supabase) return []
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return []
+  const { data, error } = await supabase.from("network_hygiene_reports").select("*").eq("user_id", user.id).order("created_at", { ascending: false })
+  if (error) { console.error("fetchNetworkHygieneReports", error); return [] }
+  return data ?? []
+}

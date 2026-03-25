@@ -217,6 +217,9 @@ function getSuggestedPrompts(activeView: ActiveView, hasImportedProfiles: boolea
       "Audit a vendor for agentic friction and lock-in tariff",
       "Provision a sovereign MCP server on local hardware",
       "Certify an agent's intent with biometric pulse",
+      "Audit institutional accountability gaps for a subject",
+      "Reconstruct hidden narrative from redacted dataset",
+      "Run network hygiene report on my connections",
     ],
     globe: [
       "Show me governance arcs for active proposals",

@@ -2676,3 +2676,69 @@ export interface AgenticIntentCert {
   expiresAt?: string
   createdAt: string
 }
+
+// ---------------------------------------------------------------------------
+// Forensic Accountability: Justice Tariff Refund & Network Hygiene
+// ---------------------------------------------------------------------------
+
+export interface AccountabilityGapAudit {
+  id: string
+  analystUserId: string
+  subjectLabel: string
+  gapType: "prosecution_stall" | "regulatory_capture" | "institutional_latency" | "evidence_suppression" | "jurisdictional_void" | "whistleblower_retaliation"
+  institutionalBody?: string
+  evidenceSources: string[]
+  severityScore: number
+  estimatedDelayYears: number
+  financialExposureUsd: number
+  linkedProxyAuditId?: string
+  status: "identified" | "investigating" | "documented" | "escalated" | "resolved" | "archived"
+  createdAt: string
+  updatedAt: string
+}
+
+export interface EconomicSanctionEntry {
+  id: string
+  enforcerUserId: string
+  targetNodeLabel: string
+  sanctionType: "token_freeze" | "compute_revoke" | "tribal_exclusion" | "staking_suspend" | "full_lockout"
+  reason: string
+  linkedProxyAuditId?: string
+  linkedAccountabilityId?: string
+  frozenTokenAmount: number
+  sanctionStatus: "pending" | "active" | "appealed" | "lifted" | "permanent"
+  appealDeadlineAt?: string
+  enforcedAt?: string
+  liftedAt?: string
+  createdAt: string
+}
+
+export interface HiddenNarrativeReconstruction {
+  id: string
+  analystUserId: string
+  datasetLabel: string
+  originalRedactionPct: number
+  reconstructionConfidence: number
+  predictedEntities: Array<{ name: string; role?: string; confidence?: number }>
+  predictedConnections: Array<{ from: string; to: string; relationship?: string }>
+  predictedTimeline: Array<{ date: string; event: string; confidence?: number }>
+  lewmModelUsed: string
+  verificationStatus: "draft" | "low_confidence" | "medium_confidence" | "high_confidence" | "verified" | "retracted"
+  createdAt: string
+  updatedAt: string
+}
+
+export interface NetworkHygieneReport {
+  id: string
+  userId: string
+  networkSize: number
+  highRiskNodes: number
+  mediumRiskNodes: number
+  lowRiskNodes: number
+  riskCategories: Record<string, number>
+  separationDegreesToRisk: number
+  humanAlphaImpactScore: number
+  recommendations: string[]
+  reportStatus: "generated" | "reviewed" | "actioned" | "archived"
+  createdAt: string
+}
