@@ -5723,5 +5723,167 @@ export function createSovereignTools(
         }
       },
     }),
+
+    // ========================================================================
+    // Economic Sovereign Tools (#277-280)
+    // ========================================================================
+
+    // #277 — calculateEffectiveWealth
+    calculateEffectiveWealth: tool({
+      description:
+        "Quality-adjust net worth based on Agent Factory productivity gains vs inflation",
+      inputSchema: z.object({
+        nominalWealthUsd: z.number(),
+        productivityMultiplier: z.number().min(1).optional(),
+        toolQualityScore: z.number().min(0).max(100).optional(),
+      }),
+      execute: async (input) => {
+        try {
+          const prodMult = input.productivityMultiplier ?? 1.0
+          const toolScore = input.toolQualityScore ?? 50
+          const qualityAdjustmentFactor = 1 + (toolScore / 100) * (prodMult - 1)
+          const inflationOffsetPct = Math.round((prodMult - 1) * 100 * 0.6)
+          const effectiveWealthUsd = Math.round(input.nominalWealthUsd * qualityAdjustmentFactor * 100) / 100
+
+          const { data, error } = await client
+            .from("effective_wealth_index")
+            .insert({
+              owner_user_id: userId,
+              nominal_wealth_usd: input.nominalWealthUsd,
+              quality_adjustment_factor: qualityAdjustmentFactor,
+              effective_wealth_usd: effectiveWealthUsd,
+              productivity_multiplier: prodMult,
+              tool_quality_score: toolScore,
+              inflation_offset_pct: inflationOffsetPct,
+            })
+            .select()
+            .single()
+
+          if (error) throw error
+          return { ok: true, wealth: data }
+        } catch (err: unknown) {
+          return { ok: false, error: err instanceof Error ? err.message : "Unknown error in calculateEffectiveWealth." }
+        }
+      },
+    }),
+
+    // #278 — deconstructWorkflowHedonics
+    deconstructWorkflowHedonics: tool({
+      description:
+        "Decompose your role into Alpha (judgment) vs Mechanical (execution) characteristics",
+      inputSchema: z.object({
+        workflowName: z.string(),
+        totalHoursPerWeek: z.number(),
+        alphaHours: z.number(),
+        mechanicalHours: z.number(),
+      }),
+      execute: async (input) => {
+        try {
+          const total = input.totalHoursPerWeek || 1
+          const alphaValuePct = Math.round((input.alphaHours / total) * 100)
+          const mechanicalValuePct = Math.round((input.mechanicalHours / total) * 100)
+          const automatablePct = Math.round(mechanicalValuePct * 0.85)
+          const careerResetRecommended = automatablePct >= 60
+
+          const { data, error } = await client
+            .from("workflow_hedonic_decomposition")
+            .insert({
+              owner_user_id: userId,
+              workflow_name: input.workflowName,
+              total_hours_per_week: input.totalHoursPerWeek,
+              alpha_hours: input.alphaHours,
+              mechanical_hours: input.mechanicalHours,
+              alpha_value_pct: alphaValuePct,
+              mechanical_value_pct: mechanicalValuePct,
+              automatable_pct: automatablePct,
+              career_reset_recommended: careerResetRecommended,
+            })
+            .select()
+            .single()
+
+          if (error) throw error
+          return { ok: true, decomposition: data, careerResetRecommended }
+        } catch (err: unknown) {
+          return { ok: false, error: err instanceof Error ? err.message : "Unknown error in deconstructWorkflowHedonics." }
+        }
+      },
+    }),
+
+    // #279 — auditTribalAmenities
+    auditTribalAmenities: tool({
+      description:
+        "Value your 30k network by sovereign infrastructure amenities, not just connection count",
+      inputSchema: z.object({
+        nodeProfileId: z.string().optional(),
+        nodeName: z.string(),
+        amenityType: z.enum(["expertise", "infrastructure", "energy", "capital", "research", "legal", "creative", "leadership"]).optional(),
+        amenityDescription: z.string().optional(),
+        contributoryValueUsd: z.number().optional(),
+      }),
+      execute: async (input) => {
+        try {
+          const contribValue = input.contributoryValueUsd ?? 0
+          const proximityScore = Math.min(100, Math.round(Math.log2(contribValue + 1) * 8))
+
+          const { data, error } = await client
+            .from("tribal_amenity_scores")
+            .insert({
+              owner_user_id: userId,
+              node_profile_id: input.nodeProfileId ?? null,
+              node_name: input.nodeName,
+              amenity_type: input.amenityType ?? "expertise",
+              amenity_description: input.amenityDescription ?? null,
+              proximity_score: proximityScore,
+              contributory_value_usd: contribValue,
+            })
+            .select()
+            .single()
+
+          if (error) throw error
+          return { ok: true, amenity: data }
+        } catch (err: unknown) {
+          return { ok: false, error: err instanceof Error ? err.message : "Unknown error in auditTribalAmenities." }
+        }
+      },
+    }),
+
+    // #280 — measureBrandAlpha
+    measureBrandAlpha: tool({
+      description:
+        "Quantify the price premium your judgment commands over generic AI output",
+      inputSchema: z.object({
+        domain: z.string(),
+        genericAiValueUsd: z.number(),
+        humanAlphaPremiumUsd: z.number(),
+        proofOfBuildCount: z.number().optional(),
+      }),
+      execute: async (input) => {
+        try {
+          const generic = input.genericAiValueUsd || 1
+          const brandMultiplier = Math.round(((input.humanAlphaPremiumUsd + generic) / generic) * 100) / 100
+          const builds = input.proofOfBuildCount ?? 0
+          const reputationScore = Math.min(100, Math.round(brandMultiplier * 10 + builds * 2))
+
+          const { data, error } = await client
+            .from("brand_alpha_valuations")
+            .insert({
+              owner_user_id: userId,
+              domain: input.domain,
+              generic_ai_value_usd: input.genericAiValueUsd,
+              human_alpha_premium_usd: input.humanAlphaPremiumUsd,
+              brand_multiplier: brandMultiplier,
+              proof_of_build_count: builds,
+              reputation_score: reputationScore,
+            })
+            .select()
+            .single()
+
+          if (error) throw error
+          return { ok: true, valuation: data }
+        } catch (err: unknown) {
+          return { ok: false, error: err instanceof Error ? err.message : "Unknown error in measureBrandAlpha." }
+        }
+      },
+    }),
   }
 }

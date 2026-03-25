@@ -3496,3 +3496,55 @@ export async function fetchAffectiveRefunds(classification?: string) {
   if (error) { console.error("fetchAffectiveRefunds", error); return [] }
   return data ?? []
 }
+
+// ---------------------------------------------------------------------------
+// Economic Sovereign
+// ---------------------------------------------------------------------------
+
+export async function fetchEffectiveWealth(limit?: number) {
+  const supabase = getSupabaseClient()
+  if (!supabase) return []
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return []
+  let query = supabase.from("effective_wealth_index").select("*").eq("owner_user_id", user.id).order("measurement_date", { ascending: false })
+  if (limit) query = query.limit(limit)
+  const { data, error } = await query
+  if (error) { console.error("fetchEffectiveWealth", error); return [] }
+  return data ?? []
+}
+
+export async function fetchWorkflowDecompositions(limit?: number) {
+  const supabase = getSupabaseClient()
+  if (!supabase) return []
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return []
+  let query = supabase.from("workflow_hedonic_decomposition").select("*").eq("owner_user_id", user.id).order("decomposed_at", { ascending: false })
+  if (limit) query = query.limit(limit)
+  const { data, error } = await query
+  if (error) { console.error("fetchWorkflowDecompositions", error); return [] }
+  return data ?? []
+}
+
+export async function fetchTribalAmenities(amenityType?: string) {
+  const supabase = getSupabaseClient()
+  if (!supabase) return []
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return []
+  let query = supabase.from("tribal_amenity_scores").select("*").eq("owner_user_id", user.id).order("created_at", { ascending: false })
+  if (amenityType) query = query.eq("amenity_type", amenityType)
+  const { data, error } = await query
+  if (error) { console.error("fetchTribalAmenities", error); return [] }
+  return data ?? []
+}
+
+export async function fetchBrandAlphaValuations(limit?: number) {
+  const supabase = getSupabaseClient()
+  if (!supabase) return []
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return []
+  let query = supabase.from("brand_alpha_valuations").select("*").eq("owner_user_id", user.id).order("valued_at", { ascending: false })
+  if (limit) query = query.limit(limit)
+  const { data, error } = await query
+  if (error) { console.error("fetchBrandAlphaValuations", error); return [] }
+  return data ?? []
+}

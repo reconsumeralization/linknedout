@@ -3490,3 +3490,60 @@ export interface AffectiveRefundEntry {
   measuredAt: string
   createdAt: string
 }
+
+// ---------------------------------------------------------------------------
+// Economic Sovereign
+// ---------------------------------------------------------------------------
+
+export interface EffectiveWealthEntry {
+  id: string
+  ownerUserId: string
+  measurementDate: string
+  nominalWealthUsd: number
+  qualityAdjustmentFactor: number
+  effectiveWealthUsd: number
+  productivityMultiplier: number
+  toolQualityScore: number
+  inflationOffsetPct: number
+  createdAt: string
+}
+
+export interface WorkflowHedonicDecomposition {
+  id: string
+  ownerUserId: string
+  workflowName: string
+  totalHoursPerWeek: number
+  alphaHours: number
+  mechanicalHours: number
+  alphaValuePct: number
+  mechanicalValuePct: number
+  automatablePct: number
+  careerResetRecommended: boolean
+  decomposedAt: string
+  createdAt: string
+}
+
+export interface TribalAmenityScore {
+  id: string
+  ownerUserId: string
+  nodeProfileId?: string
+  nodeName: string
+  amenityType: "expertise" | "infrastructure" | "energy" | "capital" | "research" | "legal" | "creative" | "leadership"
+  amenityDescription?: string
+  proximityScore: number
+  contributoryValueUsd: number
+  createdAt: string
+}
+
+export interface BrandAlphaValuation {
+  id: string
+  ownerUserId: string
+  domain: string
+  genericAiValueUsd: number
+  humanAlphaPremiumUsd: number
+  brandMultiplier: number
+  proofOfBuildCount: number
+  reputationScore: number
+  valuedAt: string
+  createdAt: string
+}
