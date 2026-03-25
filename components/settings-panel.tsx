@@ -16,7 +16,7 @@ import {
 import { Textarea } from "@/components/ui/textarea"
 import { clearOnboardingDismissed, clearWelcomeSeen } from "@/components/onboarding-card"
 import { getSupabaseClient, resetSupabaseClients } from "@/lib/supabase/supabase"
-import { getUserKeys, setUserKeys, clearUserKeys, hasUserSupabase, hasUserOpenAI, type UserKeys } from "@/lib/shared/user-keys"
+import { getUserKeys, setUserKeys, clearUserKeys, hasUserSupabase, hasAnyAIProvider, getConfiguredProviders, hasUserMongoDB, hasUserNotion, AI_PROVIDERS, DATA_SOURCES, type UserKeys } from "@/lib/shared/user-keys"
 import {
   getIntegrationKey,
   setIntegrationKey,
@@ -233,7 +233,7 @@ export function SettingsPanel({ onNavigate }: SettingsPanelProps) {
   const [shareSuccess, setShareSuccess] = useState<string | null>(null)
 
   // User-provided keys state
-  const [userKeysState, setUserKeysState] = useState<UserKeys>({ supabaseUrl: "", supabaseAnonKey: "", openaiApiKey: "" })
+  const [userKeysState, setUserKeysState] = useState<UserKeys>(() => getUserKeys())
   const [keysSaved, setKeysSaved] = useState(false)
   const [testingConnection, setTestingConnection] = useState(false)
   const [connectionResult, setConnectionResult] = useState<"success" | "error" | null>(null)
@@ -255,7 +255,7 @@ export function SettingsPanel({ onNavigate }: SettingsPanelProps) {
   const handleClearKeys = useCallback(() => {
     clearUserKeys()
     resetSupabaseClients()
-    setUserKeysState({ supabaseUrl: "", supabaseAnonKey: "", openaiApiKey: "" })
+    setUserKeysState(getUserKeys())
     setConnectionResult(null)
     toast.success("Backend keys cleared.")
   }, [])
@@ -301,7 +301,9 @@ export function SettingsPanel({ onNavigate }: SettingsPanelProps) {
     process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
   )
   const hasUserSupabaseKeys = hasUserSupabase()
-  const hasUserOpenAIKey = hasUserOpenAI()
+  const configuredProviders = getConfiguredProviders()
+  const hasUserMongoDBKey = hasUserMongoDB()
+  const hasUserNotionKey = hasUserNotion()
   const supabaseConfigured = supabasePublicEnvConfigured || hasUserSupabaseKeys
   const [hasSession, setHasSession] = useState(false)
   useEffect(() => {
@@ -479,9 +481,9 @@ export function SettingsPanel({ onNavigate }: SettingsPanelProps) {
       ok: supabaseConfigured,
     },
     {
-      label: "OpenAI API key",
-      value: hasUserOpenAIKey ? "User key set" : "Not configured",
-      ok: hasUserOpenAIKey,
+      label: "AI Providers",
+      value: configuredProviders.length > 0 ? `${configuredProviders.length} configured` : "Not configured",
+      ok: configuredProviders.length > 0,
     },
     { label: "Guided onboarding controls", value: "Ready", ok: true },
   ]
@@ -548,28 +550,61 @@ export function SettingsPanel({ onNavigate }: SettingsPanelProps) {
                 className="font-mono text-xs"
               />
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="openai-key" className="text-xs font-medium flex items-center gap-1.5">
-                <Key className="h-3 w-3" />
-                OpenAI API Key
-              </Label>
-              <Input
-                id="openai-key"
-                type="password"
-                placeholder="sk-..."
-                value={userKeysState.openaiApiKey}
-                onChange={(e) => setUserKeysState((prev) => ({ ...prev, openaiApiKey: e.target.value }))}
-                className="font-mono text-xs"
-              />
+            {/* AI Providers */}
+            <div className="space-y-3 border-t border-border pt-3">
+              <p className="text-xs font-medium flex items-center gap-1.5"><Key className="h-3 w-3" /> AI Model Providers</p>
+              <p className="text-[10px] text-muted-foreground">Add keys for one or more AI providers. Your preferred model is used for chat.</p>
+              {AI_PROVIDERS.map((provider) => (
+                <div key={provider.id} className="space-y-1">
+                  <Label htmlFor={`ai-${provider.id}`} className="text-[11px] text-muted-foreground">{provider.name}</Label>
+                  <Input
+                    id={`ai-${provider.id}`}
+                    type="password"
+                    placeholder={provider.placeholder}
+                    value={(userKeysState as unknown as Record<string, string>)[provider.keyField] ?? ""}
+                    onChange={(e) => setUserKeysState((prev) => ({ ...prev, [provider.keyField]: e.target.value }))}
+                    className="font-mono text-xs h-8"
+                  />
+                </div>
+              ))}
+              <div className="space-y-1">
+                <Label htmlFor="preferred-model" className="text-[11px] text-muted-foreground">Preferred Model</Label>
+                <Input
+                  id="preferred-model"
+                  type="text"
+                  placeholder="gpt-4o-mini"
+                  value={userKeysState.preferredModel ?? ""}
+                  onChange={(e) => setUserKeysState((prev) => ({ ...prev, preferredModel: e.target.value }))}
+                  className="font-mono text-xs h-8"
+                />
+              </div>
             </div>
-            <div className="flex flex-wrap gap-2">
+
+            {/* Data Sources */}
+            <div className="space-y-3 border-t border-border pt-3">
+              <p className="text-xs font-medium flex items-center gap-1.5"><Database className="h-3 w-3" /> Additional Data Sources</p>
+              <div className="space-y-1">
+                <Label htmlFor="mongodb-url" className="text-[11px] text-muted-foreground">MongoDB Connection String</Label>
+                <Input id="mongodb-url" type="password" placeholder="mongodb+srv://..." value={userKeysState.mongodbConnectionString ?? ""} onChange={(e) => setUserKeysState((prev) => ({ ...prev, mongodbConnectionString: e.target.value }))} className="font-mono text-xs h-8" />
+              </div>
+              <div className="space-y-1">
+                <Label htmlFor="notion-key" className="text-[11px] text-muted-foreground">Notion API Key</Label>
+                <Input id="notion-key" type="password" placeholder="ntn_..." value={userKeysState.notionApiKey ?? ""} onChange={(e) => setUserKeysState((prev) => ({ ...prev, notionApiKey: e.target.value }))} className="font-mono text-xs h-8" />
+              </div>
+              <div className="space-y-1">
+                <Label htmlFor="notion-workspace" className="text-[11px] text-muted-foreground">Notion Workspace ID</Label>
+                <Input id="notion-workspace" type="text" placeholder="workspace-id" value={userKeysState.notionWorkspaceId ?? ""} onChange={(e) => setUserKeysState((prev) => ({ ...prev, notionWorkspaceId: e.target.value }))} className="font-mono text-xs h-8" />
+              </div>
+            </div>
+
+            <div className="flex flex-wrap gap-2 border-t border-border pt-3">
               <Button size="sm" onClick={handleSaveKeys} className="gap-1.5">
                 {keysSaved ? <CheckCircle2 className="h-3.5 w-3.5" /> : null}
-                {keysSaved ? "Saved" : "Save Keys"}
+                {keysSaved ? "Saved" : "Save All Keys"}
               </Button>
               <Button size="sm" variant="outline" onClick={handleTestConnection} disabled={testingConnection} className="gap-1.5">
                 {testingConnection ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}
-                Test Connection
+                Test Supabase
               </Button>
               <Button size="sm" variant="ghost" onClick={handleClearKeys} className="text-muted-foreground">
                 Clear All
@@ -589,15 +624,27 @@ export function SettingsPanel({ onNavigate }: SettingsPanelProps) {
             <div className="flex flex-wrap gap-3 pt-1">
               <div className="flex items-center gap-1.5">
                 <span className={cn("inline-block h-2 w-2 rounded-full", supabaseConfigured ? "bg-emerald-500" : "bg-amber-500")} />
-                <span className="text-[10px] text-muted-foreground">Supabase {supabaseConfigured ? (supabasePublicEnvConfigured ? "(env)" : "(user)") : "Not set"}</span>
+                <span className="text-[10px] text-muted-foreground">Supabase {supabaseConfigured ? "Connected" : "Not set"}</span>
               </div>
               <div className="flex items-center gap-1.5">
-                <span className={cn("inline-block h-2 w-2 rounded-full", hasUserOpenAIKey ? "bg-emerald-500" : "bg-amber-500")} />
-                <span className="text-[10px] text-muted-foreground">OpenAI {hasUserOpenAIKey ? "Configured" : "Not set"}</span>
+                <span className={cn("inline-block h-2 w-2 rounded-full", configuredProviders.length > 0 ? "bg-emerald-500" : "bg-amber-500")} />
+                <span className="text-[10px] text-muted-foreground">AI {configuredProviders.length > 0 ? `${configuredProviders.length} provider${configuredProviders.length > 1 ? "s" : ""}` : "Not set"}</span>
               </div>
+              {hasUserMongoDBKey ? (
+                <div className="flex items-center gap-1.5">
+                  <span className="inline-block h-2 w-2 rounded-full bg-emerald-500" />
+                  <span className="text-[10px] text-muted-foreground">MongoDB</span>
+                </div>
+              ) : null}
+              {hasUserNotionKey ? (
+                <div className="flex items-center gap-1.5">
+                  <span className="inline-block h-2 w-2 rounded-full bg-emerald-500" />
+                  <span className="text-[10px] text-muted-foreground">Notion</span>
+                </div>
+              ) : null}
             </div>
             <p className="text-[10px] text-muted-foreground">
-              Need a Supabase project? <a href="https://supabase.com/dashboard" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">Create one free</a>.
+              Need a Supabase project? <a href="https://supabase.com/dashboard" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">Create one free</a> or self-host with Docker.
               Then run the migrations from the <code className="rounded bg-muted px-1 py-0.5">supabase/migrations/</code> folder.
             </p>
           </CardContent>
