@@ -229,6 +229,9 @@ function getSuggestedPrompts(activeView: ActiveView, hasImportedProfiles: boolea
       "Stake tokens to a lunar sprint mission phase",
       "Mask biometric signature against surveillance sensors",
       "Audit vibe-coded project for security vulnerabilities",
+      "Set a thermodynamic cap on my agent workforce",
+      "Delegate routine decisions to shadow judgment",
+      "Generate a grand mission for the tribe",
     ],
     globe: [
       "Show me governance arcs for active proposals",

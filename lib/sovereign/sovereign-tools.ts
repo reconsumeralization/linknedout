@@ -3033,5 +3033,266 @@ export function createSovereignTools(
         }
       },
     }),
+
+    // ========================================================================
+    // Nuance Layer: Singularity Circuit Breakers (#208-214)
+    // ========================================================================
+
+    setThermodynamicCap: tool({
+      description:
+        "Prevent Jevons Paradox from draining tribal resources by capping agentic activity to real-time energy cost",
+      inputSchema: z.object({
+        maxTokenBurnRate: z.number(),
+        maxBasepowerWatts: z.number(),
+        cooldownMinutes: z.number().optional(),
+      }),
+      execute: async (input) => {
+        try {
+          const autonomy_pct = Math.min(
+            100,
+            Math.round((input.maxTokenBurnRate / Math.max(1, input.maxBasepowerWatts)) * 100)
+          )
+          const { data: cap, error } = await client
+            .from("rsi_learning_slope")
+            .insert({
+              owner_user_id: userId,
+              reasoning_depth_score: input.maxTokenBurnRate,
+              self_improvement_rate: 0,
+              slope_status: "capped",
+              autonomy_pct,
+              measured_at: new Date().toISOString(),
+            })
+            .select()
+            .single()
+          if (error || !cap) {
+            return { ok: false, error: error?.message || "Failed to set thermodynamic cap." }
+          }
+          return {
+            ok: true,
+            maxTokenBurnRate: input.maxTokenBurnRate,
+            maxBasepowerWatts: input.maxBasepowerWatts,
+            cooldownMinutes: input.cooldownMinutes ?? 5,
+            autonomy_pct,
+            message: `Thermodynamic cap active — autonomy limited to ${autonomy_pct}%.`,
+          }
+        } catch (err: unknown) {
+          return { ok: false, error: err instanceof Error ? err.message : "Unknown error setting thermodynamic cap." }
+        }
+      },
+    }),
+
+    delegateShadowJudgment: tool({
+      description:
+        "Pre-authorize AI to simulate your judgment for routine low-stakes decisions to prevent Chairman fatigue",
+      inputSchema: z.object({
+        delegationScope: z.enum(["routine", "moderate", "strategic"]),
+        matchThreshold: z.number().min(0).max(100).optional(),
+        expiresInHours: z.number().optional(),
+      }),
+      execute: async (input) => {
+        try {
+          const { data: delegation, error } = await client
+            .from("agent_parallel_workloads")
+            .insert({
+              owner_user_id: userId,
+              sprint_name: "shadow-judgment-delegation",
+              agent_count: 1,
+              evaluation_function: input.delegationScope,
+              evaluation_threshold: (input.matchThreshold ?? 80) / 100,
+              status: "running",
+              started_at: new Date().toISOString(),
+            })
+            .select()
+            .single()
+          if (error || !delegation) {
+            return { ok: false, error: error?.message || "Failed to delegate shadow judgment." }
+          }
+          return {
+            ok: true,
+            delegationScope: input.delegationScope,
+            matchThreshold: input.matchThreshold ?? 80,
+            expiresInHours: input.expiresInHours ?? 24,
+            delegation,
+          }
+        } catch (err: unknown) {
+          return { ok: false, error: err instanceof Error ? err.message : "Unknown error delegating shadow judgment." }
+        }
+      },
+    }),
+
+    ingestSentimentPulse: tool({
+      description:
+        "Force the Meta-Agent to value tribal happiness over raw efficiency by ingesting sentiment data",
+      inputSchema: z.object({
+        sentimentSource: z.enum(["journal", "tribal_chat", "feed", "manual"]),
+        sentimentScore: z.number().min(-100).max(100),
+        notes: z.string().optional(),
+      }),
+      execute: async (input) => {
+        try {
+          const adjustedDepth = Math.max(0, 50 + input.sentimentScore / 2)
+          const { data: pulse, error } = await client
+            .from("rsi_learning_slope")
+            .insert({
+              owner_user_id: userId,
+              reasoning_depth_score: adjustedDepth,
+              self_improvement_rate: 0,
+              slope_status: input.sentimentScore >= 0 ? "positive" : "negative",
+              measured_at: new Date().toISOString(),
+            })
+            .select()
+            .single()
+          if (error || !pulse) {
+            return { ok: false, error: error?.message || "Failed to ingest sentiment pulse." }
+          }
+          return {
+            ok: true,
+            sentimentSource: input.sentimentSource,
+            sentimentScore: input.sentimentScore,
+            adjustedDepth,
+            notes: input.notes ?? null,
+            pulse,
+          }
+        } catch (err: unknown) {
+          return { ok: false, error: err instanceof Error ? err.message : "Unknown error ingesting sentiment pulse." }
+        }
+      },
+    }),
+
+    requirePhysicalActuation: tool({
+      description:
+        "Hard-lock all physical actuator commands (Xenobots, Vehicles, SMRs) to require an Artifact NFC tap",
+      inputSchema: z.object({
+        deviceCategory: z.enum(["xenobot", "vehicle", "smr", "drone", "industrial", "all"]),
+        requireArtifactTap: z.boolean(),
+      }),
+      execute: async (input) => {
+        try {
+          const { data: gate, error } = await client
+            .from("biometric_encryption_gates")
+            .insert({
+              owner_user_id: userId,
+              data_classification: "sovereign",
+              device_category: input.deviceCategory,
+              require_artifact_tap: input.requireArtifactTap,
+              created_at: new Date().toISOString(),
+            })
+            .select()
+            .single()
+          if (error || !gate) {
+            return { ok: false, error: error?.message || "Failed to configure physical actuation gate." }
+          }
+          return {
+            ok: true,
+            deviceCategory: input.deviceCategory,
+            requireArtifactTap: input.requireArtifactTap,
+            gate,
+          }
+        } catch (err: unknown) {
+          return { ok: false, error: err instanceof Error ? err.message : "Unknown error requiring physical actuation." }
+        }
+      },
+    }),
+
+    distributeAlphaDividend: tool({
+      description:
+        "Reward top 10x performers while auto-upskilling the rest of the tribe via TEACHER Codex",
+      inputSchema: z.object({
+        topPerformerPct: z.number().min(1).max(50).optional(),
+        dividendTokens: z.number(),
+        upskillBudgetPct: z.number().min(0).max(100).optional(),
+      }),
+      execute: async (input) => {
+        try {
+          const topPct = input.topPerformerPct ?? 10
+          const upskillPct = input.upskillBudgetPct ?? 30
+          const topTokens = Math.round(input.dividendTokens * (1 - upskillPct / 100))
+          const upskillTokens = input.dividendTokens - topTokens
+          return {
+            ok: true,
+            topPerformerPct: topPct,
+            dividendTokens: input.dividendTokens,
+            upskillBudgetPct: upskillPct,
+            distribution: {
+              topPerformerAllocation: topTokens,
+              upskillAllocation: upskillTokens,
+              strategy: `Top ${topPct}% receive ${topTokens} tokens; ${upskillPct}% budget (${upskillTokens} tokens) funds TEACHER Codex upskilling.`,
+            },
+          }
+        } catch (err: unknown) {
+          return { ok: false, error: err instanceof Error ? err.message : "Unknown error distributing alpha dividend." }
+        }
+      },
+    }),
+
+    syncLunarGhost: tool({
+      description:
+        "Reconcile Earth-Moon 2.5s latency with predictive UI ghosting in the Spatial Cockpit",
+      inputSchema: z.object({
+        commandId: z.string(),
+        predictedResult: z.record(z.unknown()),
+        latencyMs: z.number().optional(),
+      }),
+      execute: async (input) => {
+        try {
+          const { data: ghost, error } = await client
+            .from("shadow_state_persistence")
+            .insert({
+              owner_user_id: userId,
+              command_id: input.commandId,
+              predicted_result: input.predictedResult,
+              latency_ms: input.latencyMs ?? 2500,
+              synced_at: new Date().toISOString(),
+            })
+            .select()
+            .single()
+          if (error || !ghost) {
+            return { ok: false, error: error?.message || "Failed to sync lunar ghost." }
+          }
+          return {
+            ok: true,
+            commandId: input.commandId,
+            latencyMs: input.latencyMs ?? 2500,
+            ghost,
+          }
+        } catch (err: unknown) {
+          return { ok: false, error: err instanceof Error ? err.message : "Unknown error syncing lunar ghost." }
+        }
+      },
+    }),
+
+    generateGrandMission: tool({
+      description:
+        "Discover impossible moonshot challenges to prevent post-singularity vacuum of meaning",
+      inputSchema: z.object({
+        missionCategory: z.enum(["interstellar", "entropy", "consciousness", "physics", "biology", "civilization"]).optional(),
+        difficultyFloor: z.number().min(1).max(10).optional(),
+      }),
+      execute: async (input) => {
+        try {
+          const category = input.missionCategory ?? "civilization"
+          const difficulty = Math.max(input.difficultyFloor ?? 7, 1)
+          const missions: Record<string, { title: string; description: string; estimatedTimelineYears: number }> = {
+            interstellar: { title: "Light-Sail Armada to Proxima", description: "Launch a self-replicating probe swarm to Proxima Centauri using solar sail acceleration and autonomous course correction.", estimatedTimelineYears: 80 },
+            entropy: { title: "Reverse Local Entropy Engine", description: "Design a closed-loop information engine that temporarily reverses entropy in nanoscale systems, extending material lifespan by orders of magnitude.", estimatedTimelineYears: 200 },
+            consciousness: { title: "Map the Qualia Substrate", description: "Build a full computational model of subjective experience, bridging the explanatory gap between neural correlates and phenomenal consciousness.", estimatedTimelineYears: 120 },
+            physics: { title: "Harvest Vacuum Energy at Scale", description: "Engineer a device that extracts usable energy from quantum vacuum fluctuations, providing limitless clean power.", estimatedTimelineYears: 150 },
+            biology: { title: "Pan-Species Cognitive Uplift", description: "Develop a non-invasive neural augmentation protocol that grants higher-order reasoning to non-human species while preserving their behavioral ecology.", estimatedTimelineYears: 90 },
+            civilization: { title: "Kardashev-II Dyson Swarm", description: "Coordinate autonomous factory ships to construct a partial Dyson swarm around Sol, capturing 1% of total solar output for civilizational use.", estimatedTimelineYears: 250 },
+          }
+          const mission = missions[category]
+          return {
+            ok: true,
+            mission: {
+              ...mission,
+              category,
+              difficulty,
+            },
+          }
+        } catch (err: unknown) {
+          return { ok: false, error: err instanceof Error ? err.message : "Unknown error generating grand mission." }
+        }
+      },
+    }),
   }
 }
