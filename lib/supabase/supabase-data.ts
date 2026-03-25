@@ -3262,3 +3262,57 @@ export async function fetchIntelligenceRentLocks() {
   if (error) { console.error("fetchIntelligenceRentLocks", error); return [] }
   return data ?? []
 }
+
+// ---------------------------------------------------------------------------
+// Solar Sovereign + Archeological Sovereign
+// ---------------------------------------------------------------------------
+
+export async function fetchFusionYields() {
+  const supabase = getSupabaseClient()
+  if (!supabase) return []
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return []
+  const { data, error } = await supabase.from("fusion_yield_ledger").select("*").eq("owner_user_id", user.id).order("created_at", { ascending: false })
+  if (error) { console.error("fetchFusionYields", error); return [] }
+  return data ?? []
+}
+
+export async function fetchTribalPlasmaStates() {
+  const supabase = getSupabaseClient()
+  if (!supabase) return []
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return []
+  const { data, error } = await supabase.from("tribal_plasma_state").select("*").eq("owner_user_id", user.id).order("created_at", { ascending: false })
+  if (error) { console.error("fetchTribalPlasmaStates", error); return [] }
+  return data ?? []
+}
+
+export async function fetchEquilibriumMonitors() {
+  const supabase = getSupabaseClient()
+  if (!supabase) return []
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return []
+  const { data, error } = await supabase.from("equilibrium_monitors").select("*").eq("owner_user_id", user.id).order("created_at", { ascending: false })
+  if (error) { console.error("fetchEquilibriumMonitors", error); return [] }
+  return data ?? []
+}
+
+export async function fetchHistoricalAudits() {
+  const supabase = getSupabaseClient()
+  if (!supabase) return []
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return []
+  const { data, error } = await supabase.from("historical_incongruity_audits").select("*").eq("owner_user_id", user.id).order("created_at", { ascending: false })
+  if (error) { console.error("fetchHistoricalAudits", error); return [] }
+  return data ?? []
+}
+
+export async function fetchSealedBasins() {
+  const supabase = getSupabaseClient()
+  if (!supabase) return []
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return []
+  const { data, error } = await supabase.from("sealed_memory_basins").select("*").eq("owner_user_id", user.id).order("created_at", { ascending: false })
+  if (error) { console.error("fetchSealedBasins", error); return [] }
+  return data ?? []
+}

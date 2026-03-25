@@ -3187,3 +3187,82 @@ export interface IntelligenceRentLock {
   createdAt: string
   updatedAt: string
 }
+
+// ---------------------------------------------------------------------------
+// Solar Sovereign + Archeological Sovereign
+// ---------------------------------------------------------------------------
+
+export interface FusionYieldEntry {
+  id: string
+  ownerUserId: string
+  workflowName: string
+  tasksMerged: number
+  laborHoursRemoved: number
+  energyTokensGenerated: number
+  missingMassPct: number
+  fusionGrade: "hydrogen" | "helium" | "carbon" | "iron" | "supernova"
+  createdAt: string
+}
+
+export interface TribalPlasmaState {
+  id: string
+  ownerUserId: string
+  tribeId?: string
+  plasmaTemperature: number
+  ionizationPct: number
+  freeElectronCount: number
+  missionPressure?: string
+  state: "solid" | "liquid" | "gas" | "plasma" | "supercritical"
+  ignitedAt?: string
+  createdAt: string
+}
+
+export interface ExecutionPathEntry {
+  id: string
+  ownerUserId: string
+  intentDescription: string
+  originalBounceCount: number
+  straightenedPathSteps: number
+  timeSavedHours: number
+  brownianEliminated: boolean
+  executionSpeed: "brownian" | "convective" | "radiative" | "light" | "instant"
+  createdAt: string
+}
+
+export interface EquilibriumMonitor {
+  id: string
+  ownerUserId: string
+  monitorName: string
+  gravityForce: number
+  fusionForce: number
+  balanceDelta: number
+  equilibriumStatus: "stable" | "expanding" | "contracting" | "critical" | "collapse"
+  throttleApplied: boolean
+  measuredAt: string
+  createdAt: string
+}
+
+export interface HistoricalIncongruityAudit {
+  id: string
+  ownerUserId: string
+  subject: string
+  standardTimeline?: string
+  detectedAnomaly?: string
+  evidenceType: "geological" | "architectural" | "linguistic" | "genetic" | "astronomical" | "oral_tradition"
+  incongruityScore: number
+  verified: boolean
+  createdAt: string
+}
+
+export interface SealedMemoryBasin {
+  id: string
+  ownerUserId: string
+  basinName: string
+  dataSource?: string
+  sealed: boolean
+  alkalinityScore: number
+  preservationYearsEstimate: number
+  outletBlocked: boolean
+  createdAt: string
+  updatedAt: string
+}

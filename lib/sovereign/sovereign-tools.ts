@@ -4518,5 +4518,365 @@ export function createSovereignTools(
         }
       },
     }),
+
+    // ========================================================================
+    // Solar Sovereign Tools (#248-252)
+    // ========================================================================
+
+    // #248 — transmuteLegacyData
+    transmuteLegacyData: tool({
+      description:
+        "Reorganize digital detritus from past career into high-density protostellar memory core",
+      inputSchema: z.object({
+        dataSource: z.string(),
+        description: z.string(),
+        estimatedVolumeMb: z.number().optional(),
+      }),
+      execute: async (input) => {
+        try {
+          const { data, error } = await client
+            .from("paleo_memory_crystals")
+            .insert({
+              owner_user_id: userId,
+              source_data_type: "mixed",
+              crystal_status: "forming",
+              formation_method: input.dataSource,
+              resonance_frequency: input.estimatedVolumeMb ?? 0,
+              memory_density_score: 0,
+            })
+            .select()
+            .single()
+
+          if (error || !data) {
+            return { ok: false, error: error?.message || "Failed to transmute legacy data." }
+          }
+          return { ok: true, core: data }
+        } catch (err: unknown) {
+          return { ok: false, error: err instanceof Error ? err.message : "Unknown error in transmuteLegacyData." }
+        }
+      },
+    }),
+
+    // #249 — calculateFusionYield
+    calculateFusionYield: tool({
+      description:
+        "Convert removed labor into sovereign energy tokens using E=mc² productivity physics",
+      inputSchema: z.object({
+        workflowName: z.string(),
+        tasksMerged: z.number().min(2),
+        laborHoursRemoved: z.number(),
+      }),
+      execute: async (input) => {
+        try {
+          const missingMassPct = Math.round((1 - 1 / input.tasksMerged) * 100 * 100) / 100
+          const energyTokens = Math.round(input.laborHoursRemoved * missingMassPct * 2.998 * 100) / 100
+          const fusionGrade =
+            input.tasksMerged >= 10 ? "supernova" :
+            input.tasksMerged >= 7 ? "iron" :
+            input.tasksMerged >= 5 ? "carbon" :
+            input.tasksMerged >= 3 ? "helium" : "hydrogen"
+
+          const { data, error } = await client
+            .from("fusion_yield_ledger")
+            .insert({
+              owner_user_id: userId,
+              workflow_name: input.workflowName,
+              tasks_merged: input.tasksMerged,
+              labor_hours_removed: input.laborHoursRemoved,
+              energy_tokens_generated: energyTokens,
+              missing_mass_pct: missingMassPct,
+              fusion_grade: fusionGrade,
+            })
+            .select()
+            .single()
+
+          if (error || !data) {
+            return { ok: false, error: error?.message || "Failed to calculate fusion yield." }
+          }
+          return { ok: true, yield: data }
+        } catch (err: unknown) {
+          return { ok: false, error: err instanceof Error ? err.message : "Unknown error in calculateFusionYield." }
+        }
+      },
+    }),
+
+    // #250 — igniteTribalPlasma
+    igniteTribalPlasma: tool({
+      description:
+        "Enable free-flow intelligence across 30k network by applying tribal mission pressure",
+      inputSchema: z.object({
+        tribeId: z.string().optional(),
+        missionPressure: z.string(),
+      }),
+      execute: async (input) => {
+        try {
+          const ionizationPct = Math.min(100, Math.round(input.missionPressure.length * 1.8))
+          const freeElectrons = Math.round(ionizationPct * 300)
+          const plasmaTemp = Math.round(ionizationPct * 157.5)
+
+          const { data, error } = await client
+            .from("tribal_plasma_state")
+            .insert({
+              owner_user_id: userId,
+              tribe_id: input.tribeId ?? null,
+              plasma_temperature: plasmaTemp,
+              ionization_pct: ionizationPct,
+              free_electron_count: freeElectrons,
+              mission_pressure: input.missionPressure,
+              state: "plasma",
+              ignited_at: new Date().toISOString(),
+            })
+            .select()
+            .single()
+
+          if (error || !data) {
+            return { ok: false, error: error?.message || "Failed to ignite tribal plasma." }
+          }
+          return { ok: true, plasmaState: data }
+        } catch (err: unknown) {
+          return { ok: false, error: err instanceof Error ? err.message : "Unknown error in igniteTribalPlasma." }
+        }
+      },
+    }),
+
+    // #251 — straightenExecutionPath
+    straightenExecutionPath: tool({
+      description:
+        "Bypass Brownian bureaucracy for 8-minute intent-to-execution speed",
+      inputSchema: z.object({
+        intentDescription: z.string(),
+        originalBounceCount: z.number().optional(),
+      }),
+      execute: async (input) => {
+        try {
+          const bounces = input.originalBounceCount ?? Math.floor(Math.random() * 12) + 3
+          const straightenedSteps = Math.max(1, Math.round(bounces * 0.15))
+          const timeSavedHours = Math.round((bounces - straightenedSteps) * 0.5 * 100) / 100
+          const speed = straightenedSteps <= 1 ? "instant" : straightenedSteps <= 2 ? "light" : "radiative"
+
+          const { data, error } = await client
+            .from("execution_path_log")
+            .insert({
+              owner_user_id: userId,
+              intent_description: input.intentDescription,
+              original_bounce_count: bounces,
+              straightened_path_steps: straightenedSteps,
+              time_saved_hours: timeSavedHours,
+              brownian_eliminated: true,
+              execution_speed: speed,
+            })
+            .select()
+            .single()
+
+          if (error || !data) {
+            return { ok: false, error: error?.message || "Failed to straighten execution path." }
+          }
+          return { ok: true, path: data }
+        } catch (err: unknown) {
+          return { ok: false, error: err instanceof Error ? err.message : "Unknown error in straightenExecutionPath." }
+        }
+      },
+    }),
+
+    // #252 — setEquilibriumCap
+    setEquilibriumCap: tool({
+      description:
+        "Balance agentic growth with biological capacity to prevent stellar collapse",
+      inputSchema: z.object({
+        monitorName: z.string(),
+        gravityForce: z.number().min(0).max(100),
+        fusionForce: z.number().min(0).max(100),
+      }),
+      execute: async (input) => {
+        try {
+          const balanceDelta = Math.round((input.fusionForce - input.gravityForce) * 100) / 100
+          const absDelta = Math.abs(balanceDelta)
+          const status =
+            absDelta <= 5 ? "stable" :
+            balanceDelta > 30 ? "critical" :
+            balanceDelta > 5 ? "expanding" :
+            balanceDelta < -30 ? "collapse" : "contracting"
+          const throttleApplied = absDelta > 20
+
+          const { data, error } = await client
+            .from("equilibrium_monitors")
+            .insert({
+              owner_user_id: userId,
+              monitor_name: input.monitorName,
+              gravity_force: input.gravityForce,
+              fusion_force: input.fusionForce,
+              balance_delta: balanceDelta,
+              equilibrium_status: status,
+              throttle_applied: throttleApplied,
+              measured_at: new Date().toISOString(),
+            })
+            .select()
+            .single()
+
+          if (error || !data) {
+            return { ok: false, error: error?.message || "Failed to set equilibrium cap." }
+          }
+          return { ok: true, equilibrium: data }
+        } catch (err: unknown) {
+          return { ok: false, error: err instanceof Error ? err.message : "Unknown error in setEquilibriumCap." }
+        }
+      },
+    }),
+
+    // ========================================================================
+    // Archeological Sovereign Tools (#253-256)
+    // ========================================================================
+
+    // #253 — auditHistoricalIncongruity
+    auditHistoricalIncongruity: tool({
+      description:
+        "Detect patterns in data that violate standard timelines or accepted narratives",
+      inputSchema: z.object({
+        subject: z.string(),
+        standardTimeline: z.string().optional(),
+        detectedAnomaly: z.string(),
+        evidenceType: z.enum(["geological", "architectural", "linguistic", "genetic", "astronomical", "oral_tradition"]).optional(),
+      }),
+      execute: async (input) => {
+        try {
+          const incongruityScore = Math.round(Math.min(100, input.detectedAnomaly.length * 0.8) * 100) / 100
+
+          const { data, error } = await client
+            .from("historical_incongruity_audits")
+            .insert({
+              owner_user_id: userId,
+              subject: input.subject,
+              standard_timeline: input.standardTimeline ?? null,
+              detected_anomaly: input.detectedAnomaly,
+              evidence_type: input.evidenceType ?? "geological",
+              incongruity_score: incongruityScore,
+              verified: false,
+            })
+            .select()
+            .single()
+
+          if (error || !data) {
+            return { ok: false, error: error?.message || "Failed to audit historical incongruity." }
+          }
+          return { ok: true, audit: data }
+        } catch (err: unknown) {
+          return { ok: false, error: err instanceof Error ? err.message : "Unknown error in auditHistoricalIncongruity." }
+        }
+      },
+    }),
+
+    // #254 — sealMemoryBasin
+    sealMemoryBasin: tool({
+      description:
+        "Hard-lock local data store against external narrative erosion for closed-basin persistence",
+      inputSchema: z.object({
+        basinName: z.string(),
+        dataSource: z.string().optional(),
+        preservationYearsEstimate: z.number().optional(),
+      }),
+      execute: async (input) => {
+        try {
+          const { data, error } = await client
+            .from("sealed_memory_basins")
+            .insert({
+              owner_user_id: userId,
+              basin_name: input.basinName,
+              data_source: input.dataSource ?? null,
+              sealed: true,
+              alkalinity_score: 7,
+              preservation_years_estimate: input.preservationYearsEstimate ?? 100,
+              outlet_blocked: true,
+            })
+            .select()
+            .single()
+
+          if (error || !data) {
+            return { ok: false, error: error?.message || "Failed to seal memory basin." }
+          }
+          return { ok: true, basin: data }
+        } catch (err: unknown) {
+          return { ok: false, error: err instanceof Error ? err.message : "Unknown error in sealMemoryBasin." }
+        }
+      },
+    }),
+
+    // #255 — analyzeMasonryPrecision
+    analyzeMasonryPrecision: tool({
+      description:
+        "Use vision agents to measure construction precision and verify human alpha in physical artifacts",
+      inputSchema: z.object({
+        subject: z.string(),
+        blockDimensionsCm: z.array(z.number()).optional(),
+        jointFitMm: z.number().optional(),
+      }),
+      execute: async (input) => {
+        try {
+          const dims = input.blockDimensionsCm ?? [100, 50, 50]
+          const jointFit = input.jointFitMm ?? 0.5
+          const volumeConsistency = dims.length >= 3
+            ? Math.round((1 - Math.abs(dims[0] - dims[1]) / Math.max(dims[0], dims[1])) * 100 * 100) / 100
+            : 85
+          const precisionScore = Math.round(Math.min(100, (100 - jointFit * 10) * (volumeConsistency / 100)) * 100) / 100
+          const humanAlphaVerified = precisionScore > 70
+
+          return {
+            ok: true,
+            analysis: {
+              subject: input.subject,
+              blockDimensionsCm: dims,
+              jointFitMm: jointFit,
+              volumeConsistency,
+              precisionScore,
+              humanAlphaVerified,
+              assessment: humanAlphaVerified
+                ? "Precision exceeds modern tolerances — human alpha confirmed."
+                : "Standard construction tolerances — within expected range.",
+            },
+          }
+        } catch (err: unknown) {
+          return { ok: false, error: err instanceof Error ? err.message : "Unknown error in analyzeMasonryPrecision." }
+        }
+      },
+    }),
+
+    // #256 — mapFloodMemory
+    mapFloodMemory: tool({
+      description:
+        "Cross-reference oral traditions with physical geological deposits to reclaim cultural supply chain",
+      inputSchema: z.object({
+        traditionSource: z.string(),
+        geologicalEvidence: z.string().optional(),
+        region: z.string().optional(),
+      }),
+      execute: async (input) => {
+        try {
+          const anomalyDescription = `Oral tradition from ${input.traditionSource}` +
+            (input.geologicalEvidence ? ` correlated with geological evidence: ${input.geologicalEvidence}` : "") +
+            (input.region ? ` in region: ${input.region}` : "")
+          const incongruityScore = Math.round(Math.min(100, anomalyDescription.length * 0.4) * 100) / 100
+
+          const { data, error } = await client
+            .from("historical_incongruity_audits")
+            .insert({
+              owner_user_id: userId,
+              subject: `Flood memory: ${input.traditionSource}`,
+              standard_timeline: input.region ?? null,
+              detected_anomaly: anomalyDescription,
+              evidence_type: "oral_tradition",
+              incongruity_score: incongruityScore,
+              verified: false,
+            })
+            .select()
+            .single()
+
+          if (error || !data) {
+            return { ok: false, error: error?.message || "Failed to map flood memory." }
+          }
+          return { ok: true, mapping: data }
+        } catch (err: unknown) {
+          return { ok: false, error: err instanceof Error ? err.message : "Unknown error in mapFloodMemory." }
+        }
+      },
+    }),
   }
 }
