@@ -25,6 +25,7 @@ import { WorkflowPanel } from "@/components/workflow-panel"
 import SovereignMindPanel from "@/components/sovereign-mind-panel"
 import GenesisPanel from "@/components/genesis-panel"
 import CommandCenterPanel from "@/components/command-center-panel"
+import CreatorsPanel from "@/components/creators-panel"
 import { CommandPalette } from "@/components/command-palette"
 import { KeyboardHelp } from "@/components/keyboard-help"
 import { AppProvider, useApp, isActiveView } from "@/lib/shared/app-context"
@@ -75,6 +76,7 @@ const PANEL_COMPONENTS: Record<string, ComponentType> = {
   "sovereign-mind": SovereignMindPanel,
   genesis: GenesisPanel,
   "command-center": CommandCenterPanel,
+  creators: CreatorsPanel,
 }
 
 // Wrapper components that bridge context to prop-based panels

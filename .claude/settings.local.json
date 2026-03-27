@@ -82,7 +82,9 @@
       "Bash(printf \"sovereign-evolution-2026\")",
       "Bash(printf \"sovereign-heartbeat-2026\")",
       "Bash(printf \"sovereign-sentinel-2026\")",
-      "Bash(curl -s -X POST \"https://linknedout.vercel.app/api/evolution/cron\" -H \"x-cron-secret: sovereign-evolution-2026\" -H \"Content-Type: application/json\" -d '{\"\"\"\"mode\"\"\"\":\"\"\"\"live\"\"\"\"}')"
+      "Bash(curl -s -X POST \"https://linknedout.vercel.app/api/evolution/cron\" -H \"x-cron-secret: sovereign-evolution-2026\" -H \"Content-Type: application/json\" -d '{\"\"\"\"mode\"\"\"\":\"\"\"\"live\"\"\"\"}')",
+      "Bash(curl -s -X POST \"https://linknedout.vercel.app/api/sovereign\" -H \"Content-Type: application/json\" -d '{\"\"\"\"tool\"\"\"\":\"\"\"\"arcStartSession\"\"\"\",\"\"\"\"params\"\"\"\":{\"\"\"\"puzzleId\"\"\"\":\"\"\"\"arc-demo-001\"\"\"\",\"\"\"\"movesLimit\"\"\"\":30}}')",
+      "Bash(node -e \":*)"
     ]
   }
 }

@@ -18,6 +18,7 @@ import {
   Database,
   FileUp,
   FolderKanban,
+  GitBranch,
   Globe,
   HandCoins,
   HardDrive,
@@ -98,7 +99,8 @@ const navGroups: NavGroup[] = [
       { id: "marketplace", label: "Marketplace", icon: Heart, badge: "NEW", badgeVariant: "warning", description: "Trade human experiences" },
       { id: "sovereign-mind", label: "Sovereign Mind", icon: Brain, badge: "NEW", badgeVariant: "warning", description: "Psychological & energy sovereignty" },
       { id: "genesis", label: "Genesis", icon: Rocket, badge: "NEW", badgeVariant: "warning", description: "Creation protocols & memory vaults" },
-      { id: "command-center", label: "Command Center", icon: Command, badge: "319", badgeVariant: "default", description: "Browse & execute all sovereign tools" },
+      { id: "creators", label: "Creators", icon: GitBranch, badge: "NEW", badgeVariant: "warning", description: "Micro-creator offshoots marketplace" },
+      { id: "command-center", label: "Command Center", icon: Command, badge: "339", badgeVariant: "default", description: "Browse & execute all sovereign tools" },
     ],
   },
 ]

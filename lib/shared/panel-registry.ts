@@ -54,4 +54,5 @@ export const PANEL_DEFINITIONS: Omit<PanelRegistration, "component" | "lazyImpor
   { view: "sovereign-mind", label: "Sovereign Mind", requiresAuth: true, authMessage: "Psychological and thermodynamic sovereign tools require sign-in." },
   { view: "genesis", label: "Genesis", requiresAuth: true, authMessage: "Genesis protocols and memory vaults require sign-in." },
   { view: "command-center", label: "Command Center", requiresAuth: true, authMessage: "Sovereign Command Center requires sign-in." },
+  { view: "creators", label: "Creators", requiresAuth: true, authMessage: "Micro-Creators marketplace requires sign-in." },
 ]
