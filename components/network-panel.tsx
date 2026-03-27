@@ -19,7 +19,11 @@ import {
   type GroupNode,
   type GroupOverlap,
   type NetworkInsightsDataset,
-  type NetworkFilters
+  type NetworkFilters,
+  jobFunnelNodes as demoFunnelNodes,
+  jobFunnelLinks as demoFunnelLinks,
+  jobScatter as demoScatter,
+  jobCalendar as demoCalendar,
 } from "@/lib/network/network-insights-data"
 import { resolveSupabaseAccessToken } from "@/lib/supabase/supabase-client-auth"
 import {
@@ -113,10 +117,10 @@ function createEmptyDataset(): NetworkInsightsDataset {
     groupOverlaps: [],
     groupActivity: [],
     groupHeatmap: [],
-    jobFunnelNodes: [],
-    jobFunnelLinks: [],
-    jobScatter: [],
-    jobCalendar: [],
+    jobFunnelNodes: demoFunnelNodes,
+    jobFunnelLinks: demoFunnelLinks,
+    jobScatter: demoScatter,
+    jobCalendar: demoCalendar,
   }
 }
 

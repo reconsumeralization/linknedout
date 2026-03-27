@@ -1,6 +1,7 @@
 "use client"
 
 import type { ActiveView } from "@/app/page"
+import { hasUserSupabase } from "@/lib/shared/user-keys"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { SponsorRow } from "@/components/sponsor-badge"
@@ -367,8 +368,9 @@ export function DashboardPanel({ onNavigate, csvData }: DashboardPanelProps) {
 
   const hasSupabaseConfigured = Boolean(
     typeof window !== "undefined" &&
-      process.env.NEXT_PUBLIC_SUPABASE_URL &&
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+      ((process.env.NEXT_PUBLIC_SUPABASE_URL &&
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) ||
+        hasUserSupabase()),
   )
 
   return (
