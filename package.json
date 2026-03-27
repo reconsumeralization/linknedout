@@ -50,7 +50,7 @@
     "@ai-sdk/react": "^1.2.12",
     "@deck.gl/core": "^9.2.10",
     "@deck.gl/geo-layers": "^9.2.10",
-    "@deck.gl/layers": "^9.2.10",
+    "@deck.gl/layers": "^9.2.11",
     "@deck.gl/react": "^9.2.10",
     "@hookform/resolvers": "^3.9.1",
     "@radix-ui/react-accordion": "1.2.12",

@@ -24,10 +24,10 @@ importers:
         version: 9.2.10
       '@deck.gl/geo-layers':
         specifier: ^9.2.10
-        version: 9.2.10(c2eoyxudcsii6rahp4vycqh7v4)
+        version: 9.2.10(zdlewt3whzwwhdpsrchlavdleq)
       '@deck.gl/layers':
-        specifier: ^9.2.10
-        version: 9.2.10(@deck.gl/core@9.2.10)(@loaders.gl/core@4.3.4)(@luma.gl/core@9.2.6(patch_hash=42lmrmeft33wz6amzrhlqrklsy))(@luma.gl/engine@9.2.6(@luma.gl/core@9.2.6(patch_hash=42lmrmeft33wz6amzrhlqrklsy))(@luma.gl/shadertools@9.2.6(@luma.gl/core@9.2.6(patch_hash=42lmrmeft33wz6amzrhlqrklsy))))
+        specifier: ^9.2.11
+        version: 9.2.11(@deck.gl/core@9.2.10)(@loaders.gl/core@4.3.4)(@luma.gl/core@9.2.6(patch_hash=42lmrmeft33wz6amzrhlqrklsy))(@luma.gl/engine@9.2.6(@luma.gl/core@9.2.6(patch_hash=42lmrmeft33wz6amzrhlqrklsy))(@luma.gl/shadertools@9.2.6(@luma.gl/core@9.2.6(patch_hash=42lmrmeft33wz6amzrhlqrklsy))))
       '@deck.gl/react':
         specifier: ^9.2.10
         version: 9.2.10(@deck.gl/core@9.2.10)(@deck.gl/widgets@9.2.10(@deck.gl/core@9.2.10)(@luma.gl/core@9.2.6(patch_hash=42lmrmeft33wz6amzrhlqrklsy)))(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
@@ -362,11 +362,11 @@ packages:
       '@luma.gl/core': ~9.2.6
       '@luma.gl/engine': ~9.2.6
 
-  '@deck.gl/layers@9.2.10':
-    resolution: {integrity: sha512-1emc+0Z+w6Vrmyp39Q+3R/HNbPcABH6kYXe6zTOOZYJX5M3pUssukFLW+Ds96/X9emF53vUC1Rnq9Aj/YY2lWg==}
+  '@deck.gl/layers@9.2.11':
+    resolution: {integrity: sha512-2FSb0Qa6YR+Rg6GWhYOGTUug3vtZ4uKcFdnrdiJoVXGyibKJMScKZIsivY0r/yQQZsaBjYqty5QuVJvdtEHxSA==}
     peerDependencies:
       '@deck.gl/core': ~9.2.0
-      '@loaders.gl/core': ^4.3.4
+      '@loaders.gl/core': ~4.3.4
       '@luma.gl/core': ~9.2.6
       '@luma.gl/engine': ~9.2.6
 
@@ -3626,11 +3626,11 @@ snapshots:
       '@luma.gl/shadertools': 9.2.6(@luma.gl/core@9.2.6(patch_hash=42lmrmeft33wz6amzrhlqrklsy))
       '@math.gl/core': 4.1.0
 
-  '@deck.gl/geo-layers@9.2.10(c2eoyxudcsii6rahp4vycqh7v4)':
+  '@deck.gl/geo-layers@9.2.10(zdlewt3whzwwhdpsrchlavdleq)':
     dependencies:
       '@deck.gl/core': 9.2.10
       '@deck.gl/extensions': 9.2.10(@deck.gl/core@9.2.10)(@luma.gl/core@9.2.6(patch_hash=42lmrmeft33wz6amzrhlqrklsy))(@luma.gl/engine@9.2.6(@luma.gl/core@9.2.6(patch_hash=42lmrmeft33wz6amzrhlqrklsy))(@luma.gl/shadertools@9.2.6(@luma.gl/core@9.2.6(patch_hash=42lmrmeft33wz6amzrhlqrklsy))))
-      '@deck.gl/layers': 9.2.10(@deck.gl/core@9.2.10)(@loaders.gl/core@4.3.4)(@luma.gl/core@9.2.6(patch_hash=42lmrmeft33wz6amzrhlqrklsy))(@luma.gl/engine@9.2.6(@luma.gl/core@9.2.6(patch_hash=42lmrmeft33wz6amzrhlqrklsy))(@luma.gl/shadertools@9.2.6(@luma.gl/core@9.2.6(patch_hash=42lmrmeft33wz6amzrhlqrklsy))))
+      '@deck.gl/layers': 9.2.11(@deck.gl/core@9.2.10)(@loaders.gl/core@4.3.4)(@luma.gl/core@9.2.6(patch_hash=42lmrmeft33wz6amzrhlqrklsy))(@luma.gl/engine@9.2.6(@luma.gl/core@9.2.6(patch_hash=42lmrmeft33wz6amzrhlqrklsy))(@luma.gl/shadertools@9.2.6(@luma.gl/core@9.2.6(patch_hash=42lmrmeft33wz6amzrhlqrklsy))))
       '@deck.gl/mesh-layers': 9.2.10(@deck.gl/core@9.2.10)(@loaders.gl/core@4.3.4)(@luma.gl/core@9.2.6(patch_hash=42lmrmeft33wz6amzrhlqrklsy))(@luma.gl/engine@9.2.6(@luma.gl/core@9.2.6(patch_hash=42lmrmeft33wz6amzrhlqrklsy))(@luma.gl/shadertools@9.2.6(@luma.gl/core@9.2.6(patch_hash=42lmrmeft33wz6amzrhlqrklsy))))(@luma.gl/gltf@9.2.6(@luma.gl/constants@9.2.6)(@luma.gl/core@9.2.6(patch_hash=42lmrmeft33wz6amzrhlqrklsy))(@luma.gl/engine@9.2.6(@luma.gl/core@9.2.6(patch_hash=42lmrmeft33wz6amzrhlqrklsy))(@luma.gl/shadertools@9.2.6(@luma.gl/core@9.2.6(patch_hash=42lmrmeft33wz6amzrhlqrklsy))))(@luma.gl/shadertools@9.2.6(@luma.gl/core@9.2.6(patch_hash=42lmrmeft33wz6amzrhlqrklsy))))(@luma.gl/shadertools@9.2.6(@luma.gl/core@9.2.6(patch_hash=42lmrmeft33wz6amzrhlqrklsy)))
       '@loaders.gl/3d-tiles': 4.3.4(@loaders.gl/core@4.3.4)
       '@loaders.gl/core': 4.3.4
@@ -3655,7 +3655,7 @@ snapshots:
     transitivePeerDependencies:
       - '@luma.gl/constants'
 
-  '@deck.gl/layers@9.2.10(@deck.gl/core@9.2.10)(@loaders.gl/core@4.3.4)(@luma.gl/core@9.2.6(patch_hash=42lmrmeft33wz6amzrhlqrklsy))(@luma.gl/engine@9.2.6(@luma.gl/core@9.2.6(patch_hash=42lmrmeft33wz6amzrhlqrklsy))(@luma.gl/shadertools@9.2.6(@luma.gl/core@9.2.6(patch_hash=42lmrmeft33wz6amzrhlqrklsy))))':
+  '@deck.gl/layers@9.2.11(@deck.gl/core@9.2.10)(@loaders.gl/core@4.3.4)(@luma.gl/core@9.2.6(patch_hash=42lmrmeft33wz6amzrhlqrklsy))(@luma.gl/engine@9.2.6(@luma.gl/core@9.2.6(patch_hash=42lmrmeft33wz6amzrhlqrklsy))(@luma.gl/shadertools@9.2.6(@luma.gl/core@9.2.6(patch_hash=42lmrmeft33wz6amzrhlqrklsy))))':
     dependencies:
       '@deck.gl/core': 9.2.10
       '@loaders.gl/core': 4.3.4
