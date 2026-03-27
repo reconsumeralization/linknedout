@@ -96,7 +96,7 @@ export async function GET(req: Request) {
       .eq("user_id", auth.auth.userId)
       .order("installed_at", { ascending: false })
 
-    if (error) return jsonResponse({ error: error.message }, 500, rl)
+    if (error) console.error("[API]", error.message); return jsonResponse({ error: "Operation failed" }, 500, rl)
     return jsonResponse({ ok: true, integrations: configs }, 200, rl)
   }
 
@@ -112,7 +112,7 @@ export async function GET(req: Request) {
     if (provider) query = query.eq("provider", provider)
 
     const { data, error } = await query
-    if (error) return jsonResponse({ error: error.message }, 500, rl)
+    if (error) console.error("[API]", error.message); return jsonResponse({ error: "Operation failed" }, 500, rl)
     return jsonResponse({ ok: true, usage: data }, 200, rl)
   }
 
@@ -157,7 +157,7 @@ export async function POST(req: Request) {
       .select()
       .single()
 
-    if (error) return jsonResponse({ error: error.message }, 500, rl)
+    if (error) console.error("[API]", error.message); return jsonResponse({ error: "Operation failed" }, 500, rl)
     return jsonResponse({ ok: true, action: "installed", integration: data }, 200, rl)
   }
 
@@ -176,7 +176,7 @@ export async function POST(req: Request) {
       .select()
       .single()
 
-    if (error) return jsonResponse({ error: error.message }, 500, rl)
+    if (error) console.error("[API]", error.message); return jsonResponse({ error: "Operation failed" }, 500, rl)
     return jsonResponse({ ok: true, action: "configured", integration: data }, 200, rl)
   }
 
@@ -189,7 +189,7 @@ export async function POST(req: Request) {
       .eq("user_id", auth.auth.userId)
       .eq("provider", provider as string)
 
-    if (error) return jsonResponse({ error: error.message }, 500, rl)
+    if (error) console.error("[API]", error.message); return jsonResponse({ error: "Operation failed" }, 500, rl)
     return jsonResponse({ ok: true, action: "uninstalled", provider }, 200, rl)
   }
 
@@ -207,7 +207,7 @@ export async function POST(req: Request) {
       .select()
       .single()
 
-    if (error) return jsonResponse({ error: error.message }, 500, rl)
+    if (error) console.error("[API]", error.message); return jsonResponse({ error: "Operation failed" }, 500, rl)
     return jsonResponse({ ok: true, action: "health_checked", integration: data }, 200, rl)
   }
 
@@ -229,7 +229,7 @@ export async function POST(req: Request) {
         error_message: errorMessage,
       })
 
-    if (error) return jsonResponse({ error: error.message }, 500, rl)
+    if (error) console.error("[API]", error.message); return jsonResponse({ error: "Operation failed" }, 500, rl)
     return jsonResponse({ ok: true, action: "usage_logged" }, 200, rl)
   }
 

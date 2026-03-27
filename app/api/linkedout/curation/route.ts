@@ -80,7 +80,7 @@ export async function GET(req: NextRequest) {
     .eq("user_id", userId)
     .order("created_at", { ascending: false })
     .limit(100)
-  if (error) return jsonResponse({ error: error.message }, 500, rateLimit)
+  if (error) console.error("[API]", error.message); return jsonResponse({ error: "Operation failed" }, 500, rateLimit)
   return jsonResponse({ actions: data ?? [] }, 200, rateLimit)
 }
 

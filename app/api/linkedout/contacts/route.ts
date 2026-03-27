@@ -90,7 +90,7 @@ export async function GET(req: NextRequest) {
   let q = sb.from("linkedout_contact_states").select("*").eq("user_id", userId)
   if (parsedObjectiveId?.success) q = q.eq("objective_id", parsedObjectiveId.data)
   const { data, error } = await q
-  if (error) return jsonResponse({ error: error.message }, 500, rateLimit)
+  if (error) console.error("[API]", error.message); return jsonResponse({ error: "Operation failed" }, 500, rateLimit)
   return jsonResponse({ states: data ?? [] }, 200, rateLimit)
 }
 
@@ -139,7 +139,7 @@ export async function POST(req: NextRequest) {
     },
     { onConflict: "user_id,profile_id,objective_id" },
   )
-  if (error) return jsonResponse({ error: error.message }, 500, rateLimit)
+  if (error) console.error("[API]", error.message); return jsonResponse({ error: "Operation failed" }, 500, rateLimit)
   return jsonResponse({ ok: true }, 200, rateLimit)
 }
 
@@ -187,6 +187,6 @@ export async function PUT(req: NextRequest) {
   const { error } = await sb
     .from("linkedout_contact_states")
     .upsert(rows, { onConflict: "user_id,profile_id,objective_id" })
-  if (error) return jsonResponse({ error: error.message }, 500, rateLimit)
+  if (error) console.error("[API]", error.message); return jsonResponse({ error: "Operation failed" }, 500, rateLimit)
   return jsonResponse({ ok: true, count: rows.length }, 200, rateLimit)
 }

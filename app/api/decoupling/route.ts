@@ -227,7 +227,7 @@ export async function POST(req: Request): Promise<Response> {
       .single()
 
     if (error) {
-      return jsonResponse({ ok: false, error: error.message }, 400, rateLimit)
+      console.error("[API]", error.message); return jsonResponse({ ok: false, error: "Operation failed" }, 400, rateLimit)
     }
 
     return jsonResponse(
@@ -257,7 +257,7 @@ export async function POST(req: Request): Promise<Response> {
       .single()
 
     if (error) {
-      return jsonResponse({ ok: false, error: error.message }, 400, rateLimit)
+      console.error("[API]", error.message); return jsonResponse({ ok: false, error: "Operation failed" }, 400, rateLimit)
     }
 
     return jsonResponse(
@@ -288,7 +288,7 @@ export async function POST(req: Request): Promise<Response> {
       .order("month_number", { ascending: true })
 
     if (error) {
-      return jsonResponse({ ok: false, error: error.message }, 400, rateLimit)
+      console.error("[API]", error.message); return jsonResponse({ ok: false, error: "Operation failed" }, 400, rateLimit)
     }
 
     return jsonResponse(
@@ -335,7 +335,7 @@ export async function POST(req: Request): Promise<Response> {
       .single()
 
     if (error) {
-      return jsonResponse({ ok: false, error: error.message }, 400, rateLimit)
+      console.error("[API]", error.message); return jsonResponse({ ok: false, error: "Operation failed" }, 400, rateLimit)
     }
 
     return jsonResponse(

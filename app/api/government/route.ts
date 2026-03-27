@@ -99,7 +99,7 @@ export async function GET(req: Request) {
     if (entityType) query = query.eq("entity_type", entityType)
     if (jurisdiction) query = query.eq("jurisdiction", jurisdiction)
     const { data, error } = await query.limit(200)
-    if (error) return jsonResponse({ error: error.message }, 500, rl)
+    if (error) console.error("[API]", error.message); return jsonResponse({ error: "Operation failed" }, 500, rl)
     return jsonResponse({ ok: true, entities: data }, 200, rl)
   }
 
@@ -110,7 +110,7 @@ export async function GET(req: Request) {
       .select("*")
       .order("effective_date", { ascending: false })
       .limit(50)
-    if (error) return jsonResponse({ error: error.message }, 500, rl)
+    if (error) console.error("[API]", error.message); return jsonResponse({ error: "Operation failed" }, 500, rl)
     return jsonResponse({ ok: true, regulations: data }, 200, rl)
   }
 
@@ -122,7 +122,7 @@ export async function GET(req: Request) {
     if (jurisdiction) query = query.eq("jurisdiction", jurisdiction)
     if (level) query = query.eq("level", level)
     const { data, error } = await query.limit(100)
-    if (error) return jsonResponse({ error: error.message }, 500, rl)
+    if (error) console.error("[API]", error.message); return jsonResponse({ error: "Operation failed" }, 500, rl)
     return jsonResponse({ ok: true, representatives: data }, 200, rl)
   }
 
@@ -134,7 +134,7 @@ export async function GET(req: Request) {
       .eq("user_id", auth.auth.userId)
       .order("screened_at", { ascending: false })
       .limit(50)
-    if (error) return jsonResponse({ error: error.message }, 500, rl)
+    if (error) console.error("[API]", error.message); return jsonResponse({ error: "Operation failed" }, 500, rl)
     return jsonResponse({ ok: true, screenings: data }, 200, rl)
   }
 
@@ -183,7 +183,7 @@ export async function POST(req: Request) {
       })
       .select()
       .single()
-    if (error) return jsonResponse({ error: error.message }, 500, rl)
+    if (error) console.error("[API]", error.message); return jsonResponse({ error: "Operation failed" }, 500, rl)
     return jsonResponse({ ok: true, filing: data }, 200, rl)
   }
 
@@ -201,7 +201,7 @@ export async function POST(req: Request) {
       .eq("user_id", auth.auth.userId)
       .select()
       .single()
-    if (error) return jsonResponse({ error: error.message }, 500, rl)
+    if (error) console.error("[API]", error.message); return jsonResponse({ error: "Operation failed" }, 500, rl)
     return jsonResponse({ ok: true, filing: data }, 200, rl)
   }
 
@@ -221,7 +221,7 @@ export async function POST(req: Request) {
       })
       .select()
       .single()
-    if (error) return jsonResponse({ error: error.message }, 500, rl)
+    if (error) console.error("[API]", error.message); return jsonResponse({ error: "Operation failed" }, 500, rl)
     return jsonResponse({ ok: true, permit: data }, 200, rl)
   }
 
@@ -238,7 +238,7 @@ export async function POST(req: Request) {
       })
       .select()
       .single()
-    if (error) return jsonResponse({ error: error.message }, 500, rl)
+    if (error) console.error("[API]", error.message); return jsonResponse({ error: "Operation failed" }, 500, rl)
     return jsonResponse({ ok: true, foia: data }, 200, rl)
   }
 
@@ -258,7 +258,7 @@ export async function POST(req: Request) {
       })
       .select()
       .single()
-    if (error) return jsonResponse({ error: error.message }, 500, rl)
+    if (error) console.error("[API]", error.message); return jsonResponse({ error: "Operation failed" }, 500, rl)
     return jsonResponse({ ok: true, screening: data }, 200, rl)
   }
 
@@ -279,7 +279,7 @@ export async function POST(req: Request) {
       })
       .select()
       .single()
-    if (error) return jsonResponse({ error: error.message }, 500, rl)
+    if (error) console.error("[API]", error.message); return jsonResponse({ error: "Operation failed" }, 500, rl)
     return jsonResponse({ ok: true, proceeding: data }, 200, rl)
   }
 
@@ -298,7 +298,7 @@ export async function POST(req: Request) {
       })
       .select()
       .single()
-    if (error) return jsonResponse({ error: error.message }, 500, rl)
+    if (error) console.error("[API]", error.message); return jsonResponse({ error: "Operation failed" }, 500, rl)
     return jsonResponse({ ok: true, engagement: data }, 200, rl)
   }
 
@@ -317,7 +317,7 @@ export async function POST(req: Request) {
       })
       .select()
       .single()
-    if (error) return jsonResponse({ error: error.message }, 500, rl)
+    if (error) console.error("[API]", error.message); return jsonResponse({ error: "Operation failed" }, 500, rl)
     return jsonResponse({ ok: true, compliance: data }, 200, rl)
   }
 
@@ -338,7 +338,7 @@ export async function POST(req: Request) {
       })
       .select()
       .single()
-    if (error) return jsonResponse({ error: error.message }, 500, rl)
+    if (error) console.error("[API]", error.message); return jsonResponse({ error: "Operation failed" }, 500, rl)
     return jsonResponse({ ok: true, submission: data }, 200, rl)
   }
 
@@ -358,7 +358,7 @@ export async function POST(req: Request) {
       }, { onConflict: "user_id" })
       .select()
       .single()
-    if (error) return jsonResponse({ error: error.message }, 500, rl)
+    if (error) console.error("[API]", error.message); return jsonResponse({ error: "Operation failed" }, 500, rl)
     return jsonResponse({ ok: true, immigration: data }, 200, rl)
   }
 

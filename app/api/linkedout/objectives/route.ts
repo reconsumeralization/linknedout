@@ -79,7 +79,7 @@ export async function GET(req: NextRequest) {
     .select("*")
     .eq("user_id", userId)
     .order("created_at", { ascending: true })
-  if (error) return jsonResponse({ error: error.message }, 500, rateLimit)
+  if (error) console.error("[API]", error.message); return jsonResponse({ error: "Operation failed" }, 500, rateLimit)
   return jsonResponse({ objectives: data ?? [] }, 200, rateLimit)
 }
 
@@ -134,7 +134,7 @@ export async function POST(req: NextRequest) {
       .eq("user_id", auth.userId)
       .select()
       .single()
-    if (error) return jsonResponse({ error: error.message }, 500, rateLimit)
+    if (error) console.error("[API]", error.message); return jsonResponse({ error: "Operation failed" }, 500, rateLimit)
     return jsonResponse({ objective: data }, 200, rateLimit)
   }
 
@@ -147,7 +147,7 @@ export async function POST(req: NextRequest) {
     })
     .select()
     .single()
-  if (error) return jsonResponse({ error: error.message }, 500, rateLimit)
+  if (error) console.error("[API]", error.message); return jsonResponse({ error: "Operation failed" }, 500, rateLimit)
   return jsonResponse({ objective: data }, 200, rateLimit)
 }
 
@@ -179,6 +179,6 @@ export async function DELETE(req: NextRequest) {
     .delete()
     .eq("id", parsedId.data)
     .eq("user_id", auth.userId)
-  if (error) return jsonResponse({ error: error.message }, 500, rateLimit)
+  if (error) console.error("[API]", error.message); return jsonResponse({ error: "Operation failed" }, 500, rateLimit)
   return jsonResponse({ ok: true }, 200, rateLimit)
 }

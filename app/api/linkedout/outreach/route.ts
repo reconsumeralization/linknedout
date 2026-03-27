@@ -101,7 +101,7 @@ export async function GET(req: NextRequest) {
     .limit(500)
   if (normalizedSince) q = q.gte("created_at", normalizedSince)
   const { data, error } = await q
-  if (error) return jsonResponse({ error: error.message }, 500, rateLimit)
+  if (error) console.error("[API]", error.message); return jsonResponse({ error: "Operation failed" }, 500, rateLimit)
   return jsonResponse({ events: data ?? [] }, 200, rateLimit)
 }
 
@@ -150,6 +150,6 @@ export async function POST(req: NextRequest) {
     objective_id: body.objectiveId ?? null,
     payload: body.payload ?? null,
   })
-  if (error) return jsonResponse({ error: error.message }, 500, rateLimit)
+  if (error) console.error("[API]", error.message); return jsonResponse({ error: "Operation failed" }, 500, rateLimit)
   return jsonResponse({ ok: true }, 200, rateLimit)
 }
