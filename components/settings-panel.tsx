@@ -535,6 +535,7 @@ export function SettingsPanel({ onNavigate }: SettingsPanelProps) {
                 onChange={(e) => setUserKeysState((prev) => ({ ...prev, supabaseUrl: e.target.value }))}
                 className="font-mono text-xs"
               />
+              <p className="text-xs text-muted-foreground mt-1">Find this in your Supabase project &rarr; Settings &rarr; API</p>
             </div>
             <div className="space-y-2">
               <Label htmlFor="supabase-anon-key" className="text-xs font-medium flex items-center gap-1.5">
@@ -549,6 +550,7 @@ export function SettingsPanel({ onNavigate }: SettingsPanelProps) {
                 onChange={(e) => setUserKeysState((prev) => ({ ...prev, supabaseAnonKey: e.target.value }))}
                 className="font-mono text-xs"
               />
+              <p className="text-xs text-muted-foreground mt-1">The public &apos;anon&apos; key from the same page</p>
             </div>
             {/* AI Providers */}
             <div className="space-y-3 border-t border-border pt-3">
@@ -565,6 +567,7 @@ export function SettingsPanel({ onNavigate }: SettingsPanelProps) {
                     onChange={(e) => setUserKeysState((prev) => ({ ...prev, [provider.keyField]: e.target.value }))}
                     className="font-mono text-xs h-8"
                   />
+                  {provider.id === "openai" && <p className="text-xs text-muted-foreground mt-1">Get one at platform.openai.com/api-keys</p>}
                 </div>
               ))}
               <div className="space-y-1">

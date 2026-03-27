@@ -211,14 +211,15 @@ function SingularityPulseCard({ onNavigate }: { onNavigate?: (view: ActiveView) 
         <div className="flex items-center justify-between">
           <CardTitle className="text-sm font-semibold flex items-center gap-2">
             <Zap className="h-4 w-4 text-yellow-500" />
-            Singularity Pulse
+            Advanced Metrics
           </CardTitle>
           <Button variant="ghost" size="sm" className="text-xs gap-1" onClick={() => onNavigate?.("chat")}>
             Run Evolution Loop
             <ChevronRight className="h-3 w-3" />
           </Button>
         </div>
-        <CardDescription className="text-xs">Recursive self-improvement velocity across the Sovereign Factory</CardDescription>
+        {/* TODO: This section can be wrapped in a collapsible toggle (defaults to hidden) for a cleaner dashboard */}
+        <CardDescription className="text-xs">Performance and efficiency metrics</CardDescription>
       </CardHeader>
       <CardContent>
         <div className="grid grid-cols-2 gap-3">
@@ -228,7 +229,7 @@ function SingularityPulseCard({ onNavigate }: { onNavigate?: (view: ActiveView) 
             <p className="text-[10px] text-muted-foreground">evolutions/week</p>
           </div>
           <div className="rounded-lg border border-border/60 bg-background/50 p-2.5">
-            <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Intelligence Tariff Savings</p>
+            <p className="text-[10px] text-muted-foreground uppercase tracking-wide">AI Cost Savings</p>
             <p className="text-lg font-bold text-emerald-500">${pulse.intelligenceTariffSavings.toLocaleString()}</p>
             <p className="text-[10px] text-muted-foreground">monthly</p>
           </div>
@@ -249,6 +250,7 @@ function SingularityPulseCard({ onNavigate }: { onNavigate?: (view: ActiveView) 
 }
 
 export function DashboardPanel({ onNavigate, csvData }: DashboardPanelProps) {
+  const [showAdvanced, setShowAdvanced] = useState(false)
   const [liveStats, setLiveStats] = useState<Stat[]>([])
   const [liveProjects, setLiveProjects] = useState<Project[]>([])
   const [liveActivity, setLiveActivity] = useState<Activity[]>([])
@@ -445,7 +447,7 @@ export function DashboardPanel({ onNavigate, csvData }: DashboardPanelProps) {
           {/* Tribe Health Radar */}
           <Card className="bg-card border-border">
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-semibold">Tribe Health Score</CardTitle>
+              <CardTitle className="text-sm font-semibold">Team Health</CardTitle>
               <CardDescription className="text-xs">Alpha Squad composition</CardDescription>
             </CardHeader>
             <CardContent>
@@ -460,9 +462,9 @@ export function DashboardPanel({ onNavigate, csvData }: DashboardPanelProps) {
             <div>
               <CardTitle className="text-sm font-semibold flex items-center gap-2">
                 <Shield className="w-4 h-4 text-accent" />
-                Tribe Intelligence
+                Your Teams
               </CardTitle>
-              <CardDescription className="text-xs">High-Bandwidth Intelligence Syndicate</CardDescription>
+              <CardDescription className="text-xs">Team overview and member health</CardDescription>
             </div>
             <Button variant="ghost" size="sm" onClick={() => onNavigate("tribes")} className="text-xs gap-1 h-7">
               Open Tribes <ArrowRight className="w-3 h-3" />
@@ -559,8 +561,14 @@ export function DashboardPanel({ onNavigate, csvData }: DashboardPanelProps) {
           </CardContent>
         </Card>
 
-        {/* Singularity Pulse — demo metrics from evolution loop */}
-        <SingularityPulseCard onNavigate={onNavigate} />
+        {/* Advanced Metrics — collapsed by default */}
+        <div className="flex justify-center">
+          <Button variant="ghost" size="sm" className="text-xs text-muted-foreground gap-1.5" onClick={() => setShowAdvanced((v) => !v)}>
+            <Zap className="h-3 w-3" />
+            {showAdvanced ? "Hide Advanced Metrics" : "Show Advanced Metrics"}
+          </Button>
+        </div>
+        {showAdvanced && <SingularityPulseCard onNavigate={onNavigate} />}
 
         {/* Aspirations Snapshot */}
         <Card className="bg-card border-border">

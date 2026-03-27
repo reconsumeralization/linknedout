@@ -366,14 +366,14 @@ export function OnboardingCard({
               </div>
               <CardTitle className="text-xl">Welcome to LinkedOut</CardTitle>
               <CardDescription>
-                Your AI-powered Tribe Intelligence Platform. We&apos;ll discover your Human Alpha, build your first workflow, and connect you to a High-Bandwidth Intelligence Syndicate.
+                Your AI-powered Tribe Intelligence Platform. We&apos;ll discover your unique strengths, build your first workflow, and connect you to your professional network.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <ul className="space-y-2 text-sm text-muted-foreground">
                 <li className="flex items-center gap-2">
                   <ShieldCheck className="h-4 w-4 shrink-0 text-primary" />
-                  Enter your Supabase + OpenAI keys in Settings to unlock CRM, Email, Network, and Agents
+                  Add your API keys in Settings to unlock CRM, Email, Network, and Agents
                 </li>
                 <li className="flex items-center gap-2">
                   <Upload className="h-4 w-4 shrink-0 text-primary" />
@@ -381,15 +381,15 @@ export function OnboardingCard({
                 </li>
                 <li className="flex items-center gap-2">
                   <Sparkles className="h-4 w-4 shrink-0 text-primary" />
-                  Ask the AI to run a Discovery Session &mdash; identify your Human Alpha and build your first reusable AI workflow
+                  Ask the AI to help you identify your strengths and build your first workflow
                 </li>
                 <li className="flex items-center gap-2">
                   <Rocket className="h-4 w-4 shrink-0 text-primary" />
-                  Explore the Agent Lab, Tribe Builder, and 114 AI tools — from Cognitive Staking to the Quantum Oracle. How will you deploy your first 1,000 Agentic Tokens?
+                  Explore AI-powered tools for team building, analytics, security, and more
                 </li>
                 <li className="flex items-center gap-2">
                   <Heart className="h-4 w-4 shrink-0 text-primary" />
-                  Trade human experiences in the Labor of Love marketplace, govern your tribes with liquid democracy, and verify content authenticity
+                  Trade human experiences in the marketplace, govern your teams with voting, and verify content authenticity
                 </li>
               </ul>
               <p className="text-[10px] text-muted-foreground text-center">
@@ -402,7 +402,7 @@ export function OnboardingCard({
                 Powered by Hill &amp; Valley Gigastream
               </p>
               <Button className="w-full gap-2" onClick={handleWelcomeClose}>
-                Start the walkthrough
+                Get Started
                 <ChevronRight className="h-4 w-4" />
               </Button>
             </CardContent>

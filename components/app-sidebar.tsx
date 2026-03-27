@@ -62,19 +62,19 @@ const navGroups: NavGroup[] = [
   {
     label: "CRM & Talent",
     items: [
-      { id: "data", label: "Data hub", icon: Database, description: "All Supabase-backed data" },
+      { id: "data", label: "All Data", icon: Database, description: "All database-backed data" },
       { id: "profiles", label: "Profiles CRM", icon: Users, description: "Manage contacts", shortcut: "⌘P" },
       { id: "tribes", label: "Tribe Builder", icon: Layers, description: "Build dream teams", shortcut: "⌘T" },
       { id: "projects", label: "Projects", icon: FolderKanban, description: "Track initiatives" },
       { id: "fundraising", label: "Fundraising", icon: HandCoins, description: "Campaigns, donors, goals" },
-      { id: "storage", label: "Files & assets", icon: HardDrive, description: "Supabase Storage" },
+      { id: "storage", label: "Files & assets", icon: HardDrive, description: "Cloud storage" },
       { id: "linkedout", label: "LinkedOut", icon: Link2, description: "LinkedIn integration" },
     ],
   },
   {
     label: "Insights",
     items: [
-      { id: "network", label: "Network Insights", icon: Network, description: "Connection analysis" },
+      { id: "network", label: "Connection Map", icon: Network, description: "Connection analysis" },
       { id: "analytics", label: "Analytics", icon: BarChart3, description: "Data visualization" },
       { id: "globe", label: "3D Globe", icon: Globe, badge: "NEW", badgeVariant: "warning", description: "Geographic view" },
     ],
@@ -82,14 +82,14 @@ const navGroups: NavGroup[] = [
   {
     label: "Security & Control",
     items: [
-      { id: "agents", label: "Agent Control", icon: Bot, description: "Manage AI agents" },
-      { id: "sentinel", label: "SENTINEL", icon: ShieldAlert, badge: "SEC", badgeVariant: "default", description: "Security monitor" },
+      { id: "agents", label: "AI Settings", icon: Bot, description: "Manage AI agents" },
+      { id: "sentinel", label: "Security & Alerts", icon: ShieldAlert, badge: "SEC", badgeVariant: "default", description: "Security monitor" },
     ],
   },
   {
     label: "Sovereign Economy",
     items: [
-      { id: "marketplace", label: "Labor of Love", icon: Heart, badge: "NEW", badgeVariant: "warning", description: "Trade human experiences" },
+      { id: "marketplace", label: "Marketplace", icon: Heart, badge: "NEW", badgeVariant: "warning", description: "Trade human experiences" },
     ],
   },
 ]
@@ -383,7 +383,7 @@ export function AppSidebar({ activeView, onNavigate, importSummary }: AppSidebar
             <>
               <div className="flex-1 text-left leading-tight min-w-0">
                 <div className="text-sm font-medium">Login</div>
-                <div className="mt-0.5 text-[10px] text-muted-foreground truncate">Supabase sign-in</div>
+                <div className="mt-0.5 text-[10px] text-muted-foreground truncate">Database sign-in</div>
               </div>
               <ArrowRight className="w-3.5 h-3.5 shrink-0 text-muted-foreground opacity-0 group-hover:opacity-60 transition-all -translate-x-2 group-hover:translate-x-0" />
             </>
@@ -405,7 +405,7 @@ export function AppSidebar({ activeView, onNavigate, importSummary }: AppSidebar
             <>
               <div className="flex-1 text-left leading-tight min-w-0">
                 <div className="text-sm font-medium text-primary">Setup Guide</div>
-                <div className="mt-0.5 text-[10px] text-muted-foreground truncate">Supabase, Docker, LinkedIn</div>
+                <div className="mt-0.5 text-[10px] text-muted-foreground truncate">Database, Docker, LinkedIn</div>
               </div>
               <ArrowRight className="w-3.5 h-3.5 shrink-0 text-primary opacity-60 group-hover:opacity-100 transition-all -translate-x-2 group-hover:translate-x-0" />
             </>
@@ -428,13 +428,7 @@ export function AppSidebar({ activeView, onNavigate, importSummary }: AppSidebar
               </div>
             </div>
             <div className="flex items-center gap-2 text-[9px] text-muted-foreground/80">
-              <div className="flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-blue-500/10 text-blue-500">
-                <span className="font-semibold">Claude 4.6</span>
-              </div>
-              <div className="h-3 w-px bg-border/50" />
-              <div className="flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-emerald-500/10 text-emerald-500">
-                <span className="font-semibold">GPT-4o</span>
-              </div>
+              <span className="font-medium">AI-powered workspace</span>
             </div>
           </div>
         )}
