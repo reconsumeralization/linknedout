@@ -1,12 +1,20 @@
 import { resolveSupabaseClientFromRequest } from "@/lib/shared/resolve-request-keys"
 import { resolveSupabaseAuthContextFromRequest } from "@/lib/supabase/supabase-auth"
 import { createSovereignTools } from "@/lib/sovereign/sovereign-tools"
+import { sanitizeErrorForClient } from "@/lib/shared/error-sanitizer"
 import { getMaxBodyBytesFromEnv, parseJsonBodyWithLimit } from "@/lib/shared/request-body"
+import {
+  checkRateLimit,
+  createRateLimitHeaders,
+  getClientAddressFromRequest,
+  parseRateLimitConfigFromEnv,
+} from "@/lib/shared/request-rate-limit"
 import { NextResponse } from "next/server"
 import { z } from "zod"
 
 export const maxDuration = 120
 const MAX_BODY_BYTES = getMaxBodyBytesFromEnv("SOVEREIGN_API_MAX_BODY_BYTES", 64_000)
+const RATE_LIMIT = parseRateLimitConfigFromEnv("SOVEREIGN_RATE_LIMIT_MAX", "SOVEREIGN_RATE_LIMIT_WINDOW_MS", { max: 60, windowMs: 60_000 })
 
 const PostBodySchema = z.object({
   tool: z.string().min(1).max(120),
@@ -19,6 +27,9 @@ const PostBodySchema = z.object({
  * GET  /api/sovereign — lists all available tools
  */
 export async function POST(req: Request) {
+  const rl = await checkRateLimit({ key: `sovereign:${getClientAddressFromRequest(req)}`, max: RATE_LIMIT.max, windowMs: RATE_LIMIT.windowMs })
+  if (!rl.allowed) return NextResponse.json({ ok: false, error: "Rate limited" }, { status: 429, headers: createRateLimitHeaders(rl) })
+
   try {
     const authContext = await resolveSupabaseAuthContextFromRequest(req)
     if (!authContext?.userId) {
@@ -54,8 +65,8 @@ export async function POST(req: Request) {
     const result = await (toolDef as unknown as { execute: (input: Record<string, unknown>) => Promise<unknown> }).execute(params)
     return NextResponse.json({ ok: true, tool: toolName, result })
   } catch (err) {
-    const message = err instanceof Error ? err.message : "Internal error"
-    return NextResponse.json({ ok: false, error: message }, { status: 500 })
+    console.error("[sovereign] POST error:", err instanceof Error ? err.message : err)
+    return NextResponse.json({ ok: false, error: sanitizeErrorForClient(err) }, { status: 500 })
   }
 }
 
