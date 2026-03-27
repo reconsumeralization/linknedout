@@ -10,9 +10,11 @@ import {
   ArrowRight,
   BarChart3,
   Bot,
+  Brain,
   CheckCircle2,
   ChevronRight,
   Clock,
+  Command,
   Database,
   FileUp,
   FolderKanban,
@@ -30,6 +32,7 @@ import {
   Network,
   Rocket,
   Settings,
+  Shield,
   ShieldAlert,
   Sparkles,
   Users,
@@ -77,6 +80,7 @@ const navGroups: NavGroup[] = [
       { id: "network", label: "Connection Map", icon: Network, description: "Connection analysis" },
       { id: "analytics", label: "Analytics", icon: BarChart3, description: "Data visualization" },
       { id: "globe", label: "3D Globe", icon: Globe, badge: "NEW", badgeVariant: "warning", description: "Geographic view" },
+      { id: "workflows", label: "Workflows", icon: Zap, badge: "NEW", badgeVariant: "warning", description: "LinkedIn automation engine" },
     ],
   },
   {
@@ -84,12 +88,17 @@ const navGroups: NavGroup[] = [
     items: [
       { id: "agents", label: "AI Settings", icon: Bot, description: "Manage AI agents" },
       { id: "sentinel", label: "Security & Alerts", icon: ShieldAlert, badge: "SEC", badgeVariant: "default", description: "Security monitor" },
+      { id: "transparency", label: "Transparency", icon: Shield, badge: "LI", badgeVariant: "accent", description: "AI action audit trail & safety status" },
+      { id: "evolution", label: "Prompt Evolution", icon: Brain, badge: "NEW", badgeVariant: "warning", description: "Self-improving prompt system" },
     ],
   },
   {
     label: "Sovereign Economy",
     items: [
       { id: "marketplace", label: "Marketplace", icon: Heart, badge: "NEW", badgeVariant: "warning", description: "Trade human experiences" },
+      { id: "sovereign-mind", label: "Sovereign Mind", icon: Brain, badge: "NEW", badgeVariant: "warning", description: "Psychological & energy sovereignty" },
+      { id: "genesis", label: "Genesis", icon: Rocket, badge: "NEW", badgeVariant: "warning", description: "Creation protocols & memory vaults" },
+      { id: "command-center", label: "Command Center", icon: Command, badge: "319", badgeVariant: "default", description: "Browse & execute all sovereign tools" },
     ],
   },
 ]

@@ -23,7 +23,8 @@ import {
   type AgentRunRecord,
   type AgentVersionRecord,
   type AgentDraftInput,
-  buildAgentDraftFromPrompt,
+  buildAgentDraftFromPromptLegacy,
+  buildAgentDraftFromPromptSmart,
   DEFAULT_AGENT_MODELS,
   DEFAULT_AGENT_TEMPLATES,
 } from "@/lib/agents/agent-platform-types"
@@ -988,7 +989,7 @@ export async function createAgentFromPrompt(
     return { ok: false, error: "Invalid Supabase session." }
   }
 
-  const draft = buildAgentDraftFromPrompt(input)
+  const draft = await buildAgentDraftFromPromptSmart(input)
   const now = nowIso()
 
   const { data, error } = await client

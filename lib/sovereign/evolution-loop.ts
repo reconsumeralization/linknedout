@@ -19,6 +19,11 @@ export interface SingularityPulseMetrics {
   tribalLearningVelocity: number    // experiments per week
   loopRunCount: number              // total loop executions
   lastRunAt: string | null          // ISO timestamp
+  // Enhanced metrics (v2)
+  sentinelIncidents: number         // active security incidents
+  activeAgents: number              // running agent definitions
+  sovereigntyScore: number          // 0-100 composite sovereignty health
+  governmentCompliance: number      // regulatory filing compliance %
 }
 
 export interface EvolutionLoopStepResult {
@@ -48,6 +53,10 @@ export function getDemoPulseMetrics(): SingularityPulseMetrics {
     tribalLearningVelocity: 43,
     loopRunCount: 12,
     lastRunAt: new Date().toISOString(),
+    sentinelIncidents: 0,
+    activeAgents: 6,
+    sovereigntyScore: 85,
+    governmentCompliance: 92,
   }
 }
 
@@ -107,8 +116,8 @@ async function runLiveLoop(accessToken?: string): Promise<EvolutionLoopResult> {
   const startedAt = new Date().toISOString()
   const steps: EvolutionLoopStepResult[] = []
 
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-  const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+  const supabaseUrl = process.env.SUPABASE_URL ?? process.env.NEXT_PUBLIC_SUPABASE_URL
+  const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY
 
   if (!supabaseUrl || !supabaseKey) {
     // No Supabase — fall back to demo
@@ -124,8 +133,8 @@ async function runLiveLoop(accessToken?: string): Promise<EvolutionLoopResult> {
     // Find the most expensive recent agent runs
     const { data: costlyRuns } = await client
       .from("agent_runs")
-      .select("agent_id, cost_usd, summary")
-      .order("cost_usd", { ascending: false })
+      .select("agent_id, estimated_cost_usd, summary")
+      .order("estimated_cost_usd", { ascending: false })
       .limit(3)
 
     const auditsCreated: unknown[] = []
@@ -136,11 +145,11 @@ async function runLiveLoop(accessToken?: string): Promise<EvolutionLoopResult> {
           user_id: (await client.auth.getUser()).data.user?.id,
           task_domain: "auto_detected",
           frontier_model: "opus-4.6",
-          frontier_cost_per_task_usd: run.cost_usd ?? 0.05,
+          frontier_cost_per_task_usd: run.estimated_cost_usd ?? 0.05,
           frontier_accuracy_pct: 98,
           parity_threshold_pct: 95,
           fine_tune_status: "pending",
-          monthly_savings_usd: (run.cost_usd ?? 0.05) * 30,
+          monthly_savings_usd: (run.estimated_cost_usd ?? 0.05) * 30,
         })
         .select()
         .single()
@@ -241,19 +250,194 @@ async function runLiveLoop(accessToken?: string): Promise<EvolutionLoopResult> {
     })
   }
 
-  // Step 4: Aggregate Pulse Metrics
+  // Step 4: Self-Improvement Feedback Loop — analyze past evolution results
+  try {
+    // Count consecutive failures per step type from recent runs
+    const { data: recentEvolutions } = await client
+      .from("agent_harness_evolutions")
+      .select("evolution_type, status, diagnosis, created_at")
+      .order("created_at", { ascending: false })
+      .limit(20)
+
+    const failPatterns = new Map<string, number>()
+    for (const ev of recentEvolutions ?? []) {
+      if (ev.status === "failed" || ev.status === "diagnosed") {
+        const key = ev.evolution_type ?? "unknown"
+        failPatterns.set(key, (failPatterns.get(key) ?? 0) + 1)
+      }
+    }
+
+    // If a pattern has 3+ consecutive failures, escalate to a new evolution type
+    let escalations = 0
+    for (const [pattern, count] of failPatterns.entries()) {
+      if (count >= 3) {
+        await client.from("agent_harness_evolutions").insert({
+          agent_definition_id: "meta-agent-0",
+          user_id: (await client.auth.getUser()).data.user?.id,
+          evolution_type: "recursive_self_improvement",
+          trigger_source: "evolution_loop_feedback",
+          diagnosis: `Pattern "${pattern}" has ${count} consecutive failures — escalating to RSI`,
+          proposed_fix: `Retrain or restructure the "${pattern}" pipeline. Consider model swap or parameter tuning.`,
+          before_metrics: { failurePattern: pattern, consecutiveFailures: count },
+          status: "diagnosed",
+        })
+        escalations++
+      }
+    }
+
+    steps.push({
+      step: "self_improvement_feedback",
+      action: `Analyzed ${recentEvolutions?.length ?? 0} recent evolutions, created ${escalations} RSI escalations`,
+      ok: true,
+      details: { patternsFound: failPatterns.size, escalations },
+    })
+  } catch (err) {
+    steps.push({
+      step: "self_improvement_feedback",
+      ok: false,
+      action: "Failed to run self-improvement feedback",
+      details: { error: err instanceof Error ? err.message : "Unknown error" },
+    })
+  }
+
+  // Step 5: LLM Self-Improvement Benchmark — compare challenger models against Opus 4.6
+  try {
+    const oneDayAgo = new Date(Date.now() - 86400000).toISOString()
+
+    // Get recent benchmark runs and calculate improvement velocity
+    const [recentBenchmarks, improvementPlans] = await Promise.all([
+      client.from("llm_benchmark_runs")
+        .select("challenger_model, score_delta, task_type, created_at")
+        .gte("created_at", oneDayAgo)
+        .order("created_at", { ascending: false })
+        .limit(50),
+      client.from("llm_improvement_plans")
+        .select("challenger_model, task_type, improvement_pct, applied")
+        .eq("applied", true)
+        .gte("created_at", oneDayAgo)
+        .limit(20),
+    ])
+
+    const runs = recentBenchmarks.data ?? []
+    const plans = improvementPlans.data ?? []
+    const avgDelta = runs.length > 0
+      ? Math.round(runs.reduce((s, r) => s + (r.score_delta ?? 0), 0) / runs.length * 100) / 100
+      : 0
+    const avgImprovement = plans.length > 0
+      ? Math.round(plans.reduce((s, p) => s + (p.improvement_pct ?? 0), 0) / plans.length * 100) / 100
+      : 0
+
+    // If challenger is consistently >10pts behind Opus, flag for escalation
+    const needsEscalation = avgDelta < -10 && runs.length >= 5
+
+    if (needsEscalation) {
+      // Find the weakest task type
+      const taskScores = new Map<string, number[]>()
+      for (const r of runs) {
+        const arr = taskScores.get(r.task_type) ?? []
+        arr.push(r.score_delta ?? 0)
+        taskScores.set(r.task_type, arr)
+      }
+      let worstTask = ""
+      let worstAvg = 0
+      for (const [task, scores] of taskScores.entries()) {
+        const avg = scores.reduce((a, b) => a + b, 0) / scores.length
+        if (avg < worstAvg) { worstAvg = avg; worstTask = task }
+      }
+
+      await client.from("llm_improvement_plans").insert({
+        owner_user_id: (await client.auth.getUser()).data.user?.id,
+        challenger_model: runs[0]?.challenger_model ?? "unknown",
+        task_type: worstTask || "general",
+        weakness_pattern: `Avg score delta ${avgDelta} on ${worstTask || "all tasks"}`,
+        improvement_strategy: `Focus chain-of-thought scaffolding on ${worstTask || "weakest"} tasks. Consider tool-augmented fallbacks for spatial/code tasks.`,
+        benchmark_run_ids: runs.slice(0, 5).map(r => r.created_at),
+      })
+    }
+
+    steps.push({
+      step: "llm_benchmark_improvement",
+      action: `Analyzed ${runs.length} benchmark runs (avg delta: ${avgDelta}), ${plans.length} improvement plans applied (avg improvement: ${avgImprovement}%)`,
+      ok: !needsEscalation,
+      details: { benchmarkRuns: runs.length, avgScoreDelta: avgDelta, plansApplied: plans.length, avgImprovementPct: avgImprovement, escalated: needsEscalation },
+    })
+  } catch (err) {
+    steps.push({
+      step: "llm_benchmark_improvement",
+      ok: false,
+      action: "Failed to run LLM benchmark analysis",
+      details: { error: err instanceof Error ? err.message : "Unknown error" },
+    })
+  }
+
+  // Step 6: Sovereign Health Scan — check expiring permits, stalled filings, unresolved incidents
+  try {
+    const thirtyDaysOut = new Date(Date.now() + 30 * 86400000).toISOString()
+
+    const [expiringPermits, stalledFilings, openIncidents] = await Promise.all([
+      client.from("sovereign_permits").select("id, permit_type, jurisdiction, expiry_date")
+        .lte("expiry_date", thirtyDaysOut).eq("renewal_status", "current").limit(10),
+      client.from("regulatory_filings").select("id, title, status, due_date")
+        .in("status", ["draft", "pending"]).lte("due_date", thirtyDaysOut).limit(10),
+      client.from("sentinel_incidents").select("id, title, severity, status")
+        .in("status", ["open", "investigating"]).limit(10),
+    ])
+
+    const alerts: string[] = []
+    if ((expiringPermits.data?.length ?? 0) > 0) alerts.push(`${expiringPermits.data!.length} permits expiring within 30 days`)
+    if ((stalledFilings.data?.length ?? 0) > 0) alerts.push(`${stalledFilings.data!.length} filings with approaching deadlines`)
+    if ((openIncidents.data?.length ?? 0) > 0) alerts.push(`${openIncidents.data!.length} unresolved security incidents`)
+
+    steps.push({
+      step: "sovereign_health_scan",
+      action: alerts.length > 0 ? `Found ${alerts.length} health alerts: ${alerts.join("; ")}` : "All sovereign systems healthy",
+      ok: alerts.length === 0,
+      details: {
+        expiringPermits: expiringPermits.data?.length ?? 0,
+        stalledFilings: stalledFilings.data?.length ?? 0,
+        openIncidents: openIncidents.data?.length ?? 0,
+        alerts,
+      },
+    })
+  } catch (err) {
+    steps.push({
+      step: "sovereign_health_scan",
+      ok: false,
+      action: "Failed to run sovereign health scan",
+      details: { error: err instanceof Error ? err.message : "Unknown error" },
+    })
+  }
+
+  // Step 6: Aggregate Pulse Metrics
   let pulse: SingularityPulseMetrics
   try {
     const oneWeekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()
 
-    const [evolutions, tariffs, campaigns, experiments] = await Promise.all([
+    const [evolutions, tariffs, campaigns, experiments, incidents, agents, filings, permits] = await Promise.all([
       client.from("agent_harness_evolutions").select("id", { count: "exact", head: true }).gte("created_at", oneWeekAgo),
       client.from("intelligence_tariff_audits").select("monthly_savings_usd").eq("is_replacement_active", true),
       client.from("tribal_auto_research_campaigns").select("id", { count: "exact", head: true }).in("status", ["recruiting", "running", "collecting"]),
       client.from("auto_research_experiments").select("id", { count: "exact", head: true }).gte("created_at", oneWeekAgo),
+      // Enhanced: sentinel incidents (active/investigating)
+      client.from("sentinel_incidents").select("id", { count: "exact", head: true }).in("status", ["open", "investigating"]),
+      // Enhanced: active agent definitions
+      client.from("agent_definitions").select("id", { count: "exact", head: true }).eq("status", "active"),
+      // Enhanced: regulatory filings compliance
+      client.from("regulatory_filings").select("status", { count: "exact", head: true }).in("status", ["submitted", "approved"]),
+      // Enhanced: expiring permits
+      client.from("sovereign_permits").select("id", { count: "exact", head: true }).eq("renewal_status", "current"),
     ])
 
     const totalSavings = (tariffs.data ?? []).reduce((sum, row) => sum + (row.monthly_savings_usd ?? 0), 0)
+    const totalFilings = (filings.count ?? 0)
+    const totalPermits = (permits.count ?? 0)
+    // Composite sovereignty score: weighted average of system health signals
+    const sovereigntyScore = Math.min(100, Math.round(
+      (((incidents.count ?? 0) === 0 ? 30 : Math.max(0, 30 - (incidents.count ?? 0) * 5)) + // Security: 30pts
+      Math.min(30, (agents.count ?? 0) * 5) + // Agent health: 30pts
+      Math.min(20, (evolutions.count ?? 0) * 4) + // Self-improvement: 20pts
+      Math.min(20, (totalFilings + totalPermits) * 2)) // Compliance: 20pts
+    ))
 
     pulse = {
       selfImprovementRate: evolutions.count ?? 0,
@@ -262,6 +446,10 @@ async function runLiveLoop(accessToken?: string): Promise<EvolutionLoopResult> {
       tribalLearningVelocity: experiments.count ?? 0,
       loopRunCount: 1,
       lastRunAt: new Date().toISOString(),
+      sentinelIncidents: incidents.count ?? 0,
+      activeAgents: agents.count ?? 0,
+      sovereigntyScore,
+      governmentCompliance: totalFilings + totalPermits > 0 ? Math.round(totalFilings / (totalFilings + totalPermits) * 100) : 100,
     }
   } catch {
     pulse = getDemoPulseMetrics()

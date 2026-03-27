@@ -177,8 +177,10 @@ export function OnboardingCard({
 }: OnboardingCardProps) {
   const [dismissed, setDismissed] = useState(false)
   const [showWelcome, setShowWelcome] = useState(false)
+  const [mounted, setMounted] = useState(false)
 
   useEffect(() => {
+    setMounted(true)
     setDismissed(getStoredDismissed())
   }, [])
 
@@ -300,8 +302,10 @@ export function OnboardingCard({
 
   const complete = coreSteps.every((step) => step.done)
   const shouldShow = forceShow || (!dismissed && !complete)
-  const coreStepsComplete = coreSteps.filter((step) => step.done).length
-  const coreProgress = Math.round((coreStepsComplete / coreSteps.length) * 100)
+  // Use 0 on server to avoid hydration mismatch (props like hasSupabaseConfigured
+  // can differ between SSR and client when env vars are resolved client-side).
+  const coreStepsComplete = mounted ? coreSteps.filter((step) => step.done).length : 0
+  const coreProgress = mounted ? Math.round((coreStepsComplete / coreSteps.length) * 100) : 0
 
   const conversation: OnboardingConversation = !hasSupabaseConfigured
     ? {
@@ -350,6 +354,11 @@ export function OnboardingCard({
           view: "profiles",
         },
       }
+
+  // Suppress SSR render entirely to avoid hydration mismatch — props like
+  // hasSupabaseConfigured can differ between server and client when env vars
+  // or localStorage are only available client-side.
+  if (!mounted) return null
 
   if (!shouldShow && !showWelcome) {
     return null

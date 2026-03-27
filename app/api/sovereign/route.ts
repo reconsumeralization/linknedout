@@ -1,9 +1,17 @@
 import { resolveSupabaseClientFromRequest } from "@/lib/shared/resolve-request-keys"
 import { resolveSupabaseAuthContextFromRequest } from "@/lib/supabase/supabase-auth"
 import { createSovereignTools } from "@/lib/sovereign/sovereign-tools"
+import { getMaxBodyBytesFromEnv, parseJsonBodyWithLimit } from "@/lib/shared/request-body"
 import { NextResponse } from "next/server"
+import { z } from "zod"
 
 export const maxDuration = 120
+const MAX_BODY_BYTES = getMaxBodyBytesFromEnv("SOVEREIGN_API_MAX_BODY_BYTES", 64_000)
+
+const PostBodySchema = z.object({
+  tool: z.string().min(1).max(120),
+  params: z.record(z.string(), z.unknown()).optional(),
+})
 
 /**
  * Unified Sovereign API — dispatches to any of the 148 sovereign tools
@@ -17,13 +25,21 @@ export async function POST(req: Request) {
       return NextResponse.json({ ok: false, error: "Authentication required." }, { status: 401 })
     }
 
-    const body = await req.json()
-    const toolName = body.tool as string
-    const params = body.params ?? {}
-
-    if (!toolName) {
-      return NextResponse.json({ ok: false, error: "Missing 'tool' field. POST { tool: 'toolName', params: {} }" }, { status: 400 })
+    const parsedBody = await parseJsonBodyWithLimit(req, MAX_BODY_BYTES)
+    if (!parsedBody.ok) {
+      return NextResponse.json({ ok: false, error: parsedBody.error }, { status: parsedBody.status })
     }
+
+    const parsed = PostBodySchema.safeParse(parsedBody.value)
+    if (!parsed.success) {
+      return NextResponse.json(
+        { ok: false, error: "Invalid request payload.", details: parsed.error.flatten() },
+        { status: 400 },
+      )
+    }
+
+    const toolName = parsed.data.tool
+    const params = parsed.data.params ?? {}
 
     const tools = createSovereignTools(authContext)
     const toolDef = (tools as Record<string, unknown>)[toolName]
@@ -43,7 +59,10 @@ export async function POST(req: Request) {
   }
 }
 
-export async function GET() {
+export async function GET(req: Request) {
+  const url = new URL(req.url)
+  const includeTools = url.searchParams.get("tools") === "true"
+
   // Return tool categories for discovery
   const categories = [
     { range: "#1-128", name: "LinkedIn CRM & Intelligence", route: "/api/chat" },
@@ -76,13 +95,34 @@ export async function GET() {
     { range: "#268-271", name: "Sovereign Soul", route: "/api/sovereign" },
     { range: "#272-276", name: "Affective Sovereign", route: "/api/sovereign" },
     { range: "#277-280", name: "Economic Sovereign", route: "/api/sovereign" },
+    { range: "#467-471", name: "Civic Sovereign", route: "/api/sovereign" },
+    { range: "#528-532", name: "Strategic Sovereign", route: "/api/sovereign" },
+    { range: "#533-537", name: "Protector Sovereign", route: "/api/sovereign" },
+    { range: "#538-542", name: "Global Human", route: "/api/sovereign" },
+    { range: "#576-580", name: "Psychological Sovereign", route: "/api/sovereign" },
+    { range: "#581-584", name: "Identity Sovereign", route: "/api/sovereign" },
+    { range: "#585-589", name: "Thermodynamic Sovereign", route: "/api/sovereign" },
+    { range: "#590-594", name: "Project Genesis", route: "/api/sovereign" },
+    { range: "ARC", name: "ARC AGI Solver (Active Inference)", route: "/api/sovereign" },
+    { range: "BENCH", name: "Self-Improving LLM Benchmark (vs Opus 4.6)", route: "/api/sovereign" },
   ]
+
+  // Optionally include full tool list with descriptions
+  let toolList: { name: string; description: string }[] | undefined
+  if (includeTools) {
+    const tools = createSovereignTools(null)
+    toolList = Object.entries(tools).map(([name, t]) => ({
+      name,
+      description: (t as { description?: string }).description ?? "",
+    }))
+  }
 
   return NextResponse.json({
     ok: true,
-    totalTools: 280,
+    totalTools: 329,
     totalCategories: categories.length,
     usage: "POST /api/sovereign { tool: 'toolName', params: { ... } }",
     categories,
+    ...(toolList ? { tools: toolList } : {}),
   })
 }

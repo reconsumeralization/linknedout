@@ -1,5 +1,6 @@
 import { isIP } from "node:net"
 import "server-only"
+import { KeyValueStore } from "@/lib/shared/kv-store"
 
 // ============================================================================
 // Types
@@ -111,7 +112,7 @@ const RATE_LIMIT_PRESETS: Record<RateLimitPreset, RateLimitConfig> = {
 // In-Memory Storage
 // ============================================================================
 
-const buckets = new Map<string, RateLimitBucket>()
+const buckets = new KeyValueStore<RateLimitBucket>()
 
 /** Tracks the last cleanup time to avoid excessive cleanup operations */
 let lastCleanupTime = 0
@@ -133,12 +134,7 @@ function cleanupBuckets(now: number, force = false): void {
   }
   lastCleanupTime = now
 
-  // Remove expired buckets
-  for (const [key, bucket] of buckets.entries()) {
-    if (bucket.resetAt <= now) {
-      buckets.delete(key)
-    }
-  }
+  buckets.pruneExpired(now)
 
   // Guard against unbounded memory growth by removing oldest entries
   if (buckets.size > MAX_BUCKETS) {
@@ -146,7 +142,7 @@ function cleanupBuckets(now: number, force = false): void {
     const targetSize = Math.floor(MAX_BUCKETS / 2)
     const maxDeletions = Math.floor(MAX_BUCKETS / 2)
     
-    for (const key of buckets.keys()) {
+    for (const [key] of buckets.entries()) {
       buckets.delete(key)
       deleted += 1
       if (buckets.size <= targetSize || deleted >= maxDeletions) {
@@ -468,7 +464,7 @@ export function checkInMemoryRateLimit(options: CheckRateLimitOptions): RateLimi
   // Create new bucket if none exists or current one has expired
   if (!existing || existing.resetAt <= now) {
     const resetAt = now + windowMs
-    buckets.set(key, { count: 1, resetAt })
+    buckets.set(key, { count: 1, resetAt }, { ttlMs: windowMs })
     return {
       allowed: true,
       remaining: Math.max(max - 1, 0),
@@ -479,12 +475,14 @@ export function checkInMemoryRateLimit(options: CheckRateLimitOptions): RateLimi
   }
 
   // Increment existing bucket
-  existing.count += 1
-  const allowed = existing.count <= max
+  const nextCount = existing.count + 1
+  const remainingWindowMs = Math.max(existing.resetAt - now, 1)
+  buckets.set(key, { count: nextCount, resetAt: existing.resetAt }, { ttlMs: remainingWindowMs })
+  const allowed = nextCount <= max
   
   return {
     allowed,
-    remaining: Math.max(max - existing.count, 0),
+    remaining: Math.max(max - nextCount, 0),
     retryAfterSeconds: Math.max(Math.ceil((existing.resetAt - now) / 1000), 1),
     limit: max,
     resetAt: existing.resetAt,

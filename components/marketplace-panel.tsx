@@ -22,12 +22,20 @@ import type {
 } from "@/lib/shared/types"
 import { cn } from "@/lib/shared/utils"
 import {
+  type IntegrationCategory,
+  type IntegrationEntry,
+  CATEGORY_LABELS,
+} from "@/lib/connectors/integration-catalog"
+import {
   BarChart3,
+  Check,
+  CircleDot,
   Filter,
   Heart,
   MapPin,
   Package,
   Palette,
+  Plug,
   Plus,
   Search,
   ShoppingBag,
@@ -35,8 +43,20 @@ import {
   Target,
   Users,
   Video,
+  Zap,
 } from "lucide-react"
 import { useCallback, useEffect, useState } from "react"
+
+// ─── Integration Types (from API response) ──────────────────────────────────
+
+interface CatalogEntry extends IntegrationEntry {
+  installed: boolean
+  status: string
+  enabled: boolean
+  healthStatus: string
+  installedAt: string | null
+  userToolCount: number
+}
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 
@@ -442,6 +462,327 @@ function DomainProgressBar({ domain, value }: { domain: string; value: number })
   )
 }
 
+// ─── Integration Card ────────────────────────────────────────────────────────
+
+const TIER_BADGES: Record<string, string> = {
+  native: "bg-blue-500/15 text-blue-700 dark:text-blue-400",
+  agent: "bg-purple-500/15 text-purple-700 dark:text-purple-400",
+  external: "bg-gray-500/15 text-gray-700 dark:text-gray-400",
+}
+
+const STATUS_COLORS: Record<string, string> = {
+  connected: "text-green-500",
+  disconnected: "text-muted-foreground",
+  error: "text-red-500",
+  pending: "text-amber-500",
+}
+
+function IntegrationCard({
+  entry,
+  onInstall,
+  onUninstall,
+  installing,
+}: {
+  entry: CatalogEntry
+  onInstall: (id: string) => void
+  onUninstall: (id: string) => void
+  installing: string | null
+}) {
+  const isInstalling = installing === entry.id
+  return (
+    <Card className={cn(
+      "transition-all hover:shadow-md hover:border-primary/20",
+      entry.installed && "border-green-500/30 bg-green-500/5",
+      !entry.available && "opacity-50"
+    )}>
+      <CardContent className="py-3 px-4">
+        <div className="flex items-start justify-between gap-2">
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-2">
+              <h4 className="text-sm font-semibold truncate">{entry.name}</h4>
+              {entry.installed && <Check className="h-3.5 w-3.5 text-green-500 shrink-0" />}
+            </div>
+            <p className="text-[11px] text-muted-foreground mt-0.5 line-clamp-2">{entry.description}</p>
+          </div>
+          <div className="flex flex-col items-end gap-1.5 shrink-0">
+            <Badge variant="outline" className={cn("text-[9px]", TIER_BADGES[entry.tier] ?? "")}>
+              {entry.tier}
+            </Badge>
+            <Badge variant="outline" className="text-[9px]">
+              {CATEGORY_LABELS[entry.category] ?? entry.category}
+            </Badge>
+          </div>
+        </div>
+        <div className="flex items-center justify-between mt-2.5">
+          <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
+            <span className="flex items-center gap-0.5">
+              <Zap className="h-3 w-3" />
+              {entry.agentTools.length} tools
+            </span>
+            {entry.installed && (
+              <span className={cn("flex items-center gap-0.5", STATUS_COLORS[entry.status])}>
+                <CircleDot className="h-3 w-3" />
+                {entry.status}
+              </span>
+            )}
+          </div>
+          {entry.available ? (
+            entry.installed ? (
+              <Button
+                size="sm"
+                variant="ghost"
+                className="h-7 text-[11px] text-red-500 hover:text-red-600"
+                onClick={() => onUninstall(entry.id)}
+                disabled={isInstalling}
+              >
+                Uninstall
+              </Button>
+            ) : (
+              <Button
+                size="sm"
+                variant="outline"
+                className="h-7 text-[11px]"
+                onClick={() => onInstall(entry.id)}
+                disabled={isInstalling}
+              >
+                {isInstalling ? "Installing..." : "Install"}
+              </Button>
+            )
+          ) : (
+            <Badge variant="outline" className="text-[9px] text-muted-foreground">Coming Soon</Badge>
+          )}
+        </div>
+      </CardContent>
+    </Card>
+  )
+}
+
+// ─── Integrations Tab ────────────────────────────────────────────────────────
+
+function IntegrationsTab() {
+  const [catalog, setCatalog] = useState<CatalogEntry[]>([])
+  const [loading, setLoading] = useState(true)
+  const [searchQuery, setSearchQuery] = useState("")
+  const [filterCategory, setFilterCategory] = useState<string>("all")
+  const [filterTier, setFilterTier] = useState<string>("all")
+  const [installing, setInstalling] = useState<string | null>(null)
+  const [totalInstalled, setTotalInstalled] = useState(0)
+
+  const fetchCatalog = useCallback(async () => {
+    setLoading(true)
+    try {
+      const res = await fetch("/api/integrations?action=catalog")
+      if (!res.ok) throw new Error("Failed to fetch catalog")
+      const data = await res.json()
+      setCatalog(data.catalog ?? [])
+      setTotalInstalled(data.totalInstalled ?? 0)
+    } catch {
+      setCatalog([])
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
+  useEffect(() => { fetchCatalog() }, [fetchCatalog])
+
+  const handleInstall = useCallback(async (provider: string) => {
+    setInstalling(provider)
+    try {
+      const res = await fetch("/api/integrations", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "install", provider }),
+      })
+      if (res.ok) {
+        setCatalog((prev) => prev.map((e) =>
+          e.id === provider ? { ...e, installed: true, status: "connected", enabled: true } : e
+        ))
+        setTotalInstalled((prev) => prev + 1)
+      }
+    } finally {
+      setInstalling(null)
+    }
+  }, [])
+
+  const handleUninstall = useCallback(async (provider: string) => {
+    setInstalling(provider)
+    try {
+      const res = await fetch("/api/integrations", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "uninstall", provider }),
+      })
+      if (res.ok) {
+        setCatalog((prev) => prev.map((e) =>
+          e.id === provider ? { ...e, installed: false, status: "disconnected", enabled: false } : e
+        ))
+        setTotalInstalled((prev) => Math.max(0, prev - 1))
+      }
+    } finally {
+      setInstalling(null)
+    }
+  }, [])
+
+  // Gather unique categories from catalog
+  const categories = [...new Set(catalog.map((e) => e.category))].sort()
+
+  const filtered = catalog.filter((e) => {
+    if (filterCategory !== "all" && e.category !== filterCategory) return false
+    if (filterTier !== "all" && e.tier !== filterTier) return false
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase()
+      return (
+        e.name.toLowerCase().includes(q) ||
+        e.description.toLowerCase().includes(q) ||
+        e.category.toLowerCase().includes(q)
+      )
+    }
+    return true
+  })
+
+  const featured = filtered.filter((e) => e.featured)
+  const installed = filtered.filter((e) => e.installed && !e.featured)
+  const available = filtered.filter((e) => !e.installed && !e.featured && e.available)
+  const comingSoon = filtered.filter((e) => !e.available)
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-16">
+        <div className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+      </div>
+    )
+  }
+
+  return (
+    <div className="space-y-4">
+      {/* Stats Row */}
+      <div className="grid grid-cols-3 gap-3">
+        <StatCard icon={Plug} label="Available" value={catalog.filter((e) => e.available).length} />
+        <StatCard icon={Check} label="Installed" value={totalInstalled} />
+        <StatCard icon={Zap} label="Total Tools" value={catalog.reduce((sum, e) => sum + e.agentTools.length, 0)} />
+      </div>
+
+      {/* Search + Filters */}
+      <div className="flex items-center gap-2">
+        <div className="relative flex-1">
+          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+          <Input
+            placeholder="Search integrations..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="pl-8 text-sm h-9"
+          />
+        </div>
+        <Select value={filterCategory} onValueChange={setFilterCategory}>
+          <SelectTrigger className="w-[140px] text-xs h-9">
+            <Filter className="mr-1 h-3.5 w-3.5" />
+            <SelectValue placeholder="Category" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all" className="text-xs">All Categories</SelectItem>
+            {categories.map((cat) => (
+              <SelectItem key={cat} value={cat} className="text-xs">
+                {CATEGORY_LABELS[cat as IntegrationCategory] ?? cat}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Select value={filterTier} onValueChange={setFilterTier}>
+          <SelectTrigger className="w-[110px] text-xs h-9">
+            <SelectValue placeholder="Tier" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all" className="text-xs">All Tiers</SelectItem>
+            <SelectItem value="native" className="text-xs">Native</SelectItem>
+            <SelectItem value="agent" className="text-xs">Agent</SelectItem>
+            <SelectItem value="external" className="text-xs">External</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+
+      {/* Featured Section */}
+      {featured.length > 0 && (
+        <div className="space-y-2">
+          <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Featured</h3>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-2">
+            {featured.map((entry) => (
+              <IntegrationCard
+                key={entry.id}
+                entry={entry}
+                onInstall={handleInstall}
+                onUninstall={handleUninstall}
+                installing={installing}
+              />
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Installed Section */}
+      {installed.length > 0 && (
+        <div className="space-y-2">
+          <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Installed</h3>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-2">
+            {installed.map((entry) => (
+              <IntegrationCard
+                key={entry.id}
+                entry={entry}
+                onInstall={handleInstall}
+                onUninstall={handleUninstall}
+                installing={installing}
+              />
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Available Section */}
+      {available.length > 0 && (
+        <div className="space-y-2">
+          <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Available</h3>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-2">
+            {available.map((entry) => (
+              <IntegrationCard
+                key={entry.id}
+                entry={entry}
+                onInstall={handleInstall}
+                onUninstall={handleUninstall}
+                installing={installing}
+              />
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Coming Soon */}
+      {comingSoon.length > 0 && (
+        <div className="space-y-2">
+          <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Coming Soon</h3>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-2">
+            {comingSoon.map((entry) => (
+              <IntegrationCard
+                key={entry.id}
+                entry={entry}
+                onInstall={handleInstall}
+                onUninstall={handleUninstall}
+                installing={installing}
+              />
+            ))}
+          </div>
+        </div>
+      )}
+
+      {filtered.length === 0 && (
+        <EmptyState
+          icon={Plug}
+          title="No integrations found"
+          description="Try adjusting your search or filters."
+        />
+      )}
+    </div>
+  )
+}
+
 // ─── Main Component ──────────────────────────────────────────────────────────
 
 export default function MarketplacePanel() {
@@ -611,6 +952,13 @@ export default function MarketplacePanel() {
             >
               <Target className="mr-1.5 h-3.5 w-3.5" />
               Bounties
+            </TabsTrigger>
+            <TabsTrigger
+              value="integrations"
+              className="rounded-none border-b-2 border-transparent px-3 py-1.5 text-xs data-[state=active]:border-primary data-[state=active]:bg-transparent"
+            >
+              <Plug className="mr-1.5 h-3.5 w-3.5" />
+              Integrations
             </TabsTrigger>
           </TabsList>
         </div>
@@ -847,6 +1195,11 @@ export default function MarketplacePanel() {
                 <p className="text-xs text-muted-foreground mt-1">Add external challenges from DEV.to, Notion, GitHub, or Product Hunt to track submissions</p>
               </CardContent>
             </Card>
+          </TabsContent>
+
+          {/* ── Integrations Tab ──────────────────────────────────────── */}
+          <TabsContent value="integrations" className="m-0 p-4 space-y-4">
+            <IntegrationsTab />
           </TabsContent>
         </div>
       </Tabs>

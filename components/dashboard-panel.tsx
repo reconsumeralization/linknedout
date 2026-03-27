@@ -18,7 +18,9 @@ import {
   subscribeToTribes,
 } from "@/lib/supabase/supabase-data"
 import { resolveSupabaseAccessToken } from "@/lib/supabase/supabase-client-auth"
-import { ArrowRight, BookOpen, Brain, ChevronRight, FlaskConical, FolderKanban, Layers, MessageSquare, Network, Radio, Shield, Sparkles, Star, TrendingDown, TrendingUp, Upload, Users, Zap } from "lucide-react"
+import { RecommendationsCard } from "@/components/recommendations-card"
+import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "@/components/ui/collapsible"
+import { ArrowRight, BookOpen, Brain, ChevronDown, ChevronRight, ChevronUp, FlaskConical, FolderKanban, Layers, MessageSquare, Network, Radio, Shield, Sparkles, Star, TrendingDown, TrendingUp, Upload, Users, Zap } from "lucide-react"
 import { useCallback, useEffect, useMemo, useState } from "react"
 import {
     Bar,
@@ -39,11 +41,11 @@ type Activity = { action: string; time: string; type: string }
 type Stat = { label: string; value: string; change: string; icon: React.ElementType; color: string }
 type Project = { name: string; progress: number; status: string; type: string }
 
-const stats: Stat[] = [
-  { label: "Profiles", value: "247", change: "+12 this week", icon: Users, color: "text-primary" },
-  { label: "Active Tribes", value: "8", change: "3 forming", icon: Layers, color: "text-accent" },
-  { label: "Projects", value: "14", change: "6 active", icon: FolderKanban, color: "text-chart-3" },
-  { label: "Network Reach", value: "12.4K", change: "+850 this month", icon: Network, color: "text-chart-5" },
+const defaultStats: Stat[] = [
+  { label: "Profiles", value: "—", change: "loading...", icon: Users, color: "text-primary" },
+  { label: "Active Tribes", value: "—", change: "loading...", icon: Layers, color: "text-accent" },
+  { label: "Projects", value: "—", change: "loading...", icon: FolderKanban, color: "text-chart-3" },
+  { label: "Network Reach", value: "—", change: "loading...", icon: Network, color: "text-chart-5" },
 ]
 
 type Aspiration = { skill: string, count: number, trending?: boolean, gap?: boolean }
@@ -218,7 +220,6 @@ function SingularityPulseCard({ onNavigate }: { onNavigate?: (view: ActiveView) 
             <ChevronRight className="h-3 w-3" />
           </Button>
         </div>
-        {/* TODO: This section can be wrapped in a collapsible toggle (defaults to hidden) for a cleaner dashboard */}
         <CardDescription className="text-xs">Performance and efficiency metrics</CardDescription>
       </CardHeader>
       <CardContent>
@@ -251,7 +252,7 @@ function SingularityPulseCard({ onNavigate }: { onNavigate?: (view: ActiveView) 
 
 export function DashboardPanel({ onNavigate, csvData }: DashboardPanelProps) {
   const [showAdvanced, setShowAdvanced] = useState(false)
-  const [liveStats, setLiveStats] = useState<Stat[]>([])
+  const [liveStats, setLiveStats] = useState<Stat[]>(defaultStats)
   const [liveProjects, setLiveProjects] = useState<Project[]>([])
   const [liveActivity, setLiveActivity] = useState<Activity[]>([])
   const [dataSource, setDataSource] = useState<"csv" | "supabase">("supabase")
@@ -268,11 +269,11 @@ export function DashboardPanel({ onNavigate, csvData }: DashboardPanelProps) {
     const tribeCount = new Set(csvProfiles.map(p => p.tribe).filter(Boolean)).size
     const totalConnections = csvProfiles.reduce((sum, p) => sum + (p.connections || 0), 0)
     setLiveStats([
-      { ...stats[0], value: count.toLocaleString(), change: `from imported profiles (${count} rows)` },
-      { ...stats[1], value: Math.max(tribeCount, 1).toString(), change: tribeCount > 0 ? "detected in import session" : "auto-grouped" },
-      { ...stats[2], value: stats[2].value, change: stats[2].change },
+      { ...defaultStats[0], value: count.toLocaleString(), change: `from imported profiles (${count} rows)` },
+      { ...defaultStats[1], value: Math.max(tribeCount, 1).toString(), change: tribeCount > 0 ? "detected in import session" : "auto-grouped" },
+      { ...defaultStats[2], value: defaultStats[2].value, change: defaultStats[2].change },
       {
-        ...stats[3],
+        ...defaultStats[3],
         value: new Intl.NumberFormat("en-US", { notation: "compact", maximumFractionDigits: 1 }).format(totalConnections),
         change: "sum of connections",
       },
@@ -289,10 +290,10 @@ export function DashboardPanel({ onNavigate, csvData }: DashboardPanelProps) {
       const snapshot = await fetchSupabaseDashboardSnapshot()
       if (!snapshot) {
         setLiveStats([
-          { ...stats[0], value: "0", change: "from Supabase" },
-          { ...stats[1], value: "0", change: "live tribe records" },
-          { ...stats[2], value: "0", change: "project sync active" },
-          { ...stats[3], value: "0", change: "calculated from profile connections" },
+          { ...defaultStats[0], value: "0", change: "from Supabase" },
+          { ...defaultStats[1], value: "0", change: "live tribe records" },
+          { ...defaultStats[2], value: "0", change: "project sync active" },
+          { ...defaultStats[3], value: "0", change: "calculated from profile connections" },
         ])
         setLiveProjects([])
         setLiveActivity([])
@@ -301,11 +302,11 @@ export function DashboardPanel({ onNavigate, csvData }: DashboardPanelProps) {
       }
 
       setLiveStats([
-        { ...stats[0], value: snapshot.profileCount.toLocaleString(), change: "from Supabase" },
-        { ...stats[1], value: snapshot.tribeCount.toLocaleString(), change: "live tribe records" },
-        { ...stats[2], value: snapshot.projectCount.toLocaleString(), change: "project sync active" },
+        { ...defaultStats[0], value: snapshot.profileCount.toLocaleString(), change: "from Supabase" },
+        { ...defaultStats[1], value: snapshot.tribeCount.toLocaleString(), change: "live tribe records" },
+        { ...defaultStats[2], value: snapshot.projectCount.toLocaleString(), change: "project sync active" },
         {
-          ...stats[3],
+          ...defaultStats[3],
           value: new Intl.NumberFormat("en-US", { notation: "compact", maximumFractionDigits: 1 }).format(snapshot.networkReach),
           change: "calculated from profile connections",
         },
@@ -430,6 +431,17 @@ export function DashboardPanel({ onNavigate, csvData }: DashboardPanelProps) {
             <StatCard key={stat.label} stat={stat} />
           ))}
         </div>
+
+        {/* AI Recommendations */}
+        <RecommendationsCard
+          profiles={csvProfiles ?? []}
+          tribes={[]}
+          onAction={(rec) => {
+            const view = rec.actionPayload?.view as string | undefined
+            if (view) onNavigate(view as ActiveView)
+          }}
+          onSeeAll={() => onNavigate("analytics")}
+        />
 
         {/* Charts Row */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
@@ -562,13 +574,20 @@ export function DashboardPanel({ onNavigate, csvData }: DashboardPanelProps) {
         </Card>
 
         {/* Advanced Metrics — collapsed by default */}
-        <div className="flex justify-center">
-          <Button variant="ghost" size="sm" className="text-xs text-muted-foreground gap-1.5" onClick={() => setShowAdvanced((v) => !v)}>
-            <Zap className="h-3 w-3" />
-            {showAdvanced ? "Hide Advanced Metrics" : "Show Advanced Metrics"}
-          </Button>
-        </div>
-        {showAdvanced && <SingularityPulseCard onNavigate={onNavigate} />}
+        <Collapsible open={showAdvanced} onOpenChange={setShowAdvanced}>
+          <div className="flex justify-center">
+            <CollapsibleTrigger asChild>
+              <Button variant="ghost" size="sm" className="text-xs text-muted-foreground gap-1.5">
+                <Zap className="h-3 w-3" />
+                {showAdvanced ? "Hide Advanced Metrics" : "Show Advanced Metrics"}
+                {showAdvanced ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
+              </Button>
+            </CollapsibleTrigger>
+          </div>
+          <CollapsibleContent>
+            <SingularityPulseCard onNavigate={onNavigate} />
+          </CollapsibleContent>
+        </Collapsible>
 
         {/* Aspirations Snapshot */}
         <Card className="bg-card border-border">

@@ -5,6 +5,7 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react"
 import { ChatPanel } from "@/components/chat-panel"
 import { resolveSupabaseAccessToken } from "@/lib/supabase/supabase-client-auth"
 import { importLinkedInPdf } from "@/lib/linkedin/linkedin-pdf-parser"
+import { importLinkedInDataExport } from "@/lib/import/linkedin-data-export"
 import { toast } from "sonner"
 import { describe, expect, it, beforeEach, vi } from "vitest"
 
@@ -26,6 +27,10 @@ vi.mock("@/lib/supabase/supabase-client-auth", () => ({
 
 vi.mock("@/lib/linkedin/linkedin-pdf-parser", () => ({
   importLinkedInPdf: vi.fn(),
+}))
+
+vi.mock("@/lib/import/linkedin-data-export", () => ({
+  importLinkedInDataExport: vi.fn(),
 }))
 
 vi.mock("sonner", () => ({
@@ -141,8 +146,63 @@ describe("ChatPanel import upload", () => {
     })
 
     await waitFor(() => {
-      expect(toast.error).toHaveBeenCalledWith("Please upload a CSV or LinkedIn PDF file.")
+      expect(toast.error).toHaveBeenCalledWith(
+        "Unsupported file type. Please upload a CSV, PDF, JSON, VCF, or select multiple files from a LinkedIn export folder.",
+      )
     })
     expect(onImportProfiles).not.toHaveBeenCalled()
+  })
+
+  it("accepts multi-file LinkedIn export bundles", async () => {
+    const { input, onImportProfiles } = renderChatPanel()
+
+    vi.mocked(importLinkedInDataExport).mockResolvedValue({
+      profiles: [
+        {
+          id: "csv-1-ava-stone",
+          firstName: "Ava",
+          lastName: "Stone",
+          headline: "Platform Engineer",
+          company: "Acme",
+          location: "New York",
+          industry: "Technology",
+          connections: 0,
+          skills: ["React"],
+          matchScore: 88,
+          seniority: "Senior",
+          linkedinUrl: "https://linkedin.com/in/ava",
+          email: undefined,
+          connectedOn: "25 Mar 2026",
+        },
+      ],
+      canonicalCsv: "id,firstName,lastName\ncsv-1-ava-stone,Ava,Stone",
+      warnings: ["LinkedIn export artifacts detected: connections=1."],
+      errors: [],
+      artifactCounts: { connections: 1 },
+    })
+
+    fireEvent.change(input, {
+      target: {
+        files: [
+          new File(["csv"], "Connections.csv", { type: "text/csv" }),
+          new File(["<html></html>"], "Articles/Articles/foo.html", { type: "text/html" }),
+        ],
+      },
+    })
+
+    await waitFor(() => {
+      expect(onImportProfiles).toHaveBeenCalledWith(
+        expect.objectContaining({
+          type: "linkedin_export",
+          fileName: "LinkedIn data export",
+          warnings: expect.any(Array),
+          rawCsv: expect.any(String),
+        }),
+      )
+    })
+
+    expect(toast.success).toHaveBeenCalledWith("LinkedIn export imported", {
+      description: "1 connections ready for analysis",
+    })
   })
 })

@@ -402,3 +402,16 @@ export async function evaluateLlmGuard(input: EvaluateLlmGuardInput): Promise<Ll
     clearTimeout(timeout)
   }
 }
+
+/**
+ * Re-export the optimized guard for consumers who want the enhanced version.
+ * Falls back to the standard guard if the optimized module fails to load.
+ */
+export async function evaluateLlmGuardOptimized(input: EvaluateLlmGuardInput): Promise<LlmGuardDecision> {
+  try {
+    const { evaluateOptimizedGuard } = await import("./llm-guard-optimized")
+    return await evaluateOptimizedGuard(input)
+  } catch {
+    return evaluateLlmGuard(input)
+  }
+}

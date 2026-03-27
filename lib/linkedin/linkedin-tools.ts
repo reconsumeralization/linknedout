@@ -219,6 +219,36 @@ function createSupabaseAdminClient(): SupabaseClient | null {
   })
 }
 
+/**
+ * Try to fetch workspace profiles via the service/admin client.
+ * Used as a fallback when the user is not authenticated but Supabase is configured.
+ * Returns null if service client is unavailable or query fails.
+ */
+async function tryFetchProfilesViaServiceClient(limit = 200): Promise<CrmProfile[] | null> {
+  const adminClient = createSupabaseAdminClient()
+  if (!adminClient) return null
+  try {
+    const profiles = await fetchWorkspaceProfiles(adminClient, limit)
+    return profiles.length > 0 ? profiles : null
+  } catch {
+    return null
+  }
+}
+
+/**
+ * Try to fetch a single profile by ID via the service/admin client.
+ */
+async function tryFetchProfileByIdViaServiceClient(profileId: string): Promise<CrmProfile | null> {
+  const adminClient = createSupabaseAdminClient()
+  if (!adminClient) return null
+  try {
+    const profiles = await fetchProfilesByIds(adminClient, [profileId])
+    return profiles[0] ?? null
+  } catch {
+    return null
+  }
+}
+
 function mapProfileRow(row: DbRow): CrmProfile {
   const firstName = asString(row.first_name || row.firstName)
   const lastName = asString(row.last_name || row.lastName)
@@ -3901,11 +3931,32 @@ export function createLinkedinTools(authContext: SupabaseAuthContext | null) {
         }
       }
 
+      // Try service client for unauthenticated access to real data
+      const serviceProfiles = await tryFetchProfilesViaServiceClient(800)
+      if (serviceProfiles) {
+        const filtered = filterProfiles(serviceProfiles, input)
+          .sort((a, b) => b.matchScore - a.matchScore)
+          .slice(0, limit)
+
+        if (filtered.length > 0) {
+          return {
+            totalResults: filtered.length,
+            profiles: filtered.map(describeProfile),
+            source: "supabase",
+            searchCriteria: input,
+            authRequiredHint: authScope.error,
+            suggestedNextTools:
+              "Sign in with Supabase for full CRM access; getProfileDetails(profileId) for depth; createTribe(profileIds, tribePurpose) to group",
+            apiEndpoint: "GET /v2/people-search",
+          }
+        }
+      }
+
       const results = generateMockProfiles(input.keywords, limit)
       return {
         totalResults: estimateMockTotalResults(input.keywords, results.length),
         profiles: results,
-        source: "mock",
+        source: "demo",
         authRequiredHint: authScope.error,
         suggestedNextTools: "Sign in with Supabase to search real CRM data; then getProfileDetails, createTribe, or getProjectCrmInsights",
         searchCriteria: input,
@@ -3959,9 +4010,43 @@ export function createLinkedinTools(authContext: SupabaseAuthContext | null) {
         }
       }
 
+      // Try service client for unauthenticated access to real profile
+      const serviceProfile = await tryFetchProfileByIdViaServiceClient(input.profileId)
+      if (serviceProfile) {
+        const derived = buildDerivedProfileDetails(serviceProfile)
+        const selectedProfile = pickProfileDetailFields(
+          {
+            ...describeProfile(serviceProfile),
+            firstName: serviceProfile.firstName,
+            lastName: serviceProfile.lastName,
+            summary: derived.summary,
+            currentPosition: derived.currentPosition,
+            positions: derived.positions,
+            education: derived.education,
+            endorsements: derived.endorsements,
+            recommendations: derived.recommendations,
+            profileViews: derived.profileViews,
+            searchAppearances: derived.searchAppearances,
+            createdAt: serviceProfile.createdAt || null,
+            updatedAt: serviceProfile.updatedAt || null,
+          },
+          input.fields,
+        )
+        return {
+          profile: selectedProfile.profile,
+          source: "supabase",
+          dataQuality: "derived",
+          notes: derived.notes,
+          ignoredFields: selectedProfile.ignoredFields.length > 0 ? selectedProfile.ignoredFields : undefined,
+          authRequiredHint: !authScope.ok ? authScope.error : undefined,
+          suggestedNextTools: "Sign in for full CRM access; addProfilesToTribe, createProject, or getProfileConnections",
+          apiEndpoint: "GET /v2/people/{id}",
+        }
+      }
+
       return {
         profile: generateDetailedProfile(input.profileId),
-        source: "mock",
+        source: "demo",
         suggestedNextTools: "Sign in for real CRM data; then addProfilesToTribe, createProject, or getProfileConnections",
         apiEndpoint: "GET /v2/people/{id}",
       }
@@ -4026,6 +4111,28 @@ export function createLinkedinTools(authContext: SupabaseAuthContext | null) {
         }
       }
 
+      // Try service client for unauthenticated access to real workspace profiles
+      const serviceProfiles = await tryFetchProfilesViaServiceClient(Math.max(limit + 6, 12))
+      if (serviceProfiles && serviceProfiles.length > 0) {
+        const center = serviceProfiles.find(p => p.id === input.profileId) || serviceProfiles[0]
+        const connections = buildWorkspaceProfileConnections(center, serviceProfiles, {
+          degree: input.degree,
+          limit,
+        })
+        return {
+          ...connections,
+          profileId: center.id,
+          profileName: center.fullName,
+          source: "supabase",
+          dataQuality: "derived",
+          notes:
+            "Derived from CRM data. Sign in with Supabase for full workspace relationships.",
+          authRequiredHint: authScope.error,
+          suggestedNextTools: "analyzeNetwork(centerProfileId) for clusters; searchProfiles to find similar; sendConnectionRequest(profileId, note) for outreach",
+          apiEndpoint: "GET /v2/connections",
+        }
+      }
+
       const mockWorkspace = buildMockWorkspaceProfiles(input.profileId, Math.max(limit + 6, 12))
       const center = mockWorkspace[0]
       const connections = buildWorkspaceProfileConnections(center, mockWorkspace, {
@@ -4036,10 +4143,10 @@ export function createLinkedinTools(authContext: SupabaseAuthContext | null) {
         ...connections,
         profileId: center.id,
         profileName: center.fullName,
-        source: "mock",
+        source: "demo",
         dataQuality: "derived",
         notes:
-          "Derived from deterministic mock CRM data because the user is not authenticated. Sign in with Supabase for real workspace relationships.",
+          "Derived from demo data because no CRM data is available. Sign in with Supabase for real workspace relationships.",
         authRequiredHint: authScope.error,
         suggestedNextTools: "analyzeNetwork(centerProfileId) for clusters; searchProfiles to find similar; sendConnectionRequest(profileId, note) for outreach",
         apiEndpoint: "GET /v2/connections",
@@ -4087,7 +4194,7 @@ export function createLinkedinTools(authContext: SupabaseAuthContext | null) {
           founded: [2015, 2018, 2010, 2012, 2020][i],
         })),
         totalResults: 5,
-        source: "mock",
+        source: "demo",
         authRequiredHint: authScope.error,
         suggestedNextTools: "getCompanyEmployees(companyId) for talent at a company; searchJobs(keywords, company) for open roles; searchProfiles(keywords, currentCompany) to find CRM profiles at similar companies",
         apiEndpoint: "GET /v2/companies-search",
@@ -4133,7 +4240,7 @@ export function createLinkedinTools(authContext: SupabaseAuthContext | null) {
           location: ["San Francisco", "Remote", "New York", "Austin", "Seattle"][i % 5],
         })),
         totalEmployees: 150 + Math.floor(Math.random() * 500),
-        source: "mock",
+        source: "demo",
         authRequiredHint: authScope.error,
         suggestedNextTools: "searchProfiles(keywords, currentCompany) to find these people in CRM; createTribe(profileIds, tribePurpose) to form a team from them",
         apiEndpoint: "GET /v2/companies/{id}/employees",
@@ -4186,7 +4293,7 @@ export function createLinkedinTools(authContext: SupabaseAuthContext | null) {
         skills,
         context: input.companyId || input.industry || "selected profiles",
         totalProfilesAnalyzed: input.profileIds?.length || 50 + Math.floor(Math.random() * 200),
-        source: "mock",
+        source: "demo",
         authRequiredHint: authScope.error,
         suggestedNextTools: "createTribe(profileIds, tribePurpose, optimizeFor: 'skills'); searchProfiles(skills: [top skills]); addProjectPosition for role requirements",
         apiEndpoint: "GET /v2/skills-analysis",
@@ -4243,7 +4350,7 @@ export function createLinkedinTools(authContext: SupabaseAuthContext | null) {
           experienceLevel: input.experienceLevel || ["Senior", "Mid", "Senior", "Staff", "Director"][i],
         })),
         totalResults: 50 + Math.floor(Math.random() * 500),
-        source: "mock",
+        source: "demo",
         authRequiredHint: authScope.error,
         suggestedNextTools: "getProjectCrmInsights(projectId) to match CRM candidates to roles; searchProfiles(keywords, title) to find internal talent; createProject + addProjectPosition to track hiring",
         apiEndpoint: "GET /v2/jobs-search",
@@ -4441,6 +4548,24 @@ export function createLinkedinTools(authContext: SupabaseAuthContext | null) {
         }
       }
 
+      // Try service client for unauthenticated access
+      const serviceProfiles = await tryFetchProfilesViaServiceClient(32)
+      if (serviceProfiles && serviceProfiles.length > 0) {
+        const center = serviceProfiles.find(p => p.id === input.centerProfileId) || serviceProfiles[0]
+        const analysis = buildNetworkAnalysisFromWorkspace(center, serviceProfiles, input)
+        return {
+          ...analysis,
+          centerProfileId: center.id,
+          centerProfileName: center.fullName,
+          source: "supabase",
+          dataQuality: "derived",
+          notes: "Derived from CRM data. Sign in with Supabase for full workspace-backed network analysis.",
+          authRequiredHint: authScope.error,
+          suggestedNextTools: "createTribe(profileIds from clusters, tribePurpose); getRecommendations(profileId); searchProfiles to find CRM matches for keyMembers",
+          apiEndpoint: "GET /v2/network-analysis",
+        }
+      }
+
       const mockWorkspace = buildMockWorkspaceProfiles(input.centerProfileId, 32)
       const center = mockWorkspace[0]
       const analysis = buildNetworkAnalysisFromWorkspace(center, mockWorkspace, input)
@@ -4448,10 +4573,10 @@ export function createLinkedinTools(authContext: SupabaseAuthContext | null) {
         ...analysis,
         centerProfileId: center.id,
         centerProfileName: center.fullName,
-        source: "mock",
+        source: "demo",
         dataQuality: "derived",
         notes:
-          "Derived from deterministic mock CRM data because the user is not authenticated. Sign in with Supabase for workspace-backed network analysis.",
+          "Derived from demo data because no CRM data is available. Sign in with Supabase for workspace-backed network analysis.",
         authRequiredHint: authScope.error,
         suggestedNextTools: "createTribe(profileIds from clusters, tribePurpose); getRecommendations(profileId); searchProfiles to find CRM matches for keyMembers",
         apiEndpoint: "GET /v2/network-analysis",
@@ -4511,7 +4636,7 @@ export function createLinkedinTools(authContext: SupabaseAuthContext | null) {
         ],
         totalReceived: 12,
         totalGiven: 8,
-        source: "mock",
+        source: "demo",
         authRequiredHint: authScope.error,
         suggestedNextTools: "getProfileConnections(profileId); sendConnectionRequest or sendMessage for outreach; createTribe if building a team around this profile",
         apiEndpoint: "GET /v2/people/{id}/recommendations",
@@ -4558,6 +4683,25 @@ export function createLinkedinTools(authContext: SupabaseAuthContext | null) {
         }
       }
 
+      // Try service client for unauthenticated access
+      const serviceProfiles = await tryFetchProfilesViaServiceClient(24)
+      if (serviceProfiles && serviceProfiles.length > 0) {
+        const profile = serviceProfiles.find(p => p.id === input.profileId) || serviceProfiles[0]
+        const analytics = buildProfileViewAnalytics(profile, serviceProfiles, { timeRange })
+        return {
+          ...analytics,
+          profileId: profile.id,
+          profileName: profile.fullName,
+          timeRange,
+          source: "supabase",
+          dataQuality: "derived",
+          notes: "Derived from CRM data. Sign in with Supabase for full workspace-backed analytics.",
+          authRequiredHint: authScope.error,
+          suggestedNextTools: "getPostAnalytics for content performance; getProfileDetails(profileId); searchProfiles to find similar high-engagement profiles",
+          apiEndpoint: "GET /v2/people/{id}/analytics",
+        }
+      }
+
       const mockWorkspace = buildMockWorkspaceProfiles(input.profileId, 24)
       const profile = mockWorkspace[0]
       const analytics = buildProfileViewAnalytics(profile, mockWorkspace, { timeRange })
@@ -4566,10 +4710,10 @@ export function createLinkedinTools(authContext: SupabaseAuthContext | null) {
         profileId: profile.id,
         profileName: profile.fullName,
         timeRange,
-        source: "mock",
+        source: "demo",
         dataQuality: "derived",
         notes:
-          "Derived from deterministic mock CRM data because the user is not authenticated. Sign in with Supabase for workspace-backed analytics.",
+          "Derived from demo data because no CRM data is available. Sign in with Supabase for workspace-backed analytics.",
         authRequiredHint: authScope.error,
         suggestedNextTools: "getPostAnalytics for content performance; getProfileDetails(profileId); searchProfiles to find similar high-engagement profiles",
         apiEndpoint: "GET /v2/people/{id}/analytics",
@@ -4824,7 +4968,7 @@ export function createLinkedinTools(authContext: SupabaseAuthContext | null) {
       const requiredSkillCoverage = buildSkillCoverage(mockProfiles, requiredSkills)
       return {
         ok: true,
-        source: "mock",
+        source: "demo",
         authRequiredHint: authScope.error,
         analyzedProfiles: mockProfiles.length,
         segmentation: {
@@ -5249,7 +5393,7 @@ export function createLinkedinTools(authContext: SupabaseAuthContext | null) {
 
       return {
         ok: true,
-        source: "mock",
+        source: "demo",
         authRequiredHint: authScope.error,
         query: {
           keywords: input.keywords,
@@ -5398,7 +5542,7 @@ export function createLinkedinTools(authContext: SupabaseAuthContext | null) {
           description: `A community for ${input.keywords} professionals to connect, share insights, and grow.`,
         })),
         totalResults: 5,
-        source: "mock",
+        source: "demo",
         authRequiredHint: authScope.error,
         apiEndpoint: "GET /v2/groups-search",
       }
@@ -5577,7 +5721,7 @@ export function createLinkedinTools(authContext: SupabaseAuthContext | null) {
         timeRange,
         totalImpressions: Math.floor(Math.random() * 25000) + 5000,
         avgEngagementRate: `${(Math.random() * 5 + 3).toFixed(1)}%`,
-        source: "mock",
+        source: "demo",
         authRequiredHint: authScope.error,
         apiEndpoint: "GET /v2/organizationalEntityShareStatistics",
       }
@@ -6338,7 +6482,7 @@ export function createLinkedinTools(authContext: SupabaseAuthContext | null) {
           blockers: i === 2 ? ["Pending budget approval", "Stakeholder availability"] : [],
           lastUpdated: new Date(Date.now() - i * 3 * 86400000).toISOString(),
         })),
-        source: "mock",
+        source: "demo",
         authRequiredHint: authScope.error,
         suggestedNextTools: "Sign in for real project data; then getProjectCrmInsights, addProjectMilestone",
         apiEndpoint: "GET /v2/projects",

@@ -22,8 +22,8 @@ import {
   Download,
   Filter,
   Linkedin,
+  Handshake,
   LinkIcon,
-  LinkIcon as LinkMatch,
   Moon,
   Network,
   Search,
@@ -1153,7 +1153,7 @@ export function LinkedOutPanel({ csvData, onNavigate }: LinkedOutPanelProps) {
                 </CardHeader>
                 <CardContent className="space-y-2 text-xs">
                   <div className="flex items-center justify-between">
-                    <span className="text-muted-foreground flex items-center gap-1.5"><LinkMatch className="w-3 h-3" /> Priority Intro</span>
+                    <span className="text-muted-foreground flex items-center gap-1.5"><Handshake className="w-3 h-3" /> Priority Intro</span>
                     <span className="font-semibold text-foreground">{introQueue.length}</span>
                   </div>
                   <div className="flex items-center justify-between">

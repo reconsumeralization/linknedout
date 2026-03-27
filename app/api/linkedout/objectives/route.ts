@@ -49,10 +49,12 @@ function unauthorized(rateLimit: RateLimitResult): NextResponse {
 }
 
 function getSupabase() {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL
-  const key = process.env.SUPABASE_SERVICE_ROLE_KEY ?? process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+  const url = process.env.SUPABASE_URL ?? process.env.NEXT_PUBLIC_SUPABASE_URL
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY
   if (!url || !key) return null
-  return createClient(url, key)
+  return createClient(url, key, {
+    auth: { autoRefreshToken: false, persistSession: false },
+  })
 }
 
 export async function GET(req: NextRequest) {
@@ -71,7 +73,7 @@ export async function GET(req: NextRequest) {
   }
   const userId = auth.userId
   const sb = getSupabase()
-  if (!sb) return jsonResponse({ objectives: [] }, 200, rateLimit)
+  if (!sb) return jsonResponse({ error: "Supabase service role is not configured." }, 503, rateLimit)
   const { data, error } = await sb
     .from("linkedout_objectives")
     .select("*")

@@ -8,7 +8,7 @@ import { Textarea } from "@/components/ui/textarea"
 import {
   type AgentPermissionMode,
   type AgentPlatformSnapshot,
-  buildAgentDraftFromPrompt,
+  buildAgentDraftFromPromptLegacy,
 } from "@/lib/agents/agent-platform-types"
 import { getSupabaseClient } from "@/lib/supabase/supabase"
 import { resolveSupabaseAccessToken } from "@/lib/supabase/supabase-client-auth"
@@ -274,7 +274,7 @@ export function AgentsPanel() {
 
   const preview = useMemo(
     () =>
-      buildAgentDraftFromPrompt({
+      buildAgentDraftFromPromptLegacy({
         prompt,
         preferredModelId,
         tokenBudgetUsdMonthly: Number(budget),
@@ -628,7 +628,7 @@ export function AgentsPanel() {
               <div className="rounded-lg border border-border bg-secondary/40 p-3 text-xs">
                 <div className="font-semibold text-foreground">{preview.name}</div>
                 <div className="text-muted-foreground mt-1">{preview.purpose}</div>
-                <div className="flex flex-wrap gap-1 mt-2">{preview.connectors.map((connector) => <Badge key={connector} variant="secondary" className="text-[10px]">{connector}</Badge>)}</div>
+                <div className="flex flex-wrap gap-1 mt-2">{preview.connectors.map((connector: string) => <Badge key={connector} variant="secondary" className="text-[10px]">{connector}</Badge>)}</div>
               </div>
             </CardContent>
           </Card>

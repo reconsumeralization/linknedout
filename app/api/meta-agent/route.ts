@@ -7,6 +7,13 @@ import {
   parseRateLimitConfigFromEnv,
   type RateLimitResult,
 } from "@/lib/shared/request-rate-limit"
+import {
+  analyzeAgentPerformance,
+  proposePromptOptimization,
+  detectAnomalies,
+  generateImprovementPlan,
+} from "@/lib/agents/meta-agent-reasoning"
+import { fetchAgentPlatformSnapshot } from "@/lib/agents/agent-platform-server"
 import { createClient } from "@supabase/supabase-js"
 import { z } from "zod"
 
@@ -133,6 +140,27 @@ const GetEvolutionSummarySchema = z.object({
   action: z.literal("get_evolution_summary"),
 })
 
+const AnalyzePerformanceSchema = z.object({
+  action: z.literal("analyze_performance"),
+  agentId: z.string().min(1).max(120),
+})
+
+const ProposeOptimizationSchema = z.object({
+  action: z.literal("propose_optimization"),
+  agentId: z.string().min(1).max(120),
+})
+
+const DetectAnomaliesSchema = z.object({
+  action: z.literal("detect_anomalies"),
+  agentId: z.string().min(1).max(120),
+  threshold: z.number().min(0).max(100).optional(),
+})
+
+const GenerateImprovementPlanSchema = z.object({
+  action: z.literal("generate_improvement_plan"),
+  agentId: z.string().min(1).max(120),
+})
+
 const PostRequestSchema = z.discriminatedUnion("action", [
   InitializeAgentZeroSchema,
   LogEvolutionSchema,
@@ -144,6 +172,10 @@ const PostRequestSchema = z.discriminatedUnion("action", [
   CalibrateAlignmentSchema,
   GetAlignmentVectorSchema,
   GetEvolutionSummarySchema,
+  AnalyzePerformanceSchema,
+  ProposeOptimizationSchema,
+  DetectAnomaliesSchema,
+  GenerateImprovementPlanSchema,
 ])
 
 type PostRequest = z.infer<typeof PostRequestSchema>
@@ -519,6 +551,59 @@ export async function POST(req: Request): Promise<Response> {
       200,
       rateLimit,
     )
+  }
+
+  /* ---- analyze_performance ---- */
+  if (input.action === "analyze_performance") {
+    const snapshot = await fetchAgentPlatformSnapshot(accessToken)
+    const agent = snapshot.agents.find(a => a.id === input.agentId)
+    if (!agent) {
+      return jsonResponse({ ok: false, error: "Agent not found." }, 404, rateLimit)
+    }
+    const runs = snapshot.runs.filter(r => r.agentId === input.agentId)
+    const evals = snapshot.evaluations.filter(e => e.agentId === input.agentId)
+    const analysis = await analyzeAgentPerformance(input.agentId, runs, evals)
+    return jsonResponse({ ok: true, action: input.action, analysis }, 200, rateLimit)
+  }
+
+  /* ---- propose_optimization ---- */
+  if (input.action === "propose_optimization") {
+    const snapshot = await fetchAgentPlatformSnapshot(accessToken)
+    const agent = snapshot.agents.find(a => a.id === input.agentId)
+    if (!agent) {
+      return jsonResponse({ ok: false, error: "Agent not found." }, 404, rateLimit)
+    }
+    const runs = snapshot.runs.filter(r => r.agentId === input.agentId)
+    const evals = snapshot.evaluations.filter(e => e.agentId === input.agentId)
+    const optimization = await proposePromptOptimization(agent, runs, evals)
+    return jsonResponse({ ok: true, action: input.action, optimization }, 200, rateLimit)
+  }
+
+  /* ---- detect_anomalies ---- */
+  if (input.action === "detect_anomalies") {
+    const snapshot = await fetchAgentPlatformSnapshot(accessToken)
+    const agent = snapshot.agents.find(a => a.id === input.agentId)
+    if (!agent) {
+      return jsonResponse({ ok: false, error: "Agent not found." }, 404, rateLimit)
+    }
+    const runs = snapshot.runs.filter(r => r.agentId === input.agentId)
+    const evals = snapshot.evaluations.filter(e => e.agentId === input.agentId)
+    const anomalies = detectAnomalies(runs, input.threshold)
+    return jsonResponse({ ok: true, action: input.action, anomalies }, 200, rateLimit)
+  }
+
+  /* ---- generate_improvement_plan ---- */
+  if (input.action === "generate_improvement_plan") {
+    const snapshot = await fetchAgentPlatformSnapshot(accessToken)
+    const agent = snapshot.agents.find(a => a.id === input.agentId)
+    if (!agent) {
+      return jsonResponse({ ok: false, error: "Agent not found." }, 404, rateLimit)
+    }
+    const runs = snapshot.runs.filter(r => r.agentId === input.agentId)
+    const evals = snapshot.evaluations.filter(e => e.agentId === input.agentId)
+    const analysis = await analyzeAgentPerformance(input.agentId, runs, evals)
+    const plan = await generateImprovementPlan(agent, analysis)
+    return jsonResponse({ ok: true, action: input.action, plan }, 200, rateLimit)
   }
 
   /* ---- get_evolution_summary ---- */

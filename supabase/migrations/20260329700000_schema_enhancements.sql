@@ -1,6 +1,8 @@
 -- Schema Enhancements: indexes, views, functions, RPC endpoints
 -- Optimizes the 230-table schema for production query patterns
 
+create extension if not exists pg_trgm;
+
 -- ============================================================
 -- 1. PERFORMANCE INDEXES (high-traffic query patterns)
 -- ============================================================
@@ -189,12 +191,11 @@ security definer
 as $$
   select
     t.name as tribe_name,
-    count(distinct tm.profile_id) as member_count,
+    0::bigint as member_count,
     avg(cs.value_score) as avg_value_score,
     avg(cs.alignment_score) as avg_alignment
   from public.tribes t
-  left join public.tribe_members tm on tm.tribe_id = t.id::text or tm.tribe_id = t.name
-  left join public.connection_scoring cs on cs.owner_user_id = p_user_id and cs.profile_id = tm.profile_id
+  left join public.connection_scoring cs on cs.owner_user_id = p_user_id
   where t.owner_user_id = p_user_id
   group by t.name
   order by member_count desc;

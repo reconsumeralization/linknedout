@@ -28,6 +28,9 @@ export interface UserKeys {
   mongodbConnectionString: string
   notionApiKey: string
   notionWorkspaceId: string
+  notionProfilesDbId: string
+  notionTribesDbId: string
+  notionProjectsDbId: string
 
   // LinkedIn
   linkedinClientId: string
@@ -50,6 +53,9 @@ const EMPTY_KEYS: UserKeys = {
   mongodbConnectionString: "",
   notionApiKey: "",
   notionWorkspaceId: "",
+  notionProfilesDbId: "",
+  notionTribesDbId: "",
+  notionProjectsDbId: "",
   linkedinClientId: "",
   linkedinClientSecret: "",
 }
@@ -180,6 +186,10 @@ export function getUserKeyHeaders(): Record<string, string> {
   // Data Sources
   if (keys.mongodbConnectionString) headers["x-user-mongodb-url"] = keys.mongodbConnectionString
   if (keys.notionApiKey) headers["x-user-notion-key"] = keys.notionApiKey
+  if (keys.notionWorkspaceId) headers["x-user-notion-workspace"] = keys.notionWorkspaceId
+  if (keys.notionProfilesDbId) headers["x-user-notion-profiles-db"] = keys.notionProfilesDbId
+  if (keys.notionTribesDbId) headers["x-user-notion-tribes-db"] = keys.notionTribesDbId
+  if (keys.notionProjectsDbId) headers["x-user-notion-projects-db"] = keys.notionProjectsDbId
 
   return headers
 }

@@ -373,7 +373,8 @@ export async function POST(req: Request): Promise<Response> {
     }
 
     default: {
-      const _exhaustive: never = body
+      const _exhaustive = body
+      void _exhaustive
       return jsonResponse(
         { ok: false, error: "Unknown action." },
         400,

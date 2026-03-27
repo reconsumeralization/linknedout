@@ -1,6 +1,6 @@
 import type { ParsedProfile } from "@/lib/csv/csv-parser"
 
-export type SessionImportSourceType = "csv" | "linkedin_pdf"
+export type SessionImportSourceType = "csv" | "linkedin_pdf" | "linkedin_export" | "json" | "vcf"
 
 export type SessionImportSource = {
   id: string
@@ -243,7 +243,7 @@ export function applyImportToSession(
     ...(current?.sources ?? []),
     {
       id: options.sourceId,
-      type: "linkedin_pdf" as const,
+      type: input.type,
       fileName: input.fileName,
       profileIds: resolvedProfileIds,
       importedAt: options.importedAt,
@@ -256,6 +256,9 @@ export function applyImportToSession(
     profiles: mergedProfiles,
     sources,
     displayLabel: buildDisplayLabel(sources),
-    unsavedPdfProfileIds: Array.from(new Set([...(current?.unsavedPdfProfileIds ?? []), ...resolvedProfileIds])),
+    unsavedPdfProfileIds:
+      input.type === "linkedin_pdf"
+        ? Array.from(new Set([...(current?.unsavedPdfProfileIds ?? []), ...resolvedProfileIds]))
+        : current?.unsavedPdfProfileIds ?? [],
   }
 }

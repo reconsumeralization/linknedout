@@ -9,6 +9,8 @@ import { Textarea } from "@/components/ui/textarea"
 import { parseLinkedInCsv } from "@/lib/csv/csv-parser"
 import type { ImportSourceInput } from "@/lib/csv/import-session"
 import { importLinkedInPdf } from "@/lib/linkedin/linkedin-pdf-parser"
+import { importFile } from "@/lib/import/import-pipeline"
+import { importLinkedInDataExport } from "@/lib/import/linkedin-data-export"
 import { PERSONAS } from "@/lib/shared/personas"
 import { processRealtimeToolCallsFromServerEvent } from "@/lib/realtime/realtime-client"
 import { resolveSupabaseAccessToken } from "@/lib/supabase/supabase-client-auth"
@@ -17,6 +19,9 @@ import {
   dispatchTribeDesignPreviewEvent,
   extractTribeDesignPreviewEventDetail,
 } from "@/lib/shared/tribe-design-preview-events"
+import { getCircuitBreaker } from "@/lib/safety/circuit-breaker"
+import { getTransparencyLogger } from "@/lib/safety/transparency-log"
+import { getSelectedBackend } from "@/lib/shared/data-backend"
 import { cn } from "@/lib/shared/utils"
 import { useChat } from "@ai-sdk/react"
 import {
@@ -170,6 +175,7 @@ export function ChatPanel({ activeView = "chat", csvData, importLabel, onImportP
   const dataChannelRef = useRef<RTCDataChannel | null>(null)
   const localStreamRef = useRef<MediaStream | null>(null)
   const assistantDraftIdRef = useRef<string | null>(null)
+  const sendTimestampRef = useRef<number | null>(null)
   const handledDesignPreviewKeysRef = useRef<Set<string>>(new Set())
   const chatModeRef = useRef<ChatMode>(chatMode)
   const isRealtimeClosingRef = useRef(false)
@@ -197,13 +203,46 @@ export function ChatPanel({ activeView = "chat", csvData, importLabel, onImportP
       ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
       ...getUserKeyHeaders(),
     },
-    body: {
-      personaId: selectedPersonaId,
-      csvData: csvData ?? undefined,
-      activeView,
-      pageContext: pageContext ?? undefined,
-    },
+    body: (() => {
+      const cb = getCircuitBreaker()
+      const cbStatus = cb.getStatus()
+      const logger = getTransparencyLogger()
+      const entries = logger.getEntries()
+      const successCount = entries.filter((e) => e.result === "success").length
+      const successRate = entries.length > 0 ? successCount / entries.length : 1
+
+      return {
+        personaId: selectedPersonaId,
+        csvData: csvData ?? undefined,
+        activeView,
+        pageContext: {
+          ...(pageContext ?? {}),
+          circuitState: cb.getState(),
+          totalTokensUsed: cbStatus.totalTokensUsed,
+          tokenBudget: cbStatus.tokenBudget,
+          backendType: getSelectedBackend(),
+          successRate,
+          costSummaryUsd: logger.getCostSummary().totalCostUsd,
+        },
+      }
+    })(),
     onFinish: () => {
+      const elapsed = Date.now() - (sendTimestampRef.current ?? Date.now())
+      getTransparencyLogger().logAction({
+        action: {
+          id: "chat-response",
+          label: "AI Chat Response",
+          tool: "chat",
+          reasoning: "User asked a question",
+          estimatedTokens: 0,
+          reversible: true,
+        },
+        result: "success",
+        tokensUsed: 0,
+        costUsd: 0,
+        durationMs: elapsed,
+      })
+      sendTimestampRef.current = null
       setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: "smooth" }), 100)
     },
   })
@@ -592,14 +631,45 @@ export function ChatPanel({ activeView = "chat", csvData, importLabel, onImportP
 
   const handleFileUpload = useCallback(
     async (e: React.ChangeEvent<HTMLInputElement>) => {
-      const file = e.target.files?.[0]
-      if (!file) return
+      const selected = Array.from(e.target.files ?? [])
+      if (selected.length === 0) return
+
+      // Multi-file selection is treated as a LinkedIn data export bundle.
+      if (selected.length > 1) {
+        const result = await importLinkedInDataExport(selected)
+        if (result.errors.length > 0) {
+          toast.error(result.errors[0])
+          return
+        }
+        if (result.profiles.length === 0) {
+          toast.error("No profiles found in LinkedIn export bundle.")
+          return
+        }
+
+        onImportProfiles({
+          type: "linkedin_export",
+          fileName: "LinkedIn data export",
+          profiles: result.profiles,
+          warnings: result.warnings,
+          rawCsv: result.canonicalCsv ?? undefined,
+        })
+
+        toast.success("LinkedIn export imported", {
+          description: `${result.profiles.length} connections ready for analysis`,
+        })
+        return
+      }
+
+      const file = selected[0]
 
       const lowerName = file.name.toLowerCase()
       const isCsv = lowerName.endsWith(".csv") || file.type.toLowerCase().includes("csv")
       const isPdf = lowerName.endsWith(".pdf") || file.type === "application/pdf"
+      const isJson = lowerName.endsWith(".json") || file.type === "application/json"
+      const isVcf = lowerName.endsWith(".vcf") || lowerName.endsWith(".vcard") || file.type.includes("vcard")
 
       try {
+        // CSV: use existing parser (preserves rawCsv for downstream consumers)
         if (isCsv) {
           const text = await readTextFromFile(file)
           const profiles = parseLinkedInCsv(text)
@@ -620,24 +690,77 @@ export function ChatPanel({ activeView = "chat", csvData, importLabel, onImportP
           return
         }
 
+        // LinkedIn PDF: use existing pdfjs-based parser for high fidelity
         if (isPdf) {
-          const result = await importLinkedInPdf(file)
-          const fullName = `${result.profile.firstName} ${result.profile.lastName}`.trim()
+          try {
+            const result = await importLinkedInPdf(file)
+            const fullName = `${result.profile.firstName} ${result.profile.lastName}`.trim()
+            onImportProfiles({
+              type: "linkedin_pdf",
+              fileName: file.name,
+              profiles: [result.profile],
+              warnings: result.warnings,
+            })
+            toast.success(`LinkedIn PDF imported: ${fullName || "Profile"}`, {
+              description: accessToken
+                ? "Profile ready for analysis."
+                : "Profile ready for analysis. Sign in to review and save in Profiles CRM.",
+            })
+            return
+          } catch {
+            // Fall through to the unified pipeline for non-LinkedIn PDFs
+            const pipelineResult = await importFile(file)
+            if (pipelineResult.errors.length > 0) {
+              toast.error(pipelineResult.errors[0])
+              return
+            }
+            if (pipelineResult.profiles.length === 0) {
+              toast.error("Could not extract profiles from PDF.")
+              return
+            }
+            onImportProfiles({
+              type: "linkedin_pdf",
+              fileName: file.name,
+              profiles: pipelineResult.profiles,
+              warnings: pipelineResult.warnings,
+            })
+            const { stats } = pipelineResult
+            toast.success(`PDF imported: ${file.name}`, {
+              description: `${stats.importedProfiles} profile${stats.importedProfiles !== 1 ? "s" : ""} imported${stats.skipped > 0 ? `, ${stats.skipped} skipped` : ""}${pipelineResult.warnings.length > 0 ? `, ${pipelineResult.warnings.length} warning${pipelineResult.warnings.length !== 1 ? "s" : ""}` : ""}`,
+            })
+            return
+          }
+        }
+
+        // JSON and VCF: route through unified import pipeline
+        if (isJson || isVcf) {
+          const pipelineResult = await importFile(file)
+          if (pipelineResult.errors.length > 0) {
+            toast.error(pipelineResult.errors[0])
+            return
+          }
+          if (pipelineResult.profiles.length === 0) {
+            toast.error(`No profiles found in ${isJson ? "JSON" : "VCF"} file.`)
+            return
+          }
+
+          const importType = isJson ? "json" as const : "vcf" as const
           onImportProfiles({
-            type: "linkedin_pdf",
+            type: importType,
             fileName: file.name,
-            profiles: [result.profile],
-            warnings: result.warnings,
+            profiles: pipelineResult.profiles,
+            warnings: pipelineResult.warnings,
           })
-          toast.success(`LinkedIn PDF imported: ${fullName || "Profile"}`, {
-            description: accessToken
-              ? "Profile ready for analysis."
-              : "Profile ready for analysis. Sign in to review and save in Profiles CRM.",
+
+          const { stats } = pipelineResult
+          const formatLabel = isJson ? "JSON" : "VCF"
+          toast.success(`${formatLabel} imported: ${file.name}`, {
+            description: `${stats.importedProfiles} profile${stats.importedProfiles !== 1 ? "s" : ""} imported${stats.skipped > 0 ? `, ${stats.skipped} skipped` : ""}${pipelineResult.warnings.length > 0 ? `, ${pipelineResult.warnings.length} warning${pipelineResult.warnings.length !== 1 ? "s" : ""}` : ""}`,
           })
           return
         }
 
-        toast.error("Please upload a CSV or LinkedIn PDF file.")
+        toast.error("Unsupported file type. Please upload a CSV, PDF, JSON, VCF, or select multiple files from a LinkedIn export folder.")
       } catch (error) {
         const message = error instanceof Error ? error.message : "Unable to import file."
         toast.error(message)
@@ -684,6 +807,11 @@ export function ChatPanel({ activeView = "chat", csvData, importLabel, onImportP
   const handleFormSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
 
+    if (getCircuitBreaker().isOpen()) {
+      toast.warning("Circuit breaker is open — AI actions are temporarily halted. Reset the circuit breaker to continue.")
+      return
+    }
+
     if (chatMode === "realtime") {
       if (!isRealtimeConnected || !input.trim()) return
       sendRealtimeTextPrompt(input)
@@ -692,12 +820,18 @@ export function ChatPanel({ activeView = "chat", csvData, importLabel, onImportP
     }
 
     if (!input.trim() || isLoading) return
+    sendTimestampRef.current = Date.now()
     void handleSubmit(e)
   }
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key !== "Enter" || e.shiftKey) return
     e.preventDefault()
+
+    if (getCircuitBreaker().isOpen()) {
+      toast.warning("Circuit breaker is open — AI actions are temporarily halted. Reset the circuit breaker to continue.")
+      return
+    }
 
     if (chatMode === "realtime") {
       if (!isRealtimeConnected || !input.trim()) return
@@ -707,6 +841,7 @@ export function ChatPanel({ activeView = "chat", csvData, importLabel, onImportP
     }
 
     if (input.trim() && !isLoading) {
+      sendTimestampRef.current = Date.now()
       void handleSubmit()
     }
   }
@@ -866,7 +1001,8 @@ export function ChatPanel({ activeView = "chat", csvData, importLabel, onImportP
           <input
             ref={fileInputRef}
             type="file"
-            accept=".csv,.pdf,application/pdf,text/csv"
+            multiple
+            accept=".csv,.pdf,.json,.vcf,.vcard,.html,application/pdf,text/csv,application/json,text/vcard,text/html"
             onChange={handleFileUpload}
             className="hidden"
           />

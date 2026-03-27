@@ -16,7 +16,8 @@ import {
 import { Textarea } from "@/components/ui/textarea"
 import { clearOnboardingDismissed, clearWelcomeSeen } from "@/components/onboarding-card"
 import { getSupabaseClient, resetSupabaseClients } from "@/lib/supabase/supabase"
-import { getUserKeys, setUserKeys, clearUserKeys, hasUserSupabase, hasAnyAIProvider, getConfiguredProviders, hasUserMongoDB, hasUserNotion, AI_PROVIDERS, DATA_SOURCES, type UserKeys } from "@/lib/shared/user-keys"
+import { getUserKeys, setUserKeys, clearUserKeys, hasUserSupabase, hasAnyAIProvider, getConfiguredProviders, AI_PROVIDERS, DATA_SOURCES, type UserKeys } from "@/lib/shared/user-keys"
+import { getDataBackend, resetBackendCache } from "@/lib/shared/backend-factory"
 import {
   getIntegrationKey,
   setIntegrationKey,
@@ -237,15 +238,15 @@ export function SettingsPanel({ onNavigate }: SettingsPanelProps) {
   const [keysSaved, setKeysSaved] = useState(false)
   const [testingConnection, setTestingConnection] = useState(false)
   const [connectionResult, setConnectionResult] = useState<"success" | "error" | null>(null)
-
   useEffect(() => {
     setUserKeysState(getUserKeys())
   }, [])
 
   const handleSaveKeys = useCallback(() => {
     setUserKeys(userKeysState)
-    // Reset cached Supabase clients so they pick up new keys
+    // Reset cached clients so they pick up new keys
     resetSupabaseClients()
+    resetBackendCache()
     setKeysSaved(true)
     setConnectionResult(null)
     toast.success("Backend keys saved.")
@@ -267,20 +268,20 @@ export function SettingsPanel({ onNavigate }: SettingsPanelProps) {
       // Save first so client picks up new keys
       setUserKeys(userKeysState)
       resetSupabaseClients()
-      const client = getSupabaseClient()
-      if (!client) {
+      resetBackendCache()
+      const backend = getDataBackend()
+      if (!backend.isConfigured()) {
         setConnectionResult("error")
-        toast.error("No Supabase URL/key configured.")
+        toast.error("Supabase is not configured. Add your URL and anon key above.")
         return
       }
-      // Simple health check — get session (will fail if keys are invalid)
-      const { error } = await client.auth.getSession()
-      if (error) {
-        setConnectionResult("error")
-        toast.error(`Supabase connection failed: ${error.message}`)
-      } else {
+      const ok = await backend.testConnection()
+      if (ok) {
         setConnectionResult("success")
         toast.success("Supabase connected successfully!")
+      } else {
+        setConnectionResult("error")
+        toast.error("Supabase connection failed — check your credentials.")
       }
     } catch (e) {
       setConnectionResult("error")
@@ -302,8 +303,7 @@ export function SettingsPanel({ onNavigate }: SettingsPanelProps) {
   )
   const hasUserSupabaseKeys = hasUserSupabase()
   const configuredProviders = getConfiguredProviders()
-  const hasUserMongoDBKey = hasUserMongoDB()
-  const hasUserNotionKey = hasUserNotion()
+  // MongoDB/Notion key checks removed — only Supabase is active
   const supabaseConfigured = supabasePublicEnvConfigured || hasUserSupabaseKeys
   const [hasSession, setHasSession] = useState(false)
   useEffect(() => {
@@ -522,6 +522,23 @@ export function SettingsPanel({ onNavigate }: SettingsPanelProps) {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
+            {/* Data Backend — Supabase is the only production backend */}
+            <div className="space-y-2">
+              <Label className="text-xs font-medium flex items-center gap-1.5">
+                <Database className="h-3 w-3" />
+                Data Backend
+              </Label>
+              <div className="flex items-center gap-2 rounded-md border border-border bg-muted/30 px-3 py-2">
+                <span className="inline-block h-2 w-2 rounded-full bg-blue-500" />
+                <span className="text-xs font-medium">Supabase</span>
+                <span className="text-[10px] text-muted-foreground">&mdash; PostgreSQL + Auth + Realtime</span>
+              </div>
+              <p className="text-[10px] text-muted-foreground">
+                Supabase is the active backend. Additional backends (MongoDB, Notion) may be supported in the future.
+              </p>
+            </div>
+
+            {/* Supabase fields — always shown (Supabase is the only active backend) */}
             <div className="space-y-2">
               <Label htmlFor="supabase-url" className="text-xs font-medium flex items-center gap-1.5">
                 <Database className="h-3 w-3" />
@@ -535,7 +552,7 @@ export function SettingsPanel({ onNavigate }: SettingsPanelProps) {
                 onChange={(e) => setUserKeysState((prev) => ({ ...prev, supabaseUrl: e.target.value }))}
                 className="font-mono text-xs"
               />
-              <p className="text-xs text-muted-foreground mt-1">Find this in your Supabase project &rarr; Settings &rarr; API</p>
+              <p className="text-xs text-muted-foreground mt-1">Find this in your Supabase project &rarr; Settings &rarr; API. Works with self-hosted Supabase too.</p>
             </div>
             <div className="space-y-2">
               <Label htmlFor="supabase-anon-key" className="text-xs font-medium flex items-center gap-1.5">
@@ -552,6 +569,10 @@ export function SettingsPanel({ onNavigate }: SettingsPanelProps) {
               />
               <p className="text-xs text-muted-foreground mt-1">The public &apos;anon&apos; key from the same page</p>
             </div>
+
+            {/* MongoDB fields removed — backend not yet available */}
+
+            {/* Notion fields removed — backend not yet available */}
             {/* AI Providers */}
             <div className="space-y-3 border-t border-border pt-3">
               <p className="text-xs font-medium flex items-center gap-1.5"><Key className="h-3 w-3" /> AI Model Providers</p>
@@ -583,22 +604,7 @@ export function SettingsPanel({ onNavigate }: SettingsPanelProps) {
               </div>
             </div>
 
-            {/* Data Sources */}
-            <div className="space-y-3 border-t border-border pt-3">
-              <p className="text-xs font-medium flex items-center gap-1.5"><Database className="h-3 w-3" /> Additional Data Sources</p>
-              <div className="space-y-1">
-                <Label htmlFor="mongodb-url" className="text-[11px] text-muted-foreground">MongoDB Connection String</Label>
-                <Input id="mongodb-url" type="password" placeholder="mongodb+srv://..." value={userKeysState.mongodbConnectionString ?? ""} onChange={(e) => setUserKeysState((prev) => ({ ...prev, mongodbConnectionString: e.target.value }))} className="font-mono text-xs h-8" />
-              </div>
-              <div className="space-y-1">
-                <Label htmlFor="notion-key" className="text-[11px] text-muted-foreground">Notion API Key</Label>
-                <Input id="notion-key" type="password" placeholder="ntn_..." value={userKeysState.notionApiKey ?? ""} onChange={(e) => setUserKeysState((prev) => ({ ...prev, notionApiKey: e.target.value }))} className="font-mono text-xs h-8" />
-              </div>
-              <div className="space-y-1">
-                <Label htmlFor="notion-workspace" className="text-[11px] text-muted-foreground">Notion Workspace ID</Label>
-                <Input id="notion-workspace" type="text" placeholder="workspace-id" value={userKeysState.notionWorkspaceId ?? ""} onChange={(e) => setUserKeysState((prev) => ({ ...prev, notionWorkspaceId: e.target.value }))} className="font-mono text-xs h-8" />
-              </div>
-            </div>
+            {/* Additional Data Sources removed — only Supabase is active */}
 
             <div className="flex flex-wrap gap-2 border-t border-border pt-3">
               <Button size="sm" onClick={handleSaveKeys} className="gap-1.5">
@@ -621,34 +627,27 @@ export function SettingsPanel({ onNavigate }: SettingsPanelProps) {
             ) : connectionResult === "error" ? (
               <div className="flex items-center gap-2 text-xs text-destructive">
                 <XCircle className="h-3.5 w-3.5" />
-                Connection failed — check your URL and key
+                Connection failed — check your credentials
               </div>
             ) : null}
             <div className="flex flex-wrap gap-3 pt-1">
               <div className="flex items-center gap-1.5">
+                <span className="inline-block h-2 w-2 rounded-full bg-blue-500" />
+                <span className="text-[10px] text-muted-foreground font-medium">
+                  Active: Supabase
+                </span>
+              </div>
+              <div className="flex items-center gap-1.5">
                 <span className={cn("inline-block h-2 w-2 rounded-full", supabaseConfigured ? "bg-emerald-500" : "bg-amber-500")} />
-                <span className="text-[10px] text-muted-foreground">Supabase {supabaseConfigured ? "Connected" : "Not set"}</span>
+                <span className="text-[10px] text-muted-foreground">Supabase {supabaseConfigured ? "Configured" : "Not set"}</span>
               </div>
               <div className="flex items-center gap-1.5">
                 <span className={cn("inline-block h-2 w-2 rounded-full", configuredProviders.length > 0 ? "bg-emerald-500" : "bg-amber-500")} />
                 <span className="text-[10px] text-muted-foreground">AI {configuredProviders.length > 0 ? `${configuredProviders.length} provider${configuredProviders.length > 1 ? "s" : ""}` : "Not set"}</span>
               </div>
-              {hasUserMongoDBKey ? (
-                <div className="flex items-center gap-1.5">
-                  <span className="inline-block h-2 w-2 rounded-full bg-emerald-500" />
-                  <span className="text-[10px] text-muted-foreground">MongoDB</span>
-                </div>
-              ) : null}
-              {hasUserNotionKey ? (
-                <div className="flex items-center gap-1.5">
-                  <span className="inline-block h-2 w-2 rounded-full bg-emerald-500" />
-                  <span className="text-[10px] text-muted-foreground">Notion</span>
-                </div>
-              ) : null}
             </div>
             <p className="text-[10px] text-muted-foreground">
-              Need a Supabase project? <a href="https://supabase.com/dashboard" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">Create one free</a> or self-host with Docker.
-              Then run the migrations from the <code className="rounded bg-muted px-1 py-0.5">supabase/migrations/</code> folder.
+              Need a Supabase project? <a href="https://supabase.com/dashboard" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">Create one free</a> or self-host with Docker. Then run the migrations from the <code className="rounded bg-muted px-1 py-0.5">supabase/migrations/</code> folder.
             </p>
           </CardContent>
         </Card>

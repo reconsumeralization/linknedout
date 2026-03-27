@@ -15,6 +15,10 @@ import {
   upsertAgentSchedule,
   updateConnectorPermissions,
 } from "@/lib/agents/agent-platform-server"
+import { executeAgent, type AgentExecutionResult } from "@/lib/agents/agent-runtime"
+import { getMessagesForAgent, publishAgentMessage } from "@/lib/agents/agent-messaging"
+import { analyzeAgentPerformance, proposePromptOptimization, detectAnomalies } from "@/lib/agents/meta-agent-reasoning"
+import { evaluateOptimizedGuard, getGuardCacheStats } from "@/lib/security/llm-guard-optimized"
 import { requireSupabaseAuth } from "@/lib/auth/require-auth"
 import { getMaxBodyBytesFromEnv, parseJsonBodyWithLimit } from "@/lib/shared/request-body"
 import {
@@ -146,6 +150,28 @@ const ResolveApprovalRequestSchema = z.object({
   resolverNote: z.string().max(1000).optional(),
 })
 
+const ExecuteAgentSchema = z.object({
+  action: z.literal("execute_agent"),
+  agentId: z.string().min(2).max(120),
+  input: z.string().max(8000).optional(),
+})
+
+const GetAgentMessagesSchema = z.object({
+  action: z.literal("get_agent_messages"),
+  agentId: z.string().min(2).max(120),
+  topic: z.string().max(200).optional(),
+  limit: z.number().int().min(1).max(100).optional(),
+})
+
+const AnalyzeAgentSchema = z.object({
+  action: z.literal("analyze_agent"),
+  agentId: z.string().min(2).max(120),
+})
+
+const GetGuardStatsSchema = z.object({
+  action: z.literal("get_guard_stats"),
+})
+
 const PostRequestSchema = z.discriminatedUnion("action", [
   CreateAgentSchema,
   CreateVersionSchema,
@@ -161,6 +187,10 @@ const PostRequestSchema = z.discriminatedUnion("action", [
   RunEvaluationSchema,
   CreateApprovalRequestSchema,
   ResolveApprovalRequestSchema,
+  ExecuteAgentSchema,
+  GetAgentMessagesSchema,
+  AnalyzeAgentSchema,
+  GetGuardStatsSchema,
 ])
 
 type PostRequest = z.infer<typeof PostRequestSchema>
@@ -557,6 +587,102 @@ export async function POST(req: Request): Promise<Response> {
         ok: true,
         action: input.action,
         approval: result.approval,
+      },
+      200,
+      rateLimit,
+    )
+  }
+
+  if (input.action === "execute_agent") {
+    const snapshot = await fetchAgentPlatformSnapshot(accessToken)
+    const agent = snapshot.agents.find((a) => a.id === input.agentId)
+    if (!agent) {
+      return jsonResponse({ ok: false, error: "Agent not found." }, 404, rateLimit)
+    }
+    const connectors = snapshot.connectors.filter((c) =>
+      agent.connectors?.includes(c.id)
+    )
+    const result = await executeAgent(agent, connectors, { task: input.input })
+
+    if (result.success) {
+      await publishAgentMessage({
+        topic: `agent.${agent.id}.run.completed`,
+        payload: { runId: result.runId, summary: result.summary },
+        fromAgentId: agent.id ?? "unknown",
+        toAgentId: "runtime-orchestrator",
+        priority: "normal",
+      })
+    } else {
+      await publishAgentMessage({
+        topic: `agent.${agent.id}.run.failed`,
+        payload: { runId: result.runId, error: result.error },
+        fromAgentId: agent.id ?? "unknown",
+        toAgentId: "runtime-orchestrator",
+        priority: "high",
+      })
+    }
+
+    return jsonResponse(
+      {
+        ok: result.success,
+        action: input.action,
+        result,
+      },
+      result.success ? 200 : 400,
+      rateLimit,
+    )
+  }
+
+  if (input.action === "get_agent_messages") {
+    const result = await getMessagesForAgent(input.agentId, {
+      topic: input.topic,
+      limit: input.limit,
+    })
+    return jsonResponse(
+      {
+        ok: true,
+        action: input.action,
+        messages: result,
+      },
+      200,
+      rateLimit,
+    )
+  }
+
+  if (input.action === "analyze_agent") {
+    const snapshot = await fetchAgentPlatformSnapshot(accessToken)
+    const agent = snapshot.agents.find((a) => a.id === input.agentId)
+    if (!agent) {
+      return jsonResponse({ ok: false, error: "Agent not found." }, 404, rateLimit)
+    }
+
+    const agentRuns = snapshot.runs.filter((r) => r.agentId === input.agentId)
+    const agentEvaluations = snapshot.evaluations.filter((e) => e.agentId === input.agentId)
+
+    const performance = await analyzeAgentPerformance(input.agentId, agentRuns, agentEvaluations)
+    const anomalies = detectAnomalies(agentRuns)
+    const optimization = await proposePromptOptimization(agent, agentRuns, agentEvaluations)
+
+    return jsonResponse(
+      {
+        ok: true,
+        action: input.action,
+        performance,
+        anomalies,
+        optimization,
+      },
+      200,
+      rateLimit,
+    )
+  }
+
+  if (input.action === "get_guard_stats") {
+    const stats = await getGuardCacheStats()
+    return jsonResponse(
+      {
+        ok: true,
+        action: input.action,
+        stats,
       },
       200,
       rateLimit,

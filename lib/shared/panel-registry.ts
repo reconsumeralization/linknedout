@@ -48,4 +48,10 @@ export const PANEL_DEFINITIONS: Omit<PanelRegistration, "component" | "lazyImpor
   { view: "sentinel", label: "SENTINEL", requiresAuth: true, authMessage: AUTH_MESSAGES.sentinel ?? "" },
   { view: "settings", label: "Settings", requiresAuth: false, authMessage: "" },
   { view: "marketplace", label: "Marketplace", requiresAuth: true, authMessage: AUTH_MESSAGES.marketplace ?? "" },
+  { view: "transparency", label: "Transparency", requiresAuth: false, authMessage: "" },
+  { view: "evolution", label: "Evolution", requiresAuth: false, authMessage: "" },
+  { view: "workflows", label: "Workflows", requiresAuth: false, authMessage: "" },
+  { view: "sovereign-mind", label: "Sovereign Mind", requiresAuth: true, authMessage: "Psychological and thermodynamic sovereign tools require sign-in." },
+  { view: "genesis", label: "Genesis", requiresAuth: true, authMessage: "Genesis protocols and memory vaults require sign-in." },
+  { view: "command-center", label: "Command Center", requiresAuth: true, authMessage: "Sovereign Command Center requires sign-in." },
 ]

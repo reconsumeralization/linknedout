@@ -7,3 +7,6 @@ node_modules/
 *.test.ts
 __tests__/
 supabase/.temp/
+.next/
+.next-*/
+supabase/.branches/

@@ -1305,7 +1305,7 @@ export interface Tribe {
   industryFocus: string
   projects: Project[] | string[]         // Allow both Project objects and string IDs
   subgroups?: Subgroup[]
-  tribeType?: 'enterprise' | 'clandestine' | 'military' | 'hybrid'
+  tribeType?: 'enterprise' | 'specialized' | 'professional' | 'hybrid'
   leaderId?: string                      // Main leader (personId)
   deputyLeaderId?: string                // Optional: secondary
   activeMemberCount?: number

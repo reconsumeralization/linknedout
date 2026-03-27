@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
 import { Input } from "@/components/ui/input"
+import { ScrollArea } from "@/components/ui/scroll-area"
 import { Slider } from "@/components/ui/slider"
 import { Switch } from "@/components/ui/switch"
 import { buildGlobeLiveData, type GlobeLiveDataSnapshot } from "@/lib/globe/globe-live-data"
@@ -52,7 +53,7 @@ type LayerConfig = {
   friends: boolean
   connections: boolean
   agenticPulse: boolean      // Sovereign: active workflow arcs
-  alphaBeacons: boolean      // Sovereign: Human Alpha brightness
+  alphaBeacons: boolean      // Sovereign: unique strengths brightness
   tariffHeatmap: boolean     // Sovereign: refund activity regions
   infrastructure: boolean    // Sovereign: basepower, orbital, lunar
   governanceArcs: boolean
@@ -717,7 +718,9 @@ export function GlobePanel() {
                 Toggle layers and adjust opacity.
               </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4 pt-0">
+            <CardContent className="pt-0">
+              <ScrollArea className="max-h-[60vh] overflow-y-auto pr-2">
+              <div className="space-y-4">
               <div className="space-y-2">
                 <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">
                   Network
@@ -769,7 +772,7 @@ export function GlobePanel() {
                 </p>
                 {([
                   ["agenticPulse", "Agentic Pulse", "Active AI workflow arcs"],
-                  ["alphaBeacons", "Alpha Beacons", "Human Alpha brightness map"],
+                  ["alphaBeacons", "Strength Beacons", "Unique strengths brightness map"],
                   ["tariffHeatmap", "Tariff Heatmap", "Refund activity by region"],
                   ["infrastructure", "Infrastructure", "Basepower, orbital, lunar"],
                 ] as const).map(([key, label, desc]) => (
@@ -799,7 +802,7 @@ export function GlobePanel() {
                   <Switch checked={layerConfig.tradeRoutes} onCheckedChange={(c) => setLayerConfig((prev) => ({ ...prev, tradeRoutes: c }))} />
                 </div>
                 <div className="flex items-center justify-between">
-                  <label className="text-xs text-muted-foreground">Singularity Pulse</label>
+                  <label className="text-xs text-muted-foreground">Activity Pulse</label>
                   <Switch checked={layerConfig.singularityPulse} onCheckedChange={(c) => setLayerConfig((prev) => ({ ...prev, singularityPulse: c }))} />
                 </div>
                 <div className="flex items-center justify-between">
@@ -829,6 +832,8 @@ export function GlobePanel() {
                   }}
                 />
               </div>
+              </div>
+              </ScrollArea>
             </CardContent>
           </Card>
 

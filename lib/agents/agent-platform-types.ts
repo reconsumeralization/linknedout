@@ -395,7 +395,7 @@ function inferFallbackChain(preferredModelId: string): string[] {
   return defaults.filter((item) => item !== preferredModelId).slice(0, 2)
 }
 
-export function buildAgentDraftFromPrompt(input: AgentDraftInput): AgentDraftOutput {
+export function buildAgentDraftFromPromptLegacy(input: AgentDraftInput): AgentDraftOutput {
   const prompt = input.prompt.trim()
   const preferredModelId =
     input.preferredModelId && DEFAULT_AGENT_MODELS.some((model) => model.id === input.preferredModelId)
@@ -420,6 +420,22 @@ export function buildAgentDraftFromPrompt(input: AgentDraftInput): AgentDraftOut
     recursiveImprovementEnabled: true,
     weeklyEfficiencyGainPct: expectedGain,
     tokenBudgetUsdMonthly: monthlyBudget,
+  }
+}
+
+/** Legacy keyword-based agent draft builder (renamed from original) */
+// Re-export removed — already exported via function declaration above
+
+/**
+ * Smart agent draft builder that uses LLM with legacy fallback.
+ * Async version that calls the LLM-powered creation first.
+ */
+export async function buildAgentDraftFromPromptSmart(input: AgentDraftInput): Promise<AgentDraftOutput> {
+  try {
+    const { buildAgentDraftWithLLM } = await import("./agent-creation-llm")
+    return await buildAgentDraftWithLLM(input)
+  } catch {
+    return buildAgentDraftFromPromptLegacy(input)
   }
 }
 

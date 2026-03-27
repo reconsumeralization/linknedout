@@ -55,10 +55,12 @@ function unauthorized(rateLimit: RateLimitResult): NextResponse {
 }
 
 function getSupabase() {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL
-  const key = process.env.SUPABASE_SERVICE_ROLE_KEY ?? process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+  const url = process.env.SUPABASE_URL ?? process.env.NEXT_PUBLIC_SUPABASE_URL
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY
   if (!url || !key) return null
-  return createClient(url, key)
+  return createClient(url, key, {
+    auth: { autoRefreshToken: false, persistSession: false },
+  })
 }
 
 // GET: fetch all contact states for a user (optionally filtered by objective)
@@ -84,7 +86,7 @@ export async function GET(req: NextRequest) {
     return jsonResponse({ error: "Invalid objectiveId format." }, 400, rateLimit)
   }
   const sb = getSupabase()
-  if (!sb) return jsonResponse({ states: [] }, 200, rateLimit)
+  if (!sb) return jsonResponse({ error: "Supabase service role is not configured." }, 503, rateLimit)
   let q = sb.from("linkedout_contact_states").select("*").eq("user_id", userId)
   if (parsedObjectiveId?.success) q = q.eq("objective_id", parsedObjectiveId.data)
   const { data, error } = await q

@@ -19,11 +19,26 @@ import { StoragePanel } from "@/components/storage-panel"
 import { SentinelPanel } from "@/components/sentinel-panel"
 import { TribesPanel } from "@/components/tribes-panel"
 import MarketplacePanel from "@/components/marketplace-panel"
+import TransparencyPanel from "@/components/transparency-panel"
+import EvolutionPanel from "@/components/evolution-panel"
+import { WorkflowPanel } from "@/components/workflow-panel"
+import SovereignMindPanel from "@/components/sovereign-mind-panel"
+import GenesisPanel from "@/components/genesis-panel"
+import CommandCenterPanel from "@/components/command-center-panel"
+import { CommandPalette } from "@/components/command-palette"
+import { KeyboardHelp } from "@/components/keyboard-help"
 import { AppProvider, useApp, isActiveView } from "@/lib/shared/app-context"
+import type { ActiveView } from "@/lib/shared/app-context"
 import { PANEL_DEFINITIONS } from "@/lib/shared/panel-registry"
+import {
+  registerShortcut,
+  attachShortcutListener,
+  detachShortcutListener,
+  clearShortcuts,
+} from "@/lib/shortcuts/keyboard-shortcuts"
 import dynamic from "next/dynamic"
 import Link from "next/link"
-import type { ComponentType } from "react"
+import { useCallback, useEffect, useState, type ComponentType } from "react"
 
 // Re-export types for backward compat with other files that import from "@/app/page"
 export type { ActiveView, PageContext } from "@/lib/shared/app-context"
@@ -54,6 +69,12 @@ const PANEL_COMPONENTS: Record<string, ComponentType> = {
   sentinel: SentinelPanel,
   settings: SettingsPanelWrapper,
   marketplace: MarketplacePanel,
+  transparency: TransparencyPanel,
+  evolution: EvolutionPanel,
+  workflows: WorkflowPanel,
+  "sovereign-mind": SovereignMindPanel,
+  genesis: GenesisPanel,
+  "command-center": CommandCenterPanel,
 }
 
 // Wrapper components that bridge context to prop-based panels
@@ -146,8 +167,74 @@ function SignInRequiredCard({ title = "Sign in required", message, redirectTo = 
   )
 }
 
+// ---------------------------------------------------------------------------
+// Panel index → view mapping for Ctrl+1..9
+// ---------------------------------------------------------------------------
+const PANEL_INDEX_MAP: ActiveView[] = [
+  "dashboard",  // Ctrl+1
+  "chat",       // Ctrl+2
+  "profiles",   // Ctrl+3
+  "tribes",     // Ctrl+4
+  "projects",   // Ctrl+5
+  "analytics",  // Ctrl+6
+  "network",    // Ctrl+7
+  "email",      // Ctrl+8
+  "settings",   // Ctrl+9
+]
+
 function HomeContent() {
   const { activeView, setActiveView, hasAuthToken, csvData, importLabel, importSummary, pageContext } = useApp()
+
+  // -- Command palette & keyboard help state --
+  const [paletteOpen, setPaletteOpen] = useState(false)
+  const [helpOpen, setHelpOpen] = useState(false)
+
+  const openPalette = useCallback(() => setPaletteOpen(true), [])
+  const openHelp = useCallback(() => setHelpOpen(true), [])
+
+  // -- Register all shortcuts --
+  useEffect(() => {
+    attachShortcutListener()
+
+    // Global
+    registerShortcut("Ctrl+K", openPalette, "Open command palette", "Global")
+    registerShortcut("Ctrl+/", openHelp, "Show keyboard shortcuts", "Global")
+    registerShortcut("Escape", () => {
+      setPaletteOpen(false)
+      setHelpOpen(false)
+    }, "Close modals", "Global")
+
+    // Navigation: Ctrl+1..9
+    PANEL_INDEX_MAP.forEach((view, i) => {
+      registerShortcut(
+        `Ctrl+${i + 1}`,
+        () => setActiveView(view),
+        `Go to ${view.charAt(0).toUpperCase() + view.slice(1)}`,
+        "Navigation",
+      )
+    })
+
+    // Actions
+    registerShortcut("Ctrl+N", () => setActiveView("profiles"), "New profile (go to Profiles)", "Actions")
+    registerShortcut("Ctrl+Shift+N", () => setActiveView("tribes"), "New tribe (go to Tribes)", "Actions")
+
+    // Chat
+    registerShortcut("Ctrl+Enter", () => {
+      // Trigger the chat send button if it exists
+      const btn = document.querySelector<HTMLButtonElement>('[data-slot="chat-send"], button[type="submit"]')
+      btn?.click()
+    }, "Send message", "Chat")
+    registerShortcut("Ctrl+L", () => {
+      // Trigger chat clear if a clear button exists
+      const btn = document.querySelector<HTMLButtonElement>('[data-slot="chat-clear"]')
+      btn?.click()
+    }, "Clear chat", "Chat")
+
+    return () => {
+      clearShortcuts()
+      detachShortcutListener()
+    }
+  }, [setActiveView, openPalette, openHelp])
 
   const showOpenModeBanner = !REQUIRE_AUTH && hasAuthToken === false
   const showViewGate = !REQUIRE_AUTH && hasAuthToken === false
@@ -178,6 +265,15 @@ function HomeContent() {
 
   return (
     <div className="flex h-screen w-full overflow-hidden bg-background">
+      {/* Global modals: command palette + keyboard help */}
+      <CommandPalette
+        open={paletteOpen}
+        onOpenChange={setPaletteOpen}
+        onNavigate={setActiveView}
+        onShowKeyboardHelp={openHelp}
+      />
+      <KeyboardHelp open={helpOpen} onOpenChange={setHelpOpen} />
+
       {REQUIRE_AUTH && !hasAuthToken ? (
         <main className="flex-1 flex items-center justify-center px-4">
           <div className="max-w-md w-full rounded-xl border border-border bg-card p-6 space-y-4 text-center">

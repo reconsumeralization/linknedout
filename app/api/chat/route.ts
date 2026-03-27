@@ -10,7 +10,7 @@ import {
   requiresAuthenticatedSessionForSubagent,
   resolveMcpSubagentIdFromRequest,
 } from "@/lib/agents/mcp-subagents";
-import { getPersona } from "@/lib/shared/personas";
+import { getPersona, buildInsightsContext } from "@/lib/shared/personas";
 import {
   getGuardedChatToolRegistry,
   resolveRealtimeAuthContext,
@@ -1657,6 +1657,22 @@ The user has the AI Assistant open while on the **${activeView}** page. Use the 
         .join("; ");
       if (safe) parts.push(`**Additional context:** ${safe}`);
     }
+  }
+
+  // Inject workspace insights — Love Invariant: Bounded Asymmetry
+  // Every persona gets full transparency into workspace state
+  if (pageContext) {
+    parts.push(buildInsightsContext({
+      profileCount: typeof pageContext.profileCount === "number" ? pageContext.profileCount : undefined,
+      tribeCount: typeof pageContext.tribeCount === "number" ? pageContext.tribeCount : undefined,
+      projectCount: typeof pageContext.projectCount === "number" ? pageContext.projectCount : undefined,
+      circuitState: typeof pageContext.circuitState === "string" ? pageContext.circuitState : undefined,
+      totalTokensUsed: typeof pageContext.totalTokensUsed === "number" ? pageContext.totalTokensUsed : undefined,
+      tokenBudget: typeof pageContext.tokenBudget === "number" ? pageContext.tokenBudget : undefined,
+      successRate: typeof pageContext.successRate === "number" ? pageContext.successRate : undefined,
+      backendType: typeof pageContext.backendType === "string" ? pageContext.backendType : undefined,
+      costSummaryUsd: typeof pageContext.costSummaryUsd === "number" ? pageContext.costSummaryUsd : undefined,
+    }))
   }
 
   // Include conversation context if available

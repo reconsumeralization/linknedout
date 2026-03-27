@@ -226,6 +226,7 @@ export default function LoginPage() {
   const supabaseReady = Boolean(supabase)
   const canSubmitPassword = email.trim().length > 3 && password.length >= 6 && !busy && supabaseReady
   const canSubmitEmailOnly = email.trim().length > 3 && !busy && supabaseReady
+  const canOAuth = !busy && supabaseReady
   const canSetNewPassword = newPassword.length >= 6 && newPassword === confirmPassword && !busy && supabaseReady
 
   return (
@@ -324,10 +325,10 @@ export default function LoginPage() {
                   Send magic link
                 </Button>
                 <div className="grid gap-2 sm:grid-cols-2">
-                  <Button variant="outline" onClick={() => void handleOAuth("google")} disabled={!canSubmitEmailOnly}>
+                  <Button variant="outline" onClick={() => void handleOAuth("google")} disabled={!canOAuth}>
                     Continue with Google
                   </Button>
-                  <Button variant="outline" onClick={() => void handleOAuth("github")} disabled={!canSubmitEmailOnly}>
+                  <Button variant="outline" onClick={() => void handleOAuth("github")} disabled={!canOAuth}>
                     Continue with GitHub
                   </Button>
                 </div>

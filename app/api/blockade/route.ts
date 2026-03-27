@@ -8,6 +8,7 @@ import {
   type RateLimitResult,
 } from "@/lib/shared/request-rate-limit"
 import { createClient } from "@supabase/supabase-js"
+import { createHash } from "node:crypto"
 import { z } from "zod"
 
 export const runtime = "nodejs"
@@ -380,7 +381,9 @@ export async function POST(req: Request): Promise<Response> {
 
   /* ---- certify_intent ---- */
   if (input.action === "certify_intent") {
-    const biometricHash = `pulse_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`
+    const biometricHash = createHash("sha256")
+      .update(`${userId}:${input.intentDescription}:${Date.now()}`)
+      .digest("hex")
 
     const { data, error } = await supabase
       .from("agentic_intent_certs")

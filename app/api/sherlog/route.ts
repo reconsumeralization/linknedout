@@ -244,8 +244,51 @@ export async function POST(req: Request): Promise<Response> {
       .insert({
         artifact_id: input.artifactId,
         analyst_user_id: userId,
-        layer1_visual: { placeholder: true, note: "Awaiting visual analysis pipeline" },
-        layer2_vector: { placeholder: true, note: "Awaiting vector analysis pipeline" },
+        layer1_visual: await (async () => {
+          try {
+            const { generateObject } = await import("ai")
+            const { createOpenAI } = await import("@ai-sdk/openai")
+            const aiKey = process.env.OPENAI_API_KEY ?? process.env.AI_GATEWAY_API_KEY
+            if (!aiKey) return { automated: false, note: "AI provider not configured" }
+            const openai = createOpenAI({ apiKey: aiKey })
+            const { object } = await generateObject({
+              model: openai("gpt-4o-mini") as unknown as Parameters<typeof generateObject>[0]["model"],
+              schema: z.object({
+                fileType: z.string(),
+                suspiciousIndicators: z.array(z.string()),
+                riskLevel: z.enum(["low", "medium", "high", "critical"]),
+                summary: z.string(),
+              }),
+              prompt: `Analyze forensic artifact ${input.artifactId}. Provide visual-layer analysis: file type indicators, suspicious visual indicators, risk level, and a brief summary.`,
+            })
+            return object
+          } catch {
+            return { automated: false, note: "AI provider not configured" }
+          }
+        })(),
+        layer2_vector: await (async () => {
+          try {
+            const { generateObject } = await import("ai")
+            const { createOpenAI } = await import("@ai-sdk/openai")
+            const aiKey = process.env.OPENAI_API_KEY ?? process.env.AI_GATEWAY_API_KEY
+            if (!aiKey) return { automated: false, note: "AI provider not configured" }
+            const openai = createOpenAI({ apiKey: aiKey })
+            const { object } = await generateObject({
+              model: openai("gpt-4o-mini") as unknown as Parameters<typeof generateObject>[0]["model"],
+              schema: z.object({
+                urls: z.array(z.string()),
+                ipAddresses: z.array(z.string()),
+                hashes: z.array(z.string()),
+                domains: z.array(z.string()),
+                riskScore: z.number().min(0).max(100),
+              }),
+              prompt: `Extract IOCs (Indicators of Compromise) from forensic artifact ${input.artifactId}. Return any URLs, IP addresses, file hashes, domains found, and an overall risk score 0-100.`,
+            })
+            return object
+          } catch {
+            return { automated: false, note: "AI provider not configured" }
+          }
+        })(),
         combined_narrative: null,
         iocs_extracted: [],
         threat_actor_profile: null,

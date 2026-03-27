@@ -127,15 +127,58 @@ export function createLinkedinWorkflowTools(
       execute: async (input) => {
         let enriched = 0
         for (const profileId of input.profileIds) {
+          // Try to fetch existing scores from connection_scoring first
+          const { data: existingScore } = await client
+            .from("connection_scoring")
+            .select("value_score, engagement_score, alignment_score, bot_probability")
+            .eq("owner_user_id", userId)
+            .eq("profile_id", profileId)
+            .single()
+
+          // If real scores exist, preserve them; otherwise compute heuristic scores from profile data
+          let valueScore = existingScore?.value_score
+          let engagementScore = existingScore?.engagement_score
+          let alignmentScore = existingScore?.alignment_score
+          let botProbability = existingScore?.bot_probability
+
+          if (valueScore == null || engagementScore == null || alignmentScore == null || botProbability == null) {
+            // Fetch profile data for heuristic scoring
+            const { data: profile } = await client
+              .from("profiles")
+              .select("headline, skills, connections, company, location, industry, seniority")
+              .eq("id", profileId)
+              .single()
+
+            const hasHeadline = !!(profile?.headline && profile.headline !== "LinkedIn profile")
+            const skillCount = Array.isArray(profile?.skills) ? profile.skills.length : 0
+            const connectionCount = typeof profile?.connections === "number" ? profile.connections : 0
+            const hasCompany = !!(profile?.company && profile.company !== "Unknown")
+            const hasLocation = !!(profile?.location && profile.location !== "Unknown")
+            const hasIndustry = !!(profile?.industry && profile.industry !== "General")
+
+            // Heuristic: value_score based on profile completeness (40-90 range)
+            const completenessSignals = [hasHeadline, skillCount > 0, hasCompany, hasLocation, hasIndustry].filter(Boolean).length
+            valueScore = valueScore ?? Math.min(90, 40 + completenessSignals * 10)
+
+            // Heuristic: engagement_score based on connection count (20-80 range)
+            engagementScore = engagementScore ?? Math.min(80, 20 + Math.floor(Math.min(connectionCount, 500) / 500 * 60))
+
+            // Heuristic: alignment_score based on skills + industry match (30-85 range)
+            alignmentScore = alignmentScore ?? Math.min(85, 30 + Math.min(skillCount, 10) * 5 + (hasIndustry ? 5 : 0))
+
+            // Heuristic: bot_probability based on profile completeness (lower = more likely real)
+            botProbability = botProbability ?? Math.max(0.02, 0.25 - completenessSignals * 0.04)
+          }
+
           const { error } = await client
             .from("connection_scoring")
             .upsert({
               owner_user_id: userId,
               profile_id: profileId,
-              value_score: Math.floor(Math.random() * 40) + 40, // placeholder scoring
-              engagement_score: Math.floor(Math.random() * 30) + 20,
-              alignment_score: Math.floor(Math.random() * 50) + 30,
-              bot_probability: Math.random() * 0.2,
+              value_score: valueScore,
+              engagement_score: engagementScore,
+              alignment_score: alignmentScore,
+              bot_probability: botProbability,
               last_scored_at: new Date().toISOString(),
               updated_at: new Date().toISOString(),
             }, { onConflict: "owner_user_id,profile_id" })
@@ -671,6 +714,194 @@ export function createLinkedinWorkflowTools(
     }),
 
     // ========================================================================
+    // Workflow Automations (#198-200)
+    // ========================================================================
+
+    // #198
+    analyzeMoreProfiles: tool({
+      description:
+        "Score LinkedIn's 'More profiles for you' suggestions against your objectives, tribe criteria, and mission alignment",
+      inputSchema: z.object({
+        suggestions: z.array(z.object({
+          profileId: z.string(),
+          profileName: z.string(),
+          headline: z.string().optional(),
+          industry: z.string().optional(),
+          company: z.string().optional(),
+          matchScore: z.number().optional(),
+          skills: z.array(z.string()).optional(),
+        })).min(1).max(100),
+        missionKeywords: z.array(z.string()).optional().describe("Keywords from your mission to match against"),
+      }),
+      execute: async (input) => {
+        const keywords = input.missionKeywords ?? ["cybersecurity", "defense", "technology", "innovation"]
+        const analyzed = input.suggestions.map((s) => {
+          const profileText = [s.headline, s.industry, ...(s.skills ?? [])].join(" ").toLowerCase()
+          const matches = keywords.filter((kw) => profileText.includes(kw.toLowerCase()))
+          const relevanceScore = Math.min(100, (s.matchScore ?? 50) + matches.length * 10)
+          const recommendation = relevanceScore >= 70 ? "invite" as const
+            : relevanceScore >= 40 ? "watch" as const
+            : "skip" as const
+
+          return {
+            profileId: s.profileId,
+            profileName: s.profileName,
+            relevanceScore,
+            matchedKeywords: matches,
+            recommendation,
+            reason: `Relevance ${relevanceScore}: ${matches.length} keyword matches from headline/skills`,
+          }
+        })
+
+        // Persist high-relevance suggestions
+        const inviteCandidates = analyzed.filter((a) => a.recommendation === "invite")
+        for (const candidate of inviteCandidates) {
+          await client.from("connection_scoring").upsert({
+            owner_user_id: userId,
+            profile_id: candidate.profileId,
+            profile_name: candidate.profileName,
+            alignment_score: candidate.relevanceScore,
+            last_scored_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          }, { onConflict: "owner_user_id,profile_id" })
+        }
+
+        return {
+          ok: true,
+          total: analyzed.length,
+          inviteCandidates: inviteCandidates.length,
+          watchList: analyzed.filter((a) => a.recommendation === "watch").length,
+          skipped: analyzed.filter((a) => a.recommendation === "skip").length,
+          results: analyzed,
+          message: `Analyzed ${analyzed.length} suggestions. ${inviteCandidates.length} worth inviting, ${analyzed.filter((a) => a.recommendation === "watch").length} to watch.`,
+        }
+      },
+    }),
+
+    // #199
+    findTribeMembers: tool({
+      description:
+        "Search your connections and extended network for tribe candidates matching project alignment, ideology, or skill criteria",
+      inputSchema: z.object({
+        keywords: z.array(z.string()).min(1).max(20).describe("Keywords to match against profiles"),
+        industries: z.array(z.string()).optional(),
+        skills: z.array(z.string()).optional(),
+        minConnections: z.number().optional(),
+        projectAlignment: z.string().optional().describe("Project name or description to align candidates with"),
+        maxResults: z.number().min(1).max(100).optional(),
+      }),
+      execute: async (input) => {
+        const limit = input.maxResults ?? 50
+
+        // Build query filters
+        let query = client
+          .from("profiles")
+          .select("id, first_name, last_name, headline, company, industry, location, skills, connections, match_score, tribe")
+          .eq("user_id", userId)
+          .limit(limit * 3) // over-fetch for scoring
+
+        if (input.industries?.length) {
+          query = query.in("industry", input.industries)
+        }
+
+        const { data: profiles, error } = await query
+        if (error) return { ok: false, error: error.message }
+
+        // Score each profile against criteria
+        const candidates = (profiles ?? []).map((p) => {
+          const profileText = [p.headline, p.company, p.industry, ...(Array.isArray(p.skills) ? p.skills : [])].join(" ").toLowerCase()
+          const keywordMatches = input.keywords.filter((kw) => profileText.includes(kw.toLowerCase()))
+          const skillMatches = input.skills?.filter((sk) => profileText.includes(sk.toLowerCase())) ?? []
+          const matchScore = Math.min(100, keywordMatches.length * 15 + skillMatches.length * 10 + (p.match_score ?? 0) * 0.3)
+
+          return {
+            profileId: p.id,
+            profileName: `${p.first_name} ${p.last_name}`,
+            matchScore: Math.floor(matchScore),
+            matchedCriteria: [...keywordMatches, ...skillMatches],
+            industry: p.industry,
+            company: p.company,
+            currentTribe: p.tribe,
+            recommendation: matchScore >= 60 ? "Strong tribe candidate" : "Marginal fit — review manually",
+          }
+        })
+          .filter((c) => c.matchScore >= 30)
+          .sort((a, b) => b.matchScore - a.matchScore)
+          .slice(0, limit)
+
+        return {
+          ok: true,
+          total: candidates.length,
+          strongCandidates: candidates.filter((c) => c.matchScore >= 60).length,
+          candidates,
+          message: `Found ${candidates.length} tribe candidates. ${candidates.filter((c) => c.matchScore >= 60).length} are strong matches.`,
+        }
+      },
+    }),
+
+    // #200
+    granularFilterProfiles: tool({
+      description:
+        "Filter your connections using any combination of variables: industry, skills, location, company, seniority, connection count, match score, tribe, date range",
+      inputSchema: z.object({
+        industries: z.array(z.string()).optional(),
+        skills: z.array(z.string()).optional(),
+        locations: z.array(z.string()).optional(),
+        companies: z.array(z.string()).optional(),
+        seniorityLevels: z.array(z.string()).optional(),
+        tribes: z.array(z.string()).optional(),
+        minConnections: z.number().optional(),
+        maxConnections: z.number().optional(),
+        minMatchScore: z.number().optional(),
+        maxMatchScore: z.number().optional(),
+        connectedAfter: z.string().optional().describe("ISO date string"),
+        connectedBefore: z.string().optional().describe("ISO date string"),
+        limit: z.number().min(1).max(500).optional(),
+      }),
+      execute: async (input) => {
+        let query = client
+          .from("profiles")
+          .select("id, first_name, last_name, headline, company, industry, location, seniority, skills, connections, match_score, tribe, connected_at")
+          .eq("user_id", userId)
+
+        if (input.industries?.length) query = query.in("industry", input.industries)
+        if (input.locations?.length) query = query.in("location", input.locations)
+        if (input.companies?.length) query = query.in("company", input.companies)
+        if (input.seniorityLevels?.length) query = query.in("seniority", input.seniorityLevels)
+        if (input.tribes?.length) query = query.in("tribe", input.tribes)
+        if (input.minConnections !== undefined) query = query.gte("connections", input.minConnections)
+        if (input.maxConnections !== undefined) query = query.lte("connections", input.maxConnections)
+        if (input.minMatchScore !== undefined) query = query.gte("match_score", input.minMatchScore)
+        if (input.maxMatchScore !== undefined) query = query.lte("match_score", input.maxMatchScore)
+        if (input.connectedAfter) query = query.gte("connected_at", input.connectedAfter)
+        if (input.connectedBefore) query = query.lte("connected_at", input.connectedBefore)
+
+        const { data, error } = await query.limit(input.limit ?? 100)
+        if (error) return { ok: false, error: error.message }
+
+        const results = (data ?? []).map((p) => ({
+          profileId: p.id,
+          fullName: `${p.first_name} ${p.last_name}`,
+          headline: p.headline,
+          company: p.company,
+          industry: p.industry,
+          location: p.location,
+          seniority: p.seniority,
+          connections: p.connections,
+          matchScore: p.match_score,
+          tribe: p.tribe,
+        }))
+
+        return {
+          ok: true,
+          total: results.length,
+          results,
+          message: `Found ${results.length} profiles matching your filters.`,
+        }
+      },
+    }),
+
+    // ========================================================================
     // Bot Detection (#197)
     // ========================================================================
 
@@ -686,14 +917,48 @@ export function createLinkedinWorkflowTools(
         const threshold = input.botThreshold ?? 0.7
 
         if (input.profileIds?.length) {
-          // Score specific profiles
+          // Score specific profiles using heuristic signals from profile data
           for (const pid of input.profileIds) {
-            const botProb = Math.random() * 0.3 + 0.1 // placeholder
+            // Check if we already have a bot_probability score
+            const { data: existingScore } = await client
+              .from("connection_scoring")
+              .select("bot_probability")
+              .eq("owner_user_id", userId)
+              .eq("profile_id", pid)
+              .single()
+
+            if (existingScore?.bot_probability != null) {
+              continue // Already scored, skip re-scoring
+            }
+
+            // Fetch profile data for heuristic bot detection
+            const { data: profile } = await client
+              .from("profiles")
+              .select("headline, skills, connections, company, location, updated_at")
+              .eq("id", pid)
+              .single()
+
+            const hasGenericHeadline = !profile?.headline || profile.headline === "LinkedIn profile" || profile.headline.length < 10
+            const connectionCount = typeof profile?.connections === "number" ? profile.connections : 0
+            const lowConnectionCount = connectionCount < 10
+            const skillCount = Array.isArray(profile?.skills) ? profile.skills.length : 0
+            const lastUpdated = profile?.updated_at ? new Date(profile.updated_at) : null
+            const noActivityLast90Days = lastUpdated ? (Date.now() - lastUpdated.getTime()) > 90 * 86400000 : true
+
+            // Heuristic bot probability: more red flags = higher probability
+            let botProb = 0.05 // base probability
+            if (hasGenericHeadline) botProb += 0.2
+            if (lowConnectionCount) botProb += 0.2
+            if (noActivityLast90Days) botProb += 0.15
+            if (skillCount === 0) botProb += 0.15
+            if (!profile?.company || profile.company === "Unknown") botProb += 0.1
+            botProb = Math.min(botProb, 0.95)
+
             const signals = {
-              genericHeadline: botProb > 0.5,
-              lowConnectionCount: false,
-              noActivityLast90Days: botProb > 0.6,
-              stockPhotoDetected: false,
+              genericHeadline: hasGenericHeadline,
+              lowConnectionCount,
+              noActivityLast90Days,
+              stockPhotoDetected: false, // requires image analysis, not available here
             }
 
             await client

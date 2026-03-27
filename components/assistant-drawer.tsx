@@ -41,6 +41,12 @@ const VIEW_LABELS: Record<ActiveView, string> = {
   sentinel: "SENTINEL",
   settings: "Settings",
   marketplace: "Marketplace",
+  evolution: "Evolution",
+  transparency: "Transparency",
+  workflows: "Workflows",
+  "sovereign-mind": "Sovereign Mind",
+  genesis: "Genesis",
+  "command-center": "Command Center",
 }
 
 const VIEW_ICONS: Partial<Record<ActiveView, string>> = {
@@ -182,7 +188,7 @@ function getSuggestedPrompts(activeView: ActiveView, hasImportedProfiles: boolea
       "Check if a URL is in our tribal immunity blacklist",
       "Detonate this suspicious link in a sandbox",
       "Run a Sovereign Audit for cracked software risks",
-      "Audit port entropy for covert channel detection",
+      "Audit port entropy for anomalous traffic detection",
       "Profile an adversary by their stylometric fingerprint",
       "Cull zombie devices that missed their heartbeat",
       "Sync new threat indicators to tribal herd immunity",

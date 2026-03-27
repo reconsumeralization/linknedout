@@ -308,7 +308,7 @@ export async function POST(req: Request): Promise<Response> {
     // Increment verification_count on the experience entry
     await supabase.rpc("increment_verification_count", {
       p_experience_id: input.experienceId,
-    }).then(async (rpcResult) => {
+    }).then(async (rpcResult: { error: unknown }) => {
       // Fallback: if RPC doesn't exist, do a manual increment
       if (rpcResult.error) {
         const { data: entry } = await supabase
