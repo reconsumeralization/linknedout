@@ -16,7 +16,18 @@ import {
 import { Textarea } from "@/components/ui/textarea"
 import { clearOnboardingDismissed, clearWelcomeSeen } from "@/components/onboarding-card"
 import { getSupabaseClient, resetSupabaseClients } from "@/lib/supabase/supabase"
-import { getUserKeys, setUserKeys, clearUserKeys, hasUserSupabase, hasAnyAIProvider, getConfiguredProviders, AI_PROVIDERS, DATA_SOURCES, type UserKeys } from "@/lib/shared/user-keys"
+import {
+  getUserKeys,
+  setUserKeys,
+  clearUserKeys,
+  hasUserSupabase,
+  hasAnyAIProvider,
+  getConfiguredProviders,
+  getUserKeyHeaders,
+  AI_PROVIDERS,
+  DATA_SOURCES,
+  type UserKeys,
+} from "@/lib/shared/user-keys"
 import { getDataBackend, resetBackendCache } from "@/lib/shared/backend-factory"
 import {
   getIntegrationKey,
@@ -238,6 +249,8 @@ export function SettingsPanel({ onNavigate }: SettingsPanelProps) {
   const [keysSaved, setKeysSaved] = useState(false)
   const [testingConnection, setTestingConnection] = useState(false)
   const [connectionResult, setConnectionResult] = useState<"success" | "error" | null>(null)
+  const [schemaLoading, setSchemaLoading] = useState(false)
+  const [schemaLine, setSchemaLine] = useState<string | null>(null)
   useEffect(() => {
     setUserKeysState(getUserKeys())
   }, [])
@@ -288,6 +301,46 @@ export function SettingsPanel({ onNavigate }: SettingsPanelProps) {
       toast.error(e instanceof Error ? e.message : "Connection failed.")
     } finally {
       setTestingConnection(false)
+    }
+  }, [userKeysState])
+
+  const handleSchemaCheck = useCallback(async () => {
+    setSchemaLoading(true)
+    setSchemaLine(null)
+    try {
+      // Save first so server can read request-scoped user keys.
+      setUserKeys(userKeysState)
+      resetSupabaseClients()
+      resetBackendCache()
+
+      const sb = getSupabaseClient()
+      const { data: sessionData } = (await sb?.auth.getSession().catch(() => ({ data: { session: null } }))) as {
+        data: { session: { access_token?: string } | null }
+      }
+      const token = sessionData.session?.access_token
+      const res = await fetch("/api/setup/schema-status", {
+        headers: {
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          ...getUserKeyHeaders(),
+        },
+        cache: "no-store",
+      })
+      const j = (await res.json().catch(() => ({}))) as {
+        ok?: boolean
+        summary?: { present: number; missing: number; total: number }
+        recommendedAction?: string
+        message?: string
+      }
+      if (j.ok && j.summary) {
+        const status = j.summary.missing === 0 ? "Schema OK" : "Schema incomplete"
+        setSchemaLine(`${status}: ${j.summary.present}/${j.summary.total} tables present${j.recommendedAction ? ` — ${j.recommendedAction}` : ""}`)
+      } else {
+        setSchemaLine(j.message ?? j.recommendedAction ?? "Schema check failed.")
+      }
+    } catch (e) {
+      setSchemaLine(e instanceof Error ? e.message : "Schema check failed.")
+    } finally {
+      setSchemaLoading(false)
     }
   }, [userKeysState])
 
@@ -615,6 +668,10 @@ export function SettingsPanel({ onNavigate }: SettingsPanelProps) {
                 {testingConnection ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}
                 Test Supabase
               </Button>
+              <Button size="sm" variant="outline" onClick={() => void handleSchemaCheck()} disabled={schemaLoading} className="gap-1.5">
+                {schemaLoading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}
+                Schema check
+              </Button>
               <Button size="sm" variant="ghost" onClick={handleClearKeys} className="text-muted-foreground">
                 Clear All
               </Button>
@@ -630,6 +687,7 @@ export function SettingsPanel({ onNavigate }: SettingsPanelProps) {
                 Connection failed — check your credentials
               </div>
             ) : null}
+            {schemaLine ? <p className="text-[11px] text-muted-foreground">{schemaLine}</p> : null}
             <div className="flex flex-wrap gap-3 pt-1">
               <div className="flex items-center gap-1.5">
                 <span className="inline-block h-2 w-2 rounded-full bg-blue-500" />

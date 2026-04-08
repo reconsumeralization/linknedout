@@ -257,6 +257,12 @@ export default function AuthCenterPage() {
             </div>
 
             <div className="flex flex-wrap gap-2">
+              <Button variant="ghost" asChild className="text-muted-foreground">
+                <Link href="/setup/wizard" className="gap-1.5">
+                  <Link2 className="h-4 w-4" />
+                  Back to setup wizard
+                </Link>
+              </Button>
               {accessToken ? (
                 <Button variant="outline" onClick={() => void handleSignOut()} className="gap-1.5">
                   <LogOut className="h-4 w-4" />

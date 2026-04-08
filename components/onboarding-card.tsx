@@ -5,6 +5,8 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Progress } from "@/components/ui/progress"
 import type { OnboardingOptionalStepsState } from "@/lib/supabase/supabase-data"
+import { getUserKeyHeaders } from "@/lib/shared/user-keys"
+import { resolveSupabaseAccessToken } from "@/lib/supabase/supabase-client-auth"
 import { Check, ChevronRight, Heart, Linkedin, Mail, MessageSquare, Rocket, ShieldCheck, Sparkles, Upload } from "lucide-react"
 import Link from "next/link"
 import { useCallback, useEffect, useMemo, useState } from "react"
@@ -384,6 +386,42 @@ export function OnboardingCard({
         },
       }
 
+  const [schemaHint, setSchemaHint] = useState<string | null>(null)
+  const [schemaLoading, setSchemaLoading] = useState(false)
+
+  const runSchemaCheck = useCallback(async () => {
+    setSchemaLoading(true)
+    setSchemaHint(null)
+    try {
+      const token = resolveSupabaseAccessToken()
+      const res = await fetch("/api/setup/schema-status", {
+        headers: {
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          ...getUserKeyHeaders(),
+        },
+        cache: "no-store",
+      })
+      const j = (await res.json().catch(() => ({}))) as {
+        ok?: boolean
+        summary?: { present: number; missing: number; total: number }
+        recommendedAction?: string
+        message?: string
+      }
+      if (j.ok && j.summary) {
+        const status = j.summary.missing === 0 ? "Schema OK" : "Schema incomplete"
+        setSchemaHint(
+          `${status}: ${j.summary.present}/${j.summary.total} tables present${j.recommendedAction ? ` — ${j.recommendedAction}` : ""}`,
+        )
+      } else {
+        setSchemaHint(j.message ?? j.recommendedAction ?? "Schema check failed.")
+      }
+    } catch {
+      setSchemaHint("Schema check failed.")
+    } finally {
+      setSchemaLoading(false)
+    }
+  }, [])
+
   // Suppress SSR render entirely to avoid hydration mismatch — props like
   // hasSupabaseConfigured can differ between server and client when env vars
   // or localStorage are only available client-side.
@@ -469,6 +507,10 @@ export function OnboardingCard({
                   View full setup guide
                   <ChevronRight className="h-3 w-3" />
                 </Link>
+                <Link href="/setup/wizard" className="mt-1 inline-flex items-center gap-1 text-xs text-primary hover:underline">
+                  Open setup wizard
+                  <ChevronRight className="h-3 w-3" />
+                </Link>
               </div>
               <Button variant="ghost" size="sm" onClick={handleDismiss} className="shrink-0 text-muted-foreground">
                 Dismiss
@@ -497,7 +539,13 @@ export function OnboardingCard({
                   <MessageSquare className="h-3.5 w-3.5" />
                   Ask AI to guide me
                 </Button>
+                {hasSupabaseConfigured && hasAuth && !hasData ? (
+                  <Button size="sm" variant="outline" onClick={() => void runSchemaCheck()} disabled={schemaLoading}>
+                    {schemaLoading ? "Checking…" : "Check schema"}
+                  </Button>
+                ) : null}
               </div>
+              {schemaHint ? <p className="mt-2 text-[11px] text-muted-foreground">{schemaHint}</p> : null}
             </div>
 
             <div className="space-y-3">
