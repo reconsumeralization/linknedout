@@ -1,0 +1,34 @@
+# One-click production deploy when Vercel Git hooks miss a build or you need a forced redeploy.
+# Add repo secrets (Settings → Secrets → Actions):
+#   VERCEL_TOKEN        — https://vercel.com/account/tokens
+#   VERCEL_ORG_ID       — Project → Settings → General (or .vercel/project.json after `vercel link`)
+#   VERCEL_PROJECT_ID   — same
+#
+# Run: Actions → "Vercel production deploy" → Run workflow.
+# If the project already auto-deploys from GitHub on push to master, you usually do not need this.
+
+name: Vercel production deploy
+
+on:
+  workflow_dispatch:
+
+concurrency:
+  group: vercel-prod-${{ github.repository }}
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Deploy to Vercel (production)
+        uses: amondnet/vercel-action@v25
+        with:
+          vercel-token: ${{ secrets.VERCEL_TOKEN }}
+          vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
+          vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
+          vercel-args: "--prod"
+          working-directory: .
