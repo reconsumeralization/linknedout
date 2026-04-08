@@ -341,7 +341,7 @@ export function OnboardingCard({
         eyebrow: "Start here",
         title: "Let's get Supabase connected first.",
         body:
-          "Go to Settings and enter your Supabase URL and anon key. Once connected, sign in, import profiles, and start asking the workspace questions.",
+          "Connect Supabase either by setting .env.local (local dev) or by entering your Supabase URL + anon key in Settings (hosted build). Once connected, sign in, import profiles, and start asking the workspace questions.",
         primaryAction: {
           kind: "navigate",
           label: "Open Settings",
@@ -411,7 +411,7 @@ export function OnboardingCard({
               <ul className="space-y-2 text-sm text-muted-foreground">
                 <li className="flex items-center gap-2">
                   <ShieldCheck className="h-4 w-4 shrink-0 text-primary" />
-                  Add your API keys in Settings to unlock CRM, Email, Network, and Agents
+                  Connect Supabase (Settings or .env.local) to unlock CRM, Email, Network, and Agents
                 </li>
                 <li className="flex items-center gap-2">
                   <Upload className="h-4 w-4 shrink-0 text-primary" />

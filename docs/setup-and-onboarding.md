@@ -6,11 +6,25 @@ This guide helps you get LinkedOut running with Supabase (cloud or local/Docker)
 
 **AI Assistant:** From the Dashboard or Settings page, open the AI Assistant and ask e.g. "Help me set up Supabase and the entire stack" or "Walk me through Supabase Cloud setup". The assistant has access to official Supabase documentation links and can guide you step by step. It can search your app data (profiles, tribes, projects, CSV) and use built-in web search (no API key) to research topics and cite sources—combining external results with your CRM and talent data.
 
+## Choose your path (2 minutes)
+
+- **Supabase Cloud (fastest)**: Create a project, set `NEXT_PUBLIC_SUPABASE_*`, apply repo migrations, run `pnpm dev`. Jump to **Option A**.
+- **Local Supabase (recommended for local dev on Windows)**: One command (`pnpm local:full:onboard`) brings up Supabase locally, applies migrations, creates a test user, and wires `.env.local`. Jump to **Option B**.
+- **Docker stack**: App + Postgres containers; you still need Supabase Auth (cloud or local Supabase). Jump to **Option C**.
+- **Branded Supabase self-host**: Full Supabase stack with one-script setup and “doctor/sync env” workflow. Jump to **Option D**.
+- **Manual Supabase self-host**: Official Supabase Docker setup. Jump to **Option E**.
+
 ## 1. Prerequisites
 
 - **Node.js** 18+ and **pnpm**
 - **Docker Desktop** (optional, for Docker stack or local Supabase)
 - A **Supabase** account (free tier works) or local Supabase
+
+## Mac / Linux / WSL notes
+
+- The repo’s `pnpm local:*` and `pnpm supabase:*` helper scripts are **PowerShell-first** (Windows). On Mac/Linux, use the **Supabase CLI + Docker** path (Option A for cloud, Option E for self-host, or local Supabase CLI docs).
+- If you are on Windows but prefer a Unix toolchain, **WSL2** + Docker Desktop typically gives the smoothest experience (run the app inside WSL; use Supabase CLI from WSL).
+- Regardless of OS, the rule is the same: **the Supabase project you point the app at must have the repo migrations applied** (`supabase/migrations/`).
 
 ## 2. Supabase: Choose Your Path
 
@@ -190,15 +204,12 @@ For the Email workspace, configure Google or Microsoft OAuth in `.env.local` (se
 | Step | Action |
 |------|--------|
 | 1 | Copy `.env.example` → `.env.local` |
-| 2 | Set Supabase URL + anon key (cloud or from local Supabase) |
-| 3 | (App Docker) Set `POSTGRES_PASSWORD`; run `pnpm docker:up` |
-| 4 | (Local Supabase) Run `pnpm supabase:local:start` and `supabase:local:reset` |
-| 4b | (Self-hosted Supabase) Clone supabase/supabase, configure `.env`, run `docker compose up -d`; set `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` in app `.env.local` |
-| 4c | (Branded Supabase) Run `pnpm supabase:branded:doctor`, then `pnpm supabase:branded:sync-env` after editing `branded-supabase/.env` |
-| 5 | Run app: `pnpm dev` or use Docker |
-| 6 | Sign in via Settings → Open login page |
-| 7 | Add data: upload CSV in AI Assistant or use Supabase data |
-| 8 | (Optional) Connect LinkedIn in Settings |
-| 9 | (Optional) Configure email OAuth for Email workspace |
+| 2 | Set `NEXT_PUBLIC_SUPABASE_URL` + `NEXT_PUBLIC_SUPABASE_ANON_KEY` (cloud or from local Supabase) |
+| 3 | Apply repo migrations (`supabase/migrations/`) to the Supabase database you are using |
+| 4 | Run the app: `pnpm dev` (or use Docker) |
+| 5 | Sign in via Settings → Open login page |
+| 6 | Add data: upload CSV in AI Assistant or use Supabase data |
+| 7 | (Optional) Connect LinkedIn in Settings |
+| 8 | (Optional) Configure email OAuth for Email workspace |
 
 For more: [.env.example](../.env.example), [Local Supabase Setup](./local-supabase.md), [Docker Stack](./docker-stack.md), [Supabase Self-Hosting with Docker](https://supabase.com/docs/guides/self-hosting/docker).

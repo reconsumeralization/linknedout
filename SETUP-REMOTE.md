@@ -2,6 +2,8 @@
 
 Use this guide when setting up the LinkedOut application on a remote machine via AnyDesk.
 
+For non-remote setups (cloud Supabase, branded self-host, Mac/Linux, Docker variants), use the canonical guide: `docs/setup-and-onboarding.md`.
+
 ---
 
 ## Prerequisites (install on the remote machine first)

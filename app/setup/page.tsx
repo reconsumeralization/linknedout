@@ -38,7 +38,7 @@ const steps = [
     id: "migrations",
     title: "Apply database migrations",
     description:
-      "Run pnpm supabase:db:start to apply migrations automatically, or apply them manually via the Supabase SQL editor. This creates the tables the app needs (profiles, tribes, projects, etc.).",
+      "Supabase Cloud: apply the repo's supabase/migrations via Supabase CLI (supabase link + db push), CI, or the SQL Editor in timestamp order. Local dev: the repo scripts can apply migrations as part of pnpm local:full:onboard (recommended on Windows).",
     href: null,
     icon: FolderKanban,
   },
@@ -101,6 +101,8 @@ export default function SetupPage() {
     })
   }
 
+  const setupDocUrl = "https://github.com/reconsumeralization/linknedout/blob/master/docs/setup-and-onboarding.md"
+
   return (
     <div className="min-h-screen bg-background text-foreground">
       <div className="mx-auto max-w-3xl space-y-6 px-4 py-10">
@@ -139,7 +141,7 @@ export default function SetupPage() {
               <li className="rounded-xl border border-border/80 bg-background/70 p-4">
                 <p className="text-sm font-medium text-foreground">2. Apply migrations and run the app</p>
                 <p className="mt-1 text-sm leading-6 text-muted-foreground">
-                  Run <code className="rounded bg-muted px-1.5 py-0.5 text-xs">pnpm supabase:db:start</code> to apply migrations (or run them manually via the SQL editor). Then start the app with <code className="rounded bg-muted px-1.5 py-0.5 text-xs">pnpm dev</code>.
+                  Supabase Cloud: apply <code className="rounded bg-muted px-1.5 py-0.5 text-xs">supabase/migrations</code> using Supabase CLI (<code className="rounded bg-muted px-1.5 py-0.5 text-xs">supabase link</code> + <code className="rounded bg-muted px-1.5 py-0.5 text-xs">supabase db push</code>), CI, or the SQL Editor (timestamp order). Local Windows stack: run <code className="rounded bg-muted px-1.5 py-0.5 text-xs">pnpm local:full:onboard</code> (recommended) or the individual local scripts. Then start the app with <code className="rounded bg-muted px-1.5 py-0.5 text-xs">pnpm dev</code>.
                 </p>
               </li>
               <li className="rounded-xl border border-border/80 bg-background/70 p-4">
@@ -155,6 +157,13 @@ export default function SetupPage() {
                 </p>
               </li>
             </ol>
+
+            <div className="rounded-xl border border-border/80 bg-background/70 p-4">
+              <p className="text-sm font-medium text-foreground">Using the hosted app on Vercel?</p>
+              <p className="mt-1 text-sm leading-6 text-muted-foreground">
+                You still need a Supabase project with migrations applied. Then add your Supabase keys and other providers in Settings (or as deployment env vars).
+              </p>
+            </div>
 
             <div className="rounded-xl border border-border bg-muted/40 p-4">
               <p className="mb-2 text-xs text-muted-foreground">Minimal .env.local snippet</p>
@@ -191,7 +200,11 @@ export default function SetupPage() {
               ))}
             </div>
             <p className="text-xs text-muted-foreground">
-              If you prefer the long-form written version, open <code className="rounded bg-muted px-1.5 py-0.5 text-xs">docs/setup-and-onboarding.md</code> in this repo.
+              If you prefer the long-form written version, open{" "}
+              <a href={setupDocUrl} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
+                docs/setup-and-onboarding.md
+              </a>
+              .
             </p>
           </CardContent>
         </Card>
