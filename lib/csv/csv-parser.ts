@@ -128,7 +128,7 @@ function inferMatchScore(input: {
 }
 
 /** Flexible CSV row parser that handles quoted fields */
-function parseRow(row: string): string[] {
+export function parseCsvRow(row: string): string[] {
   const result: string[] = []
   let current = ""
   let inQuotes = false
@@ -196,7 +196,7 @@ export function parseLinkedInCsv(csvData: string): ParsedProfile[] {
   const lines = csvData.trim().split(/\r?\n/).filter(Boolean)
   if (lines.length < 2) return []
 
-  const headers = parseRow(lines[0]).map(normalizeHeader)
+  const headers = parseCsvRow(lines[0]).map(normalizeHeader)
 
   const get = (cells: string[], key: string): string => {
     const idx = headers.indexOf(key)
@@ -206,7 +206,7 @@ export function parseLinkedInCsv(csvData: string): ParsedProfile[] {
   const profiles: ParsedProfile[] = []
 
   for (let i = 1; i < lines.length; i++) {
-    const cells = parseRow(lines[i])
+    const cells = parseCsvRow(lines[i])
     if (cells.every(c => !c)) continue
 
     const firstName = get(cells, "firstName")

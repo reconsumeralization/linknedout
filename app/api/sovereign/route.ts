@@ -117,6 +117,7 @@ export async function GET(req: Request) {
     { range: "ARC", name: "ARC AGI Solver (Active Inference)", route: "/api/sovereign" },
     { range: "BENCH", name: "Self-Improving LLM Benchmark (vs Opus 4.6)", route: "/api/sovereign" },
     { range: "CREATORS", name: "Micro-Creators & Offshoots", route: "/api/sovereign" },
+    { range: "PORTFOLIO", name: "Multi-Company Orchestration (1→8)", route: "/api/sovereign" },
   ]
 
   // Optionally include full tool list with descriptions
@@ -131,7 +132,7 @@ export async function GET(req: Request) {
 
   return NextResponse.json({
     ok: true,
-    totalTools: 339,
+    totalTools: 348,
     totalCategories: categories.length,
     usage: "POST /api/sovereign { tool: 'toolName', params: { ... } }",
     categories,

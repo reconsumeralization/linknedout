@@ -1,4 +1,5 @@
 import type { ParsedProfile } from "@/lib/csv/csv-parser"
+import type { ParsedActivity } from "@/lib/csv/activity-csv-parser"
 
 export type SessionImportSourceType = "csv" | "linkedin_pdf" | "linkedin_export" | "json" | "vcf"
 
@@ -17,6 +18,9 @@ export type SessionImportState = {
   sources: SessionImportSource[]
   displayLabel: string | null
   unsavedPdfProfileIds: string[]
+  /** FileFlex-style audit rows when an activity export was imported */
+  activities: ParsedActivity[]
+  activityCsv: string | null
 }
 
 export type ImportSourceInput = {
@@ -25,12 +29,17 @@ export type ImportSourceInput = {
   profiles: ParsedProfile[]
   warnings?: string[]
   rawCsv?: string
+  activities?: ParsedActivity[]
+  /** Original activity export text (for re-parse / export) */
+  rawActivityCsv?: string
 }
 
 export type ImportSummary = {
   label: string
   profileCount: number
   sourceCount: number
+  /** Present when the session includes parsed activity/audit CSV rows */
+  activityRowCount?: number
 }
 
 export type ApplyImportOptions = {
@@ -232,6 +241,8 @@ export function applyImportToSession(
       sources,
       displayLabel: buildDisplayLabel(sources),
       unsavedPdfProfileIds: [],
+      activities: input.activities ?? [],
+      activityCsv: input.rawActivityCsv ?? null,
     }
   }
 
@@ -251,6 +262,10 @@ export function applyImportToSession(
     },
   ]
 
+  const nextActivities =
+    input.activities && input.activities.length > 0 ? input.activities : (current?.activities ?? [])
+  const nextActivityCsv = input.rawActivityCsv ?? current?.activityCsv ?? null
+
   return {
     canonicalCsv: serializeProfilesToCanonicalCsv(mergedProfiles) || null,
     profiles: mergedProfiles,
@@ -260,5 +275,7 @@ export function applyImportToSession(
       input.type === "linkedin_pdf"
         ? Array.from(new Set([...(current?.unsavedPdfProfileIds ?? []), ...resolvedProfileIds]))
         : current?.unsavedPdfProfileIds ?? [],
+    activities: nextActivities,
+    activityCsv: nextActivityCsv,
   }
 }

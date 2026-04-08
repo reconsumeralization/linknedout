@@ -10,6 +10,7 @@ import {
   type ReactNode,
 } from "react"
 import { toast } from "sonner"
+import type { ParsedActivity } from "@/lib/csv/activity-csv-parser"
 import {
   applyImportToSession,
   type ImportSourceInput,
@@ -45,12 +46,13 @@ export type ActiveView =
   | "genesis"
   | "command-center"
   | "creators"
+  | "portfolio"
 
 const ACTIVE_VIEW_SET: ReadonlySet<ActiveView> = new Set<ActiveView>([
   "dashboard", "chat", "profiles", "tribes", "projects", "fundraising",
   "data", "storage", "email", "analytics", "linkedout", "network",
   "agents", "globe", "sentinel", "settings", "marketplace",
-  "transparency", "evolution", "workflows", "sovereign-mind", "genesis", "command-center", "creators",
+  "transparency", "evolution", "workflows", "sovereign-mind", "genesis", "command-center", "creators", "portfolio",
 ])
 
 export function isActiveView(value: string | null): value is ActiveView {
@@ -69,6 +71,8 @@ interface AppContextValue {
   csvData: string | null
   importLabel: string | null
   importSummary: ImportSummary | null
+  /** Parsed audit/activity CSV rows (FileFlex-style export), if any */
+  activityAuditRows: ParsedActivity[]
   handleImportProfiles: (input: ImportSourceInput) => void
   handleSaveImportedPdfProfiles: (profileIds: string[]) => Promise<void>
 }
@@ -96,6 +100,7 @@ function buildImportSummary(sessionImport: SessionImportState | null): ImportSum
     label: sessionImport.displayLabel,
     profileCount: sessionImport.profiles.length,
     sourceCount: sessionImport.sources.length,
+    activityRowCount: sessionImport.activities.length > 0 ? sessionImport.activities.length : undefined,
   }
 }
 
@@ -135,7 +140,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       const preview = (input.rawCsv ?? serializeProfilesToCanonicalCsv(input.profiles)).slice(0, 5000)
       void saveCsvUploadTelemetry({
         fileName: input.fileName,
-        rowCount: input.profiles.length,
+        rowCount: input.activities?.length ?? input.profiles.length,
         preview,
       })
     }
@@ -182,6 +187,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const csvData = sessionImport?.canonicalCsv ?? null
   const importLabel = sessionImport?.displayLabel ?? null
   const importSummary = useMemo(() => buildImportSummary(sessionImport), [sessionImport])
+  const activityAuditRows = useMemo(() => sessionImport?.activities ?? [], [sessionImport?.activities])
 
   const value = useMemo<AppContextValue>(
     () => ({
@@ -194,10 +200,22 @@ export function AppProvider({ children }: { children: ReactNode }) {
       csvData,
       importLabel,
       importSummary,
+      activityAuditRows,
       handleImportProfiles,
       handleSaveImportedPdfProfiles,
     }),
-    [activeView, pageContext, hasAuthToken, sessionImport, csvData, importLabel, importSummary, handleImportProfiles, handleSaveImportedPdfProfiles],
+    [
+      activeView,
+      pageContext,
+      hasAuthToken,
+      sessionImport,
+      csvData,
+      importLabel,
+      importSummary,
+      activityAuditRows,
+      handleImportProfiles,
+      handleSaveImportedPdfProfiles,
+    ],
   )
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>

@@ -84,7 +84,8 @@ export const INTEGRATION_CATALOG: IntegrationEntry[] = [
     docsUrl: "https://neon.tech/docs",
     featured: true,
     available: true,
-    agentTools: ["db:query", "db:branch"],
+    /** Catalog placeholder — use Supabase or wire Neon client before advertising tools. */
+    agentTools: [],
   },
   {
     id: "upstash",
@@ -97,7 +98,8 @@ export const INTEGRATION_CATALOG: IntegrationEntry[] = [
     docsUrl: "https://upstash.com/docs",
     featured: true,
     available: true,
-    agentTools: ["cache:get", "cache:set", "cache:del", "vector:upsert", "vector:query", "queue:publish"],
+    /** Catalog placeholder — Upstash REST not wired in-repo yet (use `redis` + REDIS_URL for cache tools). */
+    agentTools: [],
   },
   {
     id: "redis",
@@ -514,7 +516,8 @@ export const INTEGRATION_CATALOG: IntegrationEntry[] = [
     description: "Understand your users — analytics, session replay, errors, flags, & more.",
     category: "analytics",
     tier: "native",
-    envKeys: ["NEXT_PUBLIC_POSTHOG_KEY", "NEXT_PUBLIC_POSTHOG_HOST"],
+    /** Host optional in env; marketplace runner defaults to https://us.i.posthog.com */
+    envKeys: ["NEXT_PUBLIC_POSTHOG_KEY"],
     oauth: false,
     docsUrl: "https://posthog.com/docs",
     featured: true,

@@ -48,6 +48,7 @@ const VIEW_LABELS: Record<ActiveView, string> = {
   genesis: "Genesis",
   "command-center": "Command Center",
   creators: "Creators",
+  portfolio: "Portfolio",
 }
 
 const VIEW_ICONS: Partial<Record<ActiveView, string>> = {

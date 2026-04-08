@@ -9,22 +9,28 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { OnboardingCard } from "@/components/onboarding-card"
 import { getDemoPulseMetrics } from "@/lib/sovereign/evolution-loop"
 import { Progress } from "@/components/ui/progress"
+import type { ParsedActivity } from "@/lib/csv/activity-csv-parser"
+import { summarizeActivityTypes } from "@/lib/csv/activity-csv-parser"
 import { buildSkillFrequency, parseLinkedInCsv } from "@/lib/csv/csv-parser"
 import {
+  fetchOnboardingOptionalStepsState,
   fetchSupabaseDashboardSnapshot,
   subscribeToActivity,
   subscribeToProfiles,
   subscribeToProjects,
+  subscribeToSupabaseTable,
   subscribeToTribes,
+  type OnboardingOptionalStepsState,
 } from "@/lib/supabase/supabase-data"
 import { resolveSupabaseAccessToken } from "@/lib/supabase/supabase-client-auth"
 import { RecommendationsCard } from "@/components/recommendations-card"
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "@/components/ui/collapsible"
-import { ArrowRight, BookOpen, Brain, ChevronDown, ChevronRight, ChevronUp, FlaskConical, FolderKanban, Layers, MessageSquare, Network, Radio, Shield, Sparkles, Star, TrendingDown, TrendingUp, Upload, Users, Zap } from "lucide-react"
+import { ArrowRight, BookOpen, Brain, ChevronDown, ChevronRight, ChevronUp, ClipboardList, FlaskConical, FolderKanban, Layers, MessageSquare, Network, Radio, Shield, Sparkles, Star, TrendingDown, TrendingUp, Upload, Users, Zap } from "lucide-react"
 import { useCallback, useEffect, useMemo, useState } from "react"
 import {
     Bar,
     BarChart,
+    CartesianGrid,
     PolarAngleAxis,
     PolarGrid,
     Radar,
@@ -62,6 +68,7 @@ const aspirations: Aspiration[] = [
 interface DashboardPanelProps {
   onNavigate: (view: ActiveView) => void
   csvData: string | null
+  activityAuditRows?: ParsedActivity[]
 }
 
 function UploadBanner({ onClick }: { onClick: () => void }) {
@@ -79,7 +86,7 @@ function UploadBanner({ onClick }: { onClick: () => void }) {
             Import LinkedIn profiles
           </div>
           <div className="text-xs text-muted-foreground">
-            Bring in a LinkedIn CSV export or profile PDF for AI-powered analysis
+            LinkedIn connections CSV, enterprise activity/audit CSV (e.g. FileFlex export), or profile PDF
           </div>
         </div>
       </div>
@@ -121,6 +128,37 @@ function SkillsBarChart({ data }: { data: SkillDatum[] }) {
           }}
         />
         <Bar dataKey="count" fill="var(--primary)" radius={[4, 4, 0, 0]} />
+      </BarChart>
+    </ResponsiveContainer>
+  )
+}
+
+type AuditTypeDatum = { label: string; count: number }
+
+function AuditActivityBarChart({ data }: { data: AuditTypeDatum[] }) {
+  if (data.length === 0) {
+    return <p className="text-xs text-muted-foreground py-6 text-center">No activity types to chart.</p>
+  }
+  return (
+    <ResponsiveContainer width="100%" height={Math.min(320, 40 + data.length * 28)}>
+      <BarChart layout="vertical" data={data} margin={{ top: 4, right: 12, left: 4, bottom: 4 }}>
+        <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" horizontal={false} />
+        <XAxis type="number" tick={{ fontSize: 10, fill: "var(--muted-foreground)" }} />
+        <YAxis
+          type="category"
+          dataKey="label"
+          width={200}
+          tick={{ fontSize: 9, fill: "var(--muted-foreground)" }}
+        />
+        <Tooltip
+          contentStyle={{
+            background: "var(--card)",
+            border: "1px solid var(--border)",
+            borderRadius: "8px",
+            fontSize: "11px",
+          }}
+        />
+        <Bar dataKey="count" fill="var(--accent)" radius={[0, 4, 4, 0]} />
       </BarChart>
     </ResponsiveContainer>
   )
@@ -177,6 +215,7 @@ function ActivityRow({ item }: { item: Activity }) {
         item.type === "tribe" ? "bg-accent" :
         item.type === "ai" ? "bg-primary" :
         item.type === "profiles" ? "bg-chart-3" :
+        item.type === "audit" ? "bg-violet-500" :
         "bg-muted-foreground"
       }`} />
       <div className="flex-1 min-w-0">
@@ -250,7 +289,7 @@ function SingularityPulseCard({ onNavigate }: { onNavigate?: (view: ActiveView) 
   )
 }
 
-export function DashboardPanel({ onNavigate, csvData }: DashboardPanelProps) {
+export function DashboardPanel({ onNavigate, csvData, activityAuditRows = [] }: DashboardPanelProps) {
   const [showAdvanced, setShowAdvanced] = useState(false)
   const [liveStats, setLiveStats] = useState<Stat[]>(defaultStats)
   const [liveProjects, setLiveProjects] = useState<Project[]>([])
@@ -258,18 +297,30 @@ export function DashboardPanel({ onNavigate, csvData }: DashboardPanelProps) {
   const [dataSource, setDataSource] = useState<"csv" | "supabase">("supabase")
   const [isSyncing, setIsSyncing] = useState(false)
   const [hasAuth, setHasAuth] = useState(false)
+  const [optionalStepsState, setOptionalStepsState] = useState<OnboardingOptionalStepsState | null>(null)
 
   // Imported profile data is normalized to CSV for downstream analysis.
   const csvProfiles = useMemo(() => (csvData ? parseLinkedInCsv(csvData) : null), [csvData])
   const csvSkillsData = useMemo(() => (csvProfiles && csvProfiles.length > 0 ? buildSkillFrequency(csvProfiles) : null), [csvProfiles])
+  const auditTypeData = useMemo((): AuditTypeDatum[] => {
+    if (activityAuditRows.length === 0) return []
+    return summarizeActivityTypes(activityAuditRows, 10).map(({ type, count }) => ({
+      label: type.length > 42 ? `${type.slice(0, 39)}…` : type,
+      count,
+    }))
+  }, [activityAuditRows])
 
   useEffect(() => {
     if (!csvProfiles || csvProfiles.length === 0) return
     const count = csvProfiles.length
     const tribeCount = new Set(csvProfiles.map(p => p.tribe).filter(Boolean)).size
     const totalConnections = csvProfiles.reduce((sum, p) => sum + (p.connections || 0), 0)
+    const auditNote =
+      activityAuditRows.length > 0
+        ? ` + ${activityAuditRows.length.toLocaleString()} audit events`
+        : ""
     setLiveStats([
-      { ...defaultStats[0], value: count.toLocaleString(), change: `from imported profiles (${count} rows)` },
+      { ...defaultStats[0], value: count.toLocaleString(), change: `from import (${count} rows)${auditNote}` },
       { ...defaultStats[1], value: Math.max(tribeCount, 1).toString(), change: tribeCount > 0 ? "detected in import session" : "auto-grouped" },
       { ...defaultStats[2], value: defaultStats[2].value, change: defaultStats[2].change },
       {
@@ -278,11 +329,31 @@ export function DashboardPanel({ onNavigate, csvData }: DashboardPanelProps) {
         change: "sum of connections",
       },
     ])
-    setLiveActivity([
-      { action: `${count} profiles imported for analysis`, time: "just now", type: "profiles" },
-    ])
+    const activityLines: Activity[] = []
+    if (activityAuditRows.length > 0) {
+      activityLines.push({
+        action: `${activityAuditRows.length.toLocaleString()} audit events in current import`,
+        time: "just now",
+        type: "audit",
+      })
+    }
+    activityLines.push({
+      action: `${count} profile rows for analysis (includes actors derived from audit when applicable)`,
+      time: "just now",
+      type: "profiles",
+    })
+    setLiveActivity(activityLines)
     setDataSource("csv")
-  }, [csvProfiles])
+  }, [csvProfiles, activityAuditRows])
+
+  const refreshOptionalSteps = useCallback(async () => {
+    if (!resolveSupabaseAccessToken()) {
+      setOptionalStepsState(null)
+      return
+    }
+    const next = await fetchOnboardingOptionalStepsState()
+    setOptionalStepsState(next ?? null)
+  }, [])
 
   const loadSupabaseSnapshot = useCallback(async () => {
     setIsSyncing(true)
@@ -329,16 +400,24 @@ export function DashboardPanel({ onNavigate, csvData }: DashboardPanelProps) {
       setDataSource("supabase")
     } finally {
       setIsSyncing(false)
+      void refreshOptionalSteps()
     }
-  }, [])
+  }, [refreshOptionalSteps])
 
   useEffect(() => {
     const token = resolveSupabaseAccessToken()
     setHasAuth(!!token)
-    const onStorage = () => setHasAuth(!!resolveSupabaseAccessToken())
+    if (token) void refreshOptionalSteps()
+    else setOptionalStepsState(null)
+    const onStorage = () => {
+      const t = !!resolveSupabaseAccessToken()
+      setHasAuth(t)
+      if (t) void refreshOptionalSteps()
+      else setOptionalStepsState(null)
+    }
     window.addEventListener("storage", onStorage)
     return () => window.removeEventListener("storage", onStorage)
-  }, [])
+  }, [refreshOptionalSteps])
 
   useEffect(() => {
     void loadSupabaseSnapshot()
@@ -363,6 +442,41 @@ export function DashboardPanel({ onNavigate, csvData }: DashboardPanelProps) {
       }
     }
   }, [loadSupabaseSnapshot])
+
+  useEffect(() => {
+    if (!resolveSupabaseAccessToken()) return
+
+    const subs = [
+      subscribeToSupabaseTable("linkedin_identities", () => {
+        void refreshOptionalSteps()
+      }),
+      subscribeToSupabaseTable("email_integrations", () => {
+        void refreshOptionalSteps()
+      }),
+      subscribeToSupabaseTable("integration_configs", () => {
+        void refreshOptionalSteps()
+      }),
+      subscribeToSupabaseTable("marketplace_listings", () => {
+        void refreshOptionalSteps()
+      }),
+      subscribeToSupabaseTable("marketplace_orders", () => {
+        void refreshOptionalSteps()
+      }),
+      subscribeToSupabaseTable("sentinel_incidents", () => {
+        void refreshOptionalSteps()
+      }),
+      subscribeToSupabaseTable("decoupling_audits", () => {
+        void refreshOptionalSteps()
+      }),
+      subscribeToSupabaseTable("tribal_auto_research_campaigns", () => {
+        void refreshOptionalSteps()
+      }),
+    ].filter(Boolean) as Array<() => void>
+
+    return () => {
+      for (const u of subs) u()
+    }
+  }, [refreshOptionalSteps])
 
   const hasData = Boolean(
     csvData ||
@@ -418,6 +532,7 @@ export function DashboardPanel({ onNavigate, csvData }: DashboardPanelProps) {
           hasAuth={hasAuth}
           hasData={hasData}
           onNavigate={onNavigate}
+          optionalStepsState={hasAuth ? optionalStepsState : null}
         />
 
         {/* No imported-profile banner */}
@@ -442,6 +557,23 @@ export function DashboardPanel({ onNavigate, csvData }: DashboardPanelProps) {
           }}
           onSeeAll={() => onNavigate("analytics")}
         />
+
+        {activityAuditRows.length > 0 ? (
+          <Card className="bg-card border-border border-accent/20">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-semibold flex items-center gap-2">
+                <ClipboardList className="h-4 w-4 text-accent" />
+                Imported audit activity
+              </CardTitle>
+              <CardDescription className="text-xs">
+                {activityAuditRows.length.toLocaleString()} events from your activity CSV — top event types (FileFlex-style export).
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <AuditActivityBarChart data={auditTypeData} />
+            </CardContent>
+          </Card>
+        ) : null}
 
         {/* Charts Row */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">

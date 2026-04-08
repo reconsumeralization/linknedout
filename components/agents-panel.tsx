@@ -229,6 +229,11 @@ export function AgentsPanel() {
     setConnectorDrafts(drafts)
   }, [snapshot.connectors])
 
+  const preferredModelRoutingNote = useMemo(
+    () => snapshot.models.find((m) => m.id === preferredModelId)?.routingNote,
+    [snapshot.models, preferredModelId],
+  )
+
   const selectedAgent = useMemo(
     () => snapshot.agents.find((agent) => agent.id === selectedAgentId) || snapshot.agents[0] || null,
     [selectedAgentId, snapshot.agents],
@@ -622,6 +627,11 @@ export function AgentsPanel() {
                 <select className="h-9 rounded-md border border-border bg-background px-2 text-xs" value={preferredModelId} onChange={(event) => setPreferredModelId(event.target.value)}>
                   {snapshot.models.map((model) => <option key={model.id} value={model.id}>{model.label}</option>)}
                 </select>
+                {preferredModelRoutingNote ? (
+                  <p className="text-[10px] text-amber-800 dark:text-amber-400 col-span-full md:col-span-3 leading-snug">
+                    {preferredModelRoutingNote}
+                  </p>
+                ) : null}
                 <Input value={budget} onChange={(event) => setBudget(event.target.value)} type="number" min={50} max={20000} className="h-9 text-xs" />
                 <Button className="h-9 text-xs gap-1.5" onClick={() => void createAgent()} disabled={isSaving || prompt.trim().length < 8}><Bot className="w-3.5 h-3.5" />Create Draft</Button>
               </div>

@@ -13,6 +13,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import type {
   FulfillmentYieldScore,
@@ -26,10 +27,13 @@ import {
   type IntegrationEntry,
   CATEGORY_LABELS,
 } from "@/lib/connectors/integration-catalog"
+import { resolveSupabaseAccessToken } from "@/lib/supabase/supabase-client-auth"
 import {
   BarChart3,
   Check,
+  ChevronDown,
   CircleDot,
+  ExternalLink,
   Filter,
   Heart,
   MapPin,
@@ -37,6 +41,7 @@ import {
   Palette,
   Plug,
   Plus,
+  RefreshCw,
   Search,
   ShoppingBag,
   Star,
@@ -56,6 +61,49 @@ interface CatalogEntry extends IntegrationEntry {
   healthStatus: string
   installedAt: string | null
   userToolCount: number
+  /** True when this repo implements real API/client calls for this provider id. */
+  runtimeWired?: boolean
+  /** True when POST /api/integrations/execute supports this provider id. */
+  marketplaceExecute?: boolean
+  implementationStatus?: "live" | "partial" | "planned"
+  /** Server hint when implementationStatus is partial. */
+  partialHint?: string | null
+  envValidation?: {
+    configured: boolean
+    missingEnvKeys: string[]
+    oauth: boolean
+    docsUrl: string
+    envKeys: string[]
+  } | null
+}
+
+function integrationAuthHeaders(): HeadersInit {
+  const token = resolveSupabaseAccessToken()
+  return token ? { Authorization: `Bearer ${token}` } : {}
+}
+
+interface IntegrationUsageLogRow {
+  id: string
+  provider: string
+  tool_name: string
+  agent_id: string | null
+  status: string
+  latency_ms: number | null
+  error_message: string | null
+  created_at: string
+}
+
+function formatUsageAgentLabel(agentId: string | null | undefined): string {
+  if (agentId == null || agentId === "") return "Direct"
+  if (agentId === "sovereign") return "Sovereign"
+  return agentId
+}
+
+function truncateUsageError(msg: string | null | undefined, max = 100): string {
+  if (!msg) return "—"
+  const t = msg.trim()
+  if (t.length <= max) return t
+  return `${t.slice(0, max)}…`
 }
 
 // ─── Constants ───────────────────────────────────────────────────────────────
@@ -477,6 +525,12 @@ const STATUS_COLORS: Record<string, string> = {
   pending: "text-amber-500",
 }
 
+const IMPL_BADGES: Record<string, string> = {
+  live: "border-emerald-500/40 text-emerald-800 dark:text-emerald-400",
+  partial: "border-amber-500/40 text-amber-800 dark:text-amber-400",
+  planned: "border-muted-foreground/40 text-muted-foreground",
+}
+
 function IntegrationCard({
   entry,
   onInstall,
@@ -489,6 +543,32 @@ function IntegrationCard({
   installing: string | null
 }) {
   const isInstalling = installing === entry.id
+  const [healthLoading, setHealthLoading] = useState(false)
+  const [healthLine, setHealthLine] = useState<string | null>(null)
+
+  const runHealthCheck = useCallback(async () => {
+    setHealthLoading(true)
+    setHealthLine(null)
+    try {
+      const res = await fetch(
+        `/api/integrations?action=health&provider=${encodeURIComponent(entry.id)}`,
+        { headers: { ...integrationAuthHeaders() } },
+      )
+      const j = (await res.json()) as { ok?: boolean; health?: { probe: string; message?: string }; error?: string }
+      if (j.health) {
+        setHealthLine(`${j.health.probe}: ${j.health.message ?? ""}`.trim())
+      } else {
+        setHealthLine(j.error ?? `HTTP ${res.status}`)
+      }
+    } catch {
+      setHealthLine("Health check failed")
+    } finally {
+      setHealthLoading(false)
+    }
+  }, [entry.id])
+
+  const impl = entry.implementationStatus ?? "planned"
+
   return (
     <Card className={cn(
       "transition-all hover:shadow-md hover:border-primary/20",
@@ -498,10 +578,16 @@ function IntegrationCard({
       <CardContent className="py-3 px-4">
         <div className="flex items-start justify-between gap-2">
           <div className="min-w-0 flex-1">
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap">
               <h4 className="text-sm font-semibold truncate">{entry.name}</h4>
               {entry.installed && <Check className="h-3.5 w-3.5 text-green-500 shrink-0" />}
+              <Badge variant="outline" className={cn("text-[8px] h-5", IMPL_BADGES[impl] ?? IMPL_BADGES.planned)}>
+                {impl === "live" ? "Runner live" : impl === "partial" ? "Partial wiring" : "Catalog only"}
+              </Badge>
             </div>
+            {impl === "partial" && entry.partialHint ? (
+              <p className="text-[10px] text-muted-foreground mt-0.5 line-clamp-2">{entry.partialHint}</p>
+            ) : null}
             <p className="text-[11px] text-muted-foreground mt-0.5 line-clamp-2">{entry.description}</p>
           </div>
           <div className="flex flex-col items-end gap-1.5 shrink-0">
@@ -552,6 +638,68 @@ function IntegrationCard({
             <Badge variant="outline" className="text-[9px] text-muted-foreground">Coming Soon</Badge>
           )}
         </div>
+
+        <Collapsible className="mt-2 border-t border-border/60 pt-2">
+          <CollapsibleTrigger className="flex w-full items-center justify-between text-left text-[11px] font-medium text-muted-foreground hover:text-foreground">
+            Setup, docs, and health
+            <ChevronDown className="h-3.5 w-3.5 shrink-0 transition-transform [[data-state=open]_&]:rotate-180" />
+          </CollapsibleTrigger>
+          <CollapsibleContent className="space-y-2 pt-2">
+            <a
+              href={entry.docsUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex items-center gap-1 text-[11px] text-primary hover:underline"
+            >
+              <ExternalLink className="h-3 w-3" />
+              Official documentation
+            </a>
+            {entry.oauth ? (
+              <p className="text-[10px] text-muted-foreground">
+                OAuth: configure redirect URLs in the provider console to match this app (see Email / LinkedIn OAuth routes).
+              </p>
+            ) : null}
+            <div className="text-[10px] text-muted-foreground">
+              <span className="font-medium text-foreground">Env vars (server)</span>
+              {entry.envValidation?.envKeys?.length ? (
+                <ul className="mt-1 list-inside list-disc font-mono text-[9px]">
+                  {entry.envValidation.envKeys.map((k) => (
+                    <li key={k} className={entry.envValidation?.missingEnvKeys.includes(k) ? "text-amber-600 dark:text-amber-400" : ""}>
+                      {k}
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="mt-1">None listed in catalog.</p>
+              )}
+              {entry.envValidation && !entry.envValidation.oauth ? (
+                <p className="mt-1">
+                  Status:{" "}
+                  {entry.envValidation.configured ? (
+                    <span className="text-emerald-600 dark:text-emerald-400">all keys present on server</span>
+                  ) : (
+                    <span>missing: {entry.envValidation.missingEnvKeys.join(", ") || "—"}</span>
+                  )}
+                </p>
+              ) : null}
+            </div>
+            {impl === "live" ? (
+              <p className="text-[10px] text-muted-foreground">
+                Executable after install via <code className="text-[9px]">POST /api/integrations/execute</code> (optional{" "}
+                <code className="text-[9px]">x-user-openai-key</code>, <code className="text-[9px]">x-user-groq-key</code>,{" "}
+                <code className="text-[9px]">x-user-mistral-key</code> for those providers), Sovereign{" "}
+                <code className="text-[9px]">invokeMarketplaceIntegration</code>, and agent tool{" "}
+                <code className="text-[9px]">invoke_marketplace_integration</code>. Calls are logged to usage history.
+              </p>
+            ) : null}
+            <div className="flex flex-wrap gap-2">
+              <Button type="button" variant="outline" size="sm" className="h-7 text-[10px]" onClick={() => void runHealthCheck()} disabled={healthLoading}>
+                {healthLoading ? "Checking…" : "Run health check"}
+              </Button>
+            </div>
+            {healthLine ? <p className="text-[10px] text-muted-foreground">{healthLine}</p> : null}
+          </CollapsibleContent>
+        </Collapsible>
       </CardContent>
     </Card>
   )
@@ -567,11 +715,16 @@ function IntegrationsTab() {
   const [filterTier, setFilterTier] = useState<string>("all")
   const [installing, setInstalling] = useState<string | null>(null)
   const [totalInstalled, setTotalInstalled] = useState(0)
+  const [usageRows, setUsageRows] = useState<IntegrationUsageLogRow[]>([])
+  const [usageLoading, setUsageLoading] = useState(false)
+  const [usageError, setUsageError] = useState<string | null>(null)
 
   const fetchCatalog = useCallback(async () => {
     setLoading(true)
     try {
-      const res = await fetch("/api/integrations?action=catalog")
+      const res = await fetch("/api/integrations?action=catalog", {
+        headers: { ...integrationAuthHeaders() },
+      })
       if (!res.ok) throw new Error("Failed to fetch catalog")
       const data = await res.json()
       setCatalog(data.catalog ?? [])
@@ -583,14 +736,44 @@ function IntegrationsTab() {
     }
   }, [])
 
+  const fetchUsage = useCallback(async () => {
+    if (!resolveSupabaseAccessToken()) {
+      setUsageRows([])
+      setUsageError(null)
+      setUsageLoading(false)
+      return
+    }
+    setUsageLoading(true)
+    setUsageError(null)
+    try {
+      const res = await fetch("/api/integrations?action=usage", {
+        headers: { ...integrationAuthHeaders() },
+      })
+      if (!res.ok) throw new Error("Could not load usage history")
+      const data = (await res.json()) as { usage?: IntegrationUsageLogRow[] }
+      setUsageRows(Array.isArray(data.usage) ? data.usage : [])
+    } catch (e) {
+      setUsageRows([])
+      setUsageError(e instanceof Error ? e.message : "Could not load usage history")
+    } finally {
+      setUsageLoading(false)
+    }
+  }, [])
+
   useEffect(() => { fetchCatalog() }, [fetchCatalog])
+
+  useEffect(() => {
+    if (!loading) {
+      void fetchUsage()
+    }
+  }, [loading, fetchUsage])
 
   const handleInstall = useCallback(async (provider: string) => {
     setInstalling(provider)
     try {
       const res = await fetch("/api/integrations", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...integrationAuthHeaders() },
         body: JSON.stringify({ action: "install", provider }),
       })
       if (res.ok) {
@@ -598,18 +781,19 @@ function IntegrationsTab() {
           e.id === provider ? { ...e, installed: true, status: "connected", enabled: true } : e
         ))
         setTotalInstalled((prev) => prev + 1)
+        void fetchUsage()
       }
     } finally {
       setInstalling(null)
     }
-  }, [])
+  }, [fetchUsage])
 
   const handleUninstall = useCallback(async (provider: string) => {
     setInstalling(provider)
     try {
       const res = await fetch("/api/integrations", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...integrationAuthHeaders() },
         body: JSON.stringify({ action: "uninstall", provider }),
       })
       if (res.ok) {
@@ -617,11 +801,12 @@ function IntegrationsTab() {
           e.id === provider ? { ...e, installed: false, status: "disconnected", enabled: false } : e
         ))
         setTotalInstalled((prev) => Math.max(0, prev - 1))
+        void fetchUsage()
       }
     } finally {
       setInstalling(null)
     }
-  }, [])
+  }, [fetchUsage])
 
   // Gather unique categories from catalog
   const categories = [...new Set(catalog.map((e) => e.category))].sort()
@@ -655,6 +840,114 @@ function IntegrationsTab() {
 
   return (
     <div className="space-y-4">
+      <Card className="border-border/80 bg-muted/20">
+        <CardContent className="py-3 text-[11px] text-muted-foreground leading-relaxed">
+          <span className="font-medium text-foreground">Install</span> records which providers you want the workspace to treat as enabled.
+          Each card shows one implementation badge:{" "}
+          <span className="text-emerald-700 dark:text-emerald-400 font-medium">Runner live</span> (tools run via{" "}
+          <code className="text-[9px]">POST /api/integrations/execute</code>
+          ),{" "}
+          <span className="text-amber-800 dark:text-amber-400 font-medium">Partial wiring</span> (real routes or clients exist, but not the marketplace runner — see card hint), or{" "}
+          <span className="text-muted-foreground font-medium">Catalog only</span> (metadata until wired in this repo).
+          Health checks and usage logging still apply where configured.
+        </CardContent>
+      </Card>
+
+      <Card className="border-border/80">
+        <CardHeader className="py-3 space-y-1">
+          <div className="flex items-center justify-between gap-2">
+            <CardTitle className="text-sm font-semibold">Recent integration runs</CardTitle>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="h-7 gap-1 text-[10px]"
+              onClick={() => void fetchUsage()}
+              disabled={usageLoading || !resolveSupabaseAccessToken()}
+              title="Refresh usage history"
+            >
+              <RefreshCw className={cn("h-3 w-3", usageLoading && "animate-spin")} />
+              Refresh
+            </Button>
+          </div>
+          <CardDescription className="text-[10px] leading-relaxed">
+            Last 100 tool calls logged from the execute API, agents, and Sovereign (latency and errors when present).
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="pt-0">
+          {!resolveSupabaseAccessToken() ? (
+            <p className="text-[10px] text-muted-foreground">Sign in to view usage history.</p>
+          ) : usageLoading && usageRows.length === 0 ? (
+            <div className="flex items-center justify-center py-8">
+              <div className="h-5 w-5 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+            </div>
+          ) : usageError ? (
+            <p className="text-[10px] text-destructive">{usageError}</p>
+          ) : usageRows.length === 0 ? (
+            <p className="text-[10px] text-muted-foreground">No runs yet. Invoke a live integration to see entries here.</p>
+          ) : (
+            <div className="overflow-x-auto rounded-md border border-border/60">
+              <table className="w-full text-left text-[10px]">
+                <thead>
+                  <tr className="border-b border-border/60 bg-muted/30 text-muted-foreground">
+                    <th className="px-2 py-1.5 font-medium whitespace-nowrap">Time</th>
+                    <th className="px-2 py-1.5 font-medium whitespace-nowrap">Provider</th>
+                    <th className="px-2 py-1.5 font-medium whitespace-nowrap">Tool</th>
+                    <th className="px-2 py-1.5 font-medium whitespace-nowrap">Status</th>
+                    <th className="px-2 py-1.5 font-medium whitespace-nowrap">ms</th>
+                    <th className="px-2 py-1.5 font-medium whitespace-nowrap">Source</th>
+                    <th className="px-2 py-1.5 font-medium min-w-[120px]">Error</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {usageRows.map((row) => (
+                    <tr key={row.id} className="border-b border-border/40 last:border-0">
+                      <td className="px-2 py-1.5 whitespace-nowrap text-muted-foreground">
+                        {row.created_at
+                          ? new Date(row.created_at).toLocaleString(undefined, {
+                              month: "short",
+                              day: "numeric",
+                              hour: "2-digit",
+                              minute: "2-digit",
+                            })
+                          : "—"}
+                      </td>
+                      <td className="px-2 py-1.5 font-mono text-[9px]">{row.provider}</td>
+                      <td className="px-2 py-1.5 font-mono text-[9px] max-w-[140px] truncate" title={row.tool_name}>
+                        {row.tool_name}
+                      </td>
+                      <td className="px-2 py-1.5">
+                        <span
+                          className={cn(
+                            "rounded px-1 py-0.5",
+                            row.status === "success"
+                              ? "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400"
+                              : row.status === "rate_limited"
+                                ? "bg-amber-500/15 text-amber-800 dark:text-amber-400"
+                                : "bg-destructive/15 text-destructive",
+                          )}
+                        >
+                          {row.status}
+                        </span>
+                      </td>
+                      <td className="px-2 py-1.5 tabular-nums text-muted-foreground">
+                        {row.latency_ms != null ? row.latency_ms : "—"}
+                      </td>
+                      <td className="px-2 py-1.5 text-muted-foreground max-w-[100px] truncate" title={formatUsageAgentLabel(row.agent_id)}>
+                        {formatUsageAgentLabel(row.agent_id)}
+                      </td>
+                      <td className="px-2 py-1.5 text-muted-foreground max-w-[200px]" title={row.error_message ?? undefined}>
+                        {truncateUsageError(row.error_message)}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
       {/* Stats Row */}
       <div className="grid grid-cols-3 gap-3">
         <StatCard icon={Plug} label="Available" value={catalog.filter((e) => e.available).length} />

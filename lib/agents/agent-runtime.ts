@@ -10,6 +10,7 @@ import type {
   AgentRunRecord,
   AgentModelProvider,
 } from "@/lib/agents/agent-platform-types"
+import { invokeMarketplaceIntegrationFromAgent } from "@/lib/agents/agent-marketplace-invoke"
 
 /**
  * Create a Supabase client for agent connector operations.
@@ -53,7 +54,12 @@ export interface ToolCallRecord {
  * Model configuration for a provider
  */
 interface ModelConfig {
+  /** Provider used for the actual API call (billing / metrics truth). */
   provider: AgentModelProvider
+  /** Catalog provider for the requested model id. */
+  nominalProvider: AgentModelProvider
+  /** Model id string passed to the SDK (may differ on fallback). */
+  effectiveModelId: string
   model: LanguageModel
   costPerInputToken: number
   costPerOutputToken: number
@@ -95,11 +101,13 @@ export function resolveModelProvider(modelId: string): AgentModelProvider {
  * Supports OpenAI and Anthropic natively; falls back to OpenAI for others.
  */
 function getModelConfig(modelId: string): ModelConfig {
-  const provider = resolveModelProvider(modelId)
+  const nominalProvider = resolveModelProvider(modelId)
 
-  if (provider === "openai") {
+  if (nominalProvider === "openai") {
     return {
       provider: "openai",
+      nominalProvider: "openai",
+      effectiveModelId: modelId,
       model: openai(modelId) as unknown as LanguageModel,
       costPerInputToken: modelId.includes("mini")
         ? 0.00015 // gpt-4.1-mini: $0.15 per 1M input tokens
@@ -114,13 +122,15 @@ function getModelConfig(modelId: string): ModelConfig {
     }
   }
 
-  if (provider === "anthropic") {
+  if (nominalProvider === "anthropic") {
     // Use AI Gateway for Anthropic models via OpenAI-compatible interface
     const gatewayKey = process.env.AI_GATEWAY_API_KEY
     if (gatewayKey) {
       const gatewayModelId = `anthropic/${modelId}`
       return {
         provider: "anthropic",
+        nominalProvider: "anthropic",
+        effectiveModelId: gatewayModelId,
         model: openai(gatewayModelId) as unknown as LanguageModel,
         costPerInputToken: modelId.includes("opus") ? 0.015 : modelId.includes("haiku") ? 0.0008 : 0.003,
         costPerOutputToken: modelId.includes("opus") ? 0.075 : modelId.includes("haiku") ? 0.004 : 0.015,
@@ -131,6 +141,8 @@ function getModelConfig(modelId: string): ModelConfig {
       const { anthropic } = require("@ai-sdk/anthropic")
       return {
         provider: "anthropic",
+        nominalProvider: "anthropic",
+        effectiveModelId: modelId,
         model: anthropic(modelId) as unknown as LanguageModel,
         costPerInputToken: modelId.includes("opus") ? 0.015 : modelId.includes("haiku") ? 0.0008 : 0.003,
         costPerOutputToken: modelId.includes("opus") ? 0.075 : modelId.includes("haiku") ? 0.004 : 0.015,
@@ -140,13 +152,20 @@ function getModelConfig(modelId: string): ModelConfig {
     }
   }
 
-  // Fallback: route through OpenAI for moonshot/meta/local
+  // Fallback: route through OpenAI for moonshot/meta/local (and Anthropic when not configured)
   return {
-    provider: provider as AgentModelProvider,
+    provider: "openai",
+    nominalProvider: nominalProvider,
+    effectiveModelId: "gpt-4.1-mini",
     model: openai("gpt-4.1-mini") as unknown as LanguageModel,
     costPerInputToken: 0.00015,
     costPerOutputToken: 0.0006,
   }
+}
+
+/** Exposed for tests and diagnostics — resolves nominal vs effective routing. */
+export function getAgentModelConfig(modelId: string): ModelConfig {
+  return getModelConfig(modelId)
 }
 
 /**
@@ -187,10 +206,21 @@ CONSTRAINTS:
 GOAL: Complete the assigned task efficiently while respecting governance rules.`
 }
 
+/** When set, agents get `invoke_marketplace_integration` (install check + same runner as /api/integrations/execute). */
+export type AgentMarketplaceContext = {
+  userId: string
+  accessToken: string
+  /** Filled when invoked from control-plane `execute_agent` for `integration_usage_log`. */
+  agentId?: string
+}
+
 /**
  * Create tool registry based on connectors
  */
-function createToolRegistry(connectors: AgentConnectorRecord[]): ToolDefinition[] {
+function createToolRegistry(
+  connectors: AgentConnectorRecord[],
+  marketplaceCtx?: AgentMarketplaceContext,
+): ToolDefinition[] {
   const tools: ToolDefinition[] = []
 
   // Build a set of available provider types
@@ -252,11 +282,11 @@ function createToolRegistry(connectors: AgentConnectorRecord[]): ToolDefinition[
     })
   }
 
-  // Slack tools — backed by agent_messages table (internal messaging bus)
+  // Slack-named tools — not the Slack.com API; they read/write `agent_messages` (internal bus only).
   if (availableProviders.has("slack")) {
     tools.push({
       name: "read_messages",
-      description: "Read recent messages from a specific channel or tribe",
+      description: "Read recent messages from a channel (internal agent_messages table — not Slack.com)",
       schema: z.object({
         channel: z.string(),
         limit: z.number().int().min(1).max(100).default(20),
@@ -274,7 +304,7 @@ function createToolRegistry(connectors: AgentConnectorRecord[]): ToolDefinition[
 
     tools.push({
       name: "search_channels",
-      description: "Search for messaging channels by name or topic",
+      description: "Search channel names in internal agent_messages (not Slack workspace search)",
       schema: z.object({
         query: z.string(),
       }),
@@ -292,7 +322,7 @@ function createToolRegistry(connectors: AgentConnectorRecord[]): ToolDefinition[
 
     tools.push({
       name: "post_message",
-      description: "Post a message to a Slack channel",
+      description: "Record a synthetic post success (does not call Slack.com; use for simulations only)",
       schema: z.object({
         channel: z.string(),
         text: z.string(),
@@ -583,6 +613,25 @@ function createToolRegistry(connectors: AgentConnectorRecord[]): ToolDefinition[
     })
   }
 
+  if (marketplaceCtx) {
+    tools.push({
+      name: "invoke_marketplace_integration",
+      description:
+        "Run a Marketplace integration the user installed (Resend email, OpenAI embed, Groq chat, Mistral embed, Redis cache, Supabase read). Provider API keys must be set in server env (per-request LLM headers apply to HTTP /api/integrations/execute only, not this tool).",
+      schema: z.object({
+        provider: z.string().min(1).max(64),
+        tool: z.string().min(1).max(120),
+        params: z.record(z.unknown()).optional(),
+      }),
+      execute: async (input) =>
+        invokeMarketplaceIntegrationFromAgent(marketplaceCtx, {
+          provider: input.provider as string,
+          tool: input.tool as string,
+          params: (input.params ?? {}) as Record<string, unknown>,
+        }),
+    })
+  }
+
   return tools
 }
 
@@ -619,6 +668,7 @@ export async function executeAgent(
     task?: string
     currentMonthlySpendUsd?: number
     maxRuns?: number
+    marketplaceContext?: AgentMarketplaceContext
   },
 ): Promise<AgentExecutionResult> {
   const runId = generateId()
@@ -653,10 +703,12 @@ export async function executeAgent(
     // Try primary model, then fallbacks
     let lastError: Error | null = null
     const modelsToTry = [agent.preferredModelId, ...fallbackModelIds]
+    let chosenModelId = agent.preferredModelId
 
     for (const modelId of modelsToTry) {
       try {
         modelConfig = getModelConfig(modelId)
+        chosenModelId = modelId
         break
       } catch (e) {
         lastError = e instanceof Error ? e : new Error(String(e))
@@ -672,7 +724,7 @@ export async function executeAgent(
     const systemPrompt = buildSystemPrompt(agent, connectors)
 
     // Create tool registry
-    const toolRegistry = createToolRegistry(connectors)
+    const toolRegistry = createToolRegistry(connectors, options?.marketplaceContext)
 
     // Build initial message
     const userMessage =
@@ -693,7 +745,9 @@ export async function executeAgent(
 
     executionLog.push(`[START] Agent: ${agent.name}`)
     executionLog.push(`[TASK] ${userMessage}`)
-    executionLog.push(`[MODEL] ${modelConfig.provider}`)
+    executionLog.push(
+      `[MODEL] requested ${chosenModelId} → ${modelConfig.effectiveModelId} (effective ${modelConfig.provider}; nominal ${modelConfig.nominalProvider})`,
+    )
     executionLog.push(`[TOOLS] ${toolRegistry.length} available`)
 
     // Build AI SDK tool map for generateText

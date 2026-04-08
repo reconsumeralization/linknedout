@@ -1,3 +1,4 @@
+import type { ParsedActivity } from "@/lib/csv/activity-csv-parser"
 import type { ParsedProfile } from "@/lib/csv/csv-parser"
 import {
   applyImportToSession,
@@ -117,5 +118,53 @@ describe("import-session", () => {
     expect(replacedState.displayLabel).toBe("second.csv")
     expect(replacedState.unsavedPdfProfileIds).toEqual([])
     expect(replacedState.profiles.map((profile) => profile.id)).toEqual(["csv-brian"])
+  })
+
+  it("stores activity audit rows and raw CSV on csv import, replacing on next csv", () => {
+    const activities: ParsedActivity[] = [
+      {
+        activityId: "a1",
+        type: "Open",
+        dateIso: "2025-01-01",
+        actorName: "Test",
+        email: "t@example.com",
+        uid: "",
+        providerName: "P",
+        scheme: "s",
+        groupName: "g",
+        resourceLabel: "/x",
+        os: "Win",
+        clientType: "web",
+      },
+    ]
+    const raw = "Activity ID,Type,Date\na1,Open,2025-01-01"
+
+    const withAudit = applyImportToSession(
+      null,
+      {
+        type: "csv",
+        fileName: "audit.csv",
+        profiles: [makeProfile({ id: "p1" })],
+        activities,
+        rawActivityCsv: raw,
+      },
+      { sourceId: "src-a", importedAt: "2026-03-05T12:00:00.000Z" },
+    )
+
+    expect(withAudit.activities).toEqual(activities)
+    expect(withAudit.activityCsv).toBe(raw)
+
+    const replaced = applyImportToSession(
+      withAudit,
+      {
+        type: "csv",
+        fileName: "connections.csv",
+        profiles: [makeProfile({ id: "p2", firstName: "Pat" })],
+      },
+      { sourceId: "src-b", importedAt: "2026-03-05T12:10:00.000Z" },
+    )
+
+    expect(replaced.activities).toEqual([])
+    expect(replaced.activityCsv).toBeNull()
   })
 })

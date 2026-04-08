@@ -31,6 +31,8 @@ LinkedOut uses Supabase for auth and (optionally) for profiles, tribes, and proj
 
 4. Run the app: `pnpm dev`. Open [http://localhost:3000](http://localhost:3000), go to **Settings → Open login page**, and sign up / sign in.
 
+5. **Apply the same SQL migrations as this repo** to your cloud project (`supabase/migrations/`), e.g. `supabase db push` with a linked project, your CI pipeline, or the Supabase SQL Editor in timestamp order. Features such as the Portfolio panel depend on tables created there (for example `20260332000000_multi_company_orchestration.sql`). Optional local demo rows: `supabase/seed.sql` with `[db.seed]` in `supabase/config.toml`. See also [SETUP-REMOTE.md](../SETUP-REMOTE.md) (hosted Supabase section).
+
 ### Option B: Local Supabase (full stack on your machine)
 
 1. Install [Supabase CLI](https://supabase.com/docs/guides/cli) and Docker.

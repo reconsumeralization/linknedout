@@ -4,9 +4,10 @@ import type { ActiveView } from "@/app/page"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Progress } from "@/components/ui/progress"
+import type { OnboardingOptionalStepsState } from "@/lib/supabase/supabase-data"
 import { Check, ChevronRight, Heart, Linkedin, Mail, MessageSquare, Rocket, ShieldCheck, Sparkles, Upload } from "lucide-react"
 import Link from "next/link"
-import { useCallback, useEffect, useState } from "react"
+import { useCallback, useEffect, useMemo, useState } from "react"
 
 const ONBOARDING_DISMISSED_KEY = "linkedout_onboarding_dismissed"
 const WELCOME_SEEN_KEY = "linkedout_welcome_seen"
@@ -21,6 +22,8 @@ export interface OnboardingCardProps {
   onNavigate: (view: ActiveView) => void
   /** Optional: force show even if previously dismissed (e.g. from Settings). */
   forceShow?: boolean
+  /** When signed in, reflects Supabase-backed completion for optional checklist rows. */
+  optionalStepsState?: OnboardingOptionalStepsState | null
 }
 
 type StepConfig = {
@@ -174,6 +177,7 @@ export function OnboardingCard({
   hasData,
   onNavigate,
   forceShow = false,
+  optionalStepsState = null,
 }: OnboardingCardProps) {
   const [dismissed, setDismissed] = useState(false)
   const [showWelcome, setShowWelcome] = useState(false)
@@ -234,71 +238,96 @@ export function OnboardingCard({
     },
   ]
 
-  const optionalSteps: StepConfig[] = [
-    {
-      id: "linkedin",
-      done: false,
-      label: "Connect LinkedIn",
-      description: "Optional, but useful if you want identity sync and Share on LinkedIn from Settings.",
-      actionLabel: "Open Settings",
-      actionView: "settings",
-      optional: true,
-    },
-    {
-      id: "email",
-      done: false,
-      label: "Connect email and explore",
-      description: "Optional. Add Gmail, Outlook, or IMAP, then explore Globe, Network, and Agents once your data is in.",
-      actionLabel: "Open Email",
-      actionView: "email",
-      optional: true,
-    },
-    {
-      id: "marketplace",
-      done: false,
-      label: "Explore the Marketplace",
-      description: "Trade non-scalable human experiences — mentorship, handcrafted art, philosophy sessions, and more.",
-      actionLabel: "Open Marketplace",
-      actionView: "marketplace",
-      optional: true,
-    },
-    {
-      id: "governance",
-      done: false,
-      label: "Try Tribal Governance",
-      description: "Propose decisions, delegate votes, and run consensus within your tribes.",
-      actionLabel: "Open Tribes",
-      actionView: "tribes",
-      optional: true,
-    },
-    {
-      id: "authenticity",
-      done: false,
-      label: "Set up content authenticity",
-      description: "Attest your content with provenance proofs and biological signals via the Authenticity Oracle.",
-      actionLabel: "Open SENTINEL",
-      actionView: "sentinel",
-      optional: true,
-    },
-    {
-      id: "handcuff-audit",
-      done: false,
-      label: "Run a Handcuff Audit",
-      description: "Analyze your golden handcuffs (salary, vesting, benefits) and calculate your break-even to sovereignty.",
-      actionLabel: "Open Settings",
-      actionView: "settings",
-      optional: true,
-    },
-    {
-      id: "auto-research",
-      done: false,
-      label: "Launch your first Auto Research",
-      description: "Coordinate overnight research across the tribal network to accelerate breakthroughs.",
-      actionLabel: "Open Tribes",
-      actionView: "tribes",
-      optional: true,
-    },
-  ]
+  const optionalSteps = useMemo((): StepConfig[] => {
+    const o = optionalStepsState
+    const linkedinDone = Boolean(o?.linkedinConnected)
+    const emailDone = Boolean(o?.emailConnected)
+    const marketplaceDone = Boolean(o?.marketplaceEngaged)
+    const governanceDone = Boolean(o?.governanceHasTribes)
+    const authenticityDone = Boolean(o?.authenticityEngaged)
+    const handcuffDone = Boolean(o?.handcuffAuditStarted)
+    const autoResearchDone = Boolean(o?.autoResearchLaunched)
+
+    return [
+      {
+        id: "linkedin",
+        done: linkedinDone,
+        label: "Connect LinkedIn",
+        description: linkedinDone
+          ? "LinkedIn is connected — identity and share features can use your account."
+          : "Optional, but useful if you want identity sync and Share on LinkedIn from Settings.",
+        actionLabel: "Open Settings",
+        actionView: "settings" as ActiveView,
+        optional: true,
+      },
+      {
+        id: "email",
+        done: emailDone,
+        label: "Connect email and explore",
+        description: emailDone
+          ? "At least one mailbox is connected — Globe and agents can use your mail data."
+          : "Optional. Add Gmail, Outlook, or IMAP, then explore Globe, Network, and Agents once your data is in.",
+        actionLabel: "Open Email",
+        actionView: "email" as ActiveView,
+        optional: true,
+      },
+      {
+        id: "marketplace",
+        done: marketplaceDone,
+        label: "Explore the Marketplace",
+        description: marketplaceDone
+          ? "You have marketplace activity (listing or order) on record."
+          : "Trade non-scalable human experiences — mentorship, handcrafted art, philosophy sessions, and more.",
+        actionLabel: "Open Marketplace",
+        actionView: "marketplace" as ActiveView,
+        optional: true,
+      },
+      {
+        id: "governance",
+        done: governanceDone,
+        label: "Try Tribal Governance",
+        description: governanceDone
+          ? "You have tribe data in Supabase — open Tribes to govern and delegate."
+          : "Propose decisions, delegate votes, and run consensus within your tribes.",
+        actionLabel: "Open Tribes",
+        actionView: "tribes" as ActiveView,
+        optional: true,
+      },
+      {
+        id: "authenticity",
+        done: authenticityDone,
+        label: "Set up content authenticity",
+        description: authenticityDone
+          ? "SENTINEL has saved signals or incidents for your account — open the panel to review."
+          : "Attest your content with provenance proofs and biological signals via the Authenticity Oracle.",
+        actionLabel: "Open SENTINEL",
+        actionView: "sentinel" as ActiveView,
+        optional: true,
+      },
+      {
+        id: "handcuff-audit",
+        done: handcuffDone,
+        label: "Run a Handcuff Audit",
+        description: handcuffDone
+          ? "You have a decoupling / handcuff audit saved — refine it anytime in Settings."
+          : "Analyze your golden handcuffs (salary, vesting, benefits) and calculate your break-even to sovereignty.",
+        actionLabel: "Open Settings",
+        actionView: "settings" as ActiveView,
+        optional: true,
+      },
+      {
+        id: "auto-research",
+        done: autoResearchDone,
+        label: "Launch your first Auto Research",
+        description: autoResearchDone
+          ? "You have launched an auto research campaign — check Tribes for progress."
+          : "Coordinate overnight research across the tribal network to accelerate breakthroughs.",
+        actionLabel: "Open Tribes",
+        actionView: "tribes" as ActiveView,
+        optional: true,
+      },
+    ]
+  }, [optionalStepsState])
 
   const complete = coreSteps.every((step) => step.done)
   const shouldShow = forceShow || (!dismissed && !complete)

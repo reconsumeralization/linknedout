@@ -35,7 +35,12 @@ import {
   Users,
   Zap,
 } from "lucide-react"
-import { useCallback, useState } from "react"
+import { useCallback, useMemo, useState } from "react"
+
+const linkedInWorkflowsMode = (): "demo" | "off" => {
+  const raw = process.env.NEXT_PUBLIC_LINKEDIN_WORKFLOWS_MODE?.trim().toLowerCase()
+  return raw === "off" ? "off" : "demo"
+}
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -121,6 +126,7 @@ const DEMO_RESULTS: WorkflowResult[] = [
 // ---------------------------------------------------------------------------
 
 export function WorkflowPanel() {
+  const panelMode = useMemo(() => linkedInWorkflowsMode(), [])
   const [workflows, setWorkflows] = useState<WorkflowDefinition[]>(DEFAULT_WORKFLOWS)
   const [queue] = useState<WorkflowQueueItem[]>(DEMO_QUEUE)
   const [results] = useState<WorkflowResult[]>(DEMO_RESULTS)
@@ -154,8 +160,29 @@ export function WorkflowPanel() {
   const enabledCount = workflows.filter((w) => w.enabled).length
   const runningCount = workflows.filter((w) => w.status === "running").length
 
+  if (panelMode === "off") {
+    return (
+      <div className="flex flex-col gap-4 p-6 max-w-lg">
+        <h2 className="text-2xl font-bold tracking-tight">Workflow Automation</h2>
+        <p className="text-sm text-muted-foreground">
+          This panel is turned off (<code className="text-xs">NEXT_PUBLIC_LINKEDIN_WORKFLOWS_MODE=off</code>). LinkedIn
+          workflows are not connected to live data or a job backend yet. Remove the env var or set it to{" "}
+          <code className="text-xs">demo</code> to use the interactive preview.
+        </p>
+      </div>
+    )
+  }
+
   return (
     <div className="flex flex-col gap-6 p-6">
+      <div
+        className="rounded-lg border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-xs text-amber-950 dark:text-amber-100 dark:border-amber-500/35"
+        role="status"
+      >
+        <span className="font-semibold text-foreground">Demo mode.</span> Runs are simulated in the browser only (timers and
+        static queue/results). There is no LinkedIn API connection and no persisted jobs.
+      </div>
+
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>

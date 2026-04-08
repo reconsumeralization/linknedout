@@ -27,6 +27,8 @@ function buildSessionImport(overrides: Partial<SessionImportState> = {}): Sessio
   return {
     canonicalCsv: null,
     profiles: [],
+    activities: [],
+    activityCsv: null,
     sources: [
       {
         id: "src-1",

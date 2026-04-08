@@ -2,6 +2,8 @@
 
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import type { ParsedActivity } from "@/lib/csv/activity-csv-parser"
+import { summarizeActivityTypes } from "@/lib/csv/activity-csv-parser"
 import { parseLinkedInCsv } from "@/lib/csv/csv-parser"
 import {
   createAnalyticsSnapshot,
@@ -23,7 +25,7 @@ import {
   type SupabaseProjectView,
 } from "@/lib/supabase/supabase-data"
 import type { Tribe } from "@/lib/shared/types"
-import { FolderKanban, Layers3, Target, TrendingUp, Users } from "lucide-react"
+import { ClipboardList, FolderKanban, Layers3, Target, TrendingUp, Users } from "lucide-react"
 import { useCallback, useEffect, useMemo, useState } from "react"
 import {
   Area,
@@ -380,15 +382,24 @@ function TopSkillsTable({ items }: { items: AnalyticsSkillTableItem[] }) {
 
 interface AnalyticsPanelProps {
   csvData?: string | null
+  activityAuditRows?: ParsedActivity[]
 }
 
-export function AnalyticsPanel({ csvData }: AnalyticsPanelProps = {}) {
+export function AnalyticsPanel({ csvData, activityAuditRows = [] }: AnalyticsPanelProps = {}) {
   const [liveProfiles, setLiveProfiles] = useState<SupabaseProfileView[] | null>(null)
   const [liveTribes, setLiveTribes] = useState<Tribe[] | null>(null)
   const [liveProjects, setLiveProjects] = useState<SupabaseProjectView[] | null>(null)
   const [isSyncing, setIsSyncing] = useState(false)
 
   const csvProfiles = useMemo(() => (csvData ? parseLinkedInCsv(csvData) : null), [csvData])
+
+  const auditTypeChartData = useMemo(() => {
+    if (activityAuditRows.length === 0) return []
+    return summarizeActivityTypes(activityAuditRows, 8).map(({ type, count }) => ({
+      label: type.length > 36 ? `${type.slice(0, 33)}…` : type,
+      count,
+    }))
+  }, [activityAuditRows])
 
   const loadLiveAnalytics = useCallback(async () => {
     setIsSyncing(true)
@@ -473,13 +484,51 @@ export function AnalyticsPanel({ csvData }: AnalyticsPanelProps = {}) {
             <CardContent className="flex flex-col gap-1 p-4">
               <div className="text-sm font-medium text-foreground">No analytics data yet</div>
               <div className="text-xs text-muted-foreground">
-                Sign in to load Supabase-backed CRM data, or upload a LinkedIn CSV from the dashboard to populate the panel.
+                Sign in to load Supabase-backed CRM data, or upload a LinkedIn or activity-audit CSV from Chat or the dashboard to populate the panel.
               </div>
             </CardContent>
           </Card>
         )}
 
         <KpiRow kpis={snapshot.kpis} />
+
+        {auditTypeChartData.length > 0 ? (
+          <Card className="border-border bg-card border-accent/20">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-semibold flex items-center gap-2">
+                <ClipboardList className="h-4 w-4 text-accent" />
+                Audit activity (import session)
+              </CardTitle>
+              <CardDescription className="text-xs">
+                {activityAuditRows.length.toLocaleString()} events — top types from your activity export.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <ResponsiveContainer width="100%" height={Math.min(280, 48 + auditTypeChartData.length * 32)}>
+                <BarChart
+                  data={auditTypeChartData}
+                  layout="vertical"
+                  margin={{ top: 4, right: 12, left: 4, bottom: 4 }}
+                >
+                  <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" horizontal={false} />
+                  <XAxis type="number" tick={{ fontSize: 10, fill: "var(--muted-foreground)" }} />
+                  <YAxis
+                    type="category"
+                    dataKey="label"
+                    width={200}
+                    tick={{ fontSize: 9, fill: "var(--muted-foreground)" }}
+                  />
+                  <Tooltip {...tooltipStyle} />
+                  <Bar dataKey="count" radius={[0, 4, 4, 0]}>
+                    {auditTypeChartData.map((item, index) => (
+                      <Cell key={item.label} fill={COLORS[index % COLORS.length]} />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </CardContent>
+          </Card>
+        ) : null}
 
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
           <SkillCoverageChart data={snapshot.skillCoverage.data} series={snapshot.skillCoverage.series} />

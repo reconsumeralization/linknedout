@@ -83,6 +83,18 @@ Then open http://localhost:3000.
 
 ---
 
+## Hosted Supabase (cloud or any non-local database)
+
+Apply the **same SQL migrations** as in [`supabase/migrations/`](supabase/migrations) to every environment where the app runs (for example the Portfolio panel expects tables from `20260332000000_multi_company_orchestration.sql`). Typical options:
+
+- **Supabase CLI** (linked project): `supabase db push` from a machine with your project ref and credentials.
+- **Supabase Dashboard**: SQL Editor — run migration files in timestamp order when you cannot use the CLI.
+- **CI/CD**: run migrations as a deploy step so production never drifts from the repo.
+
+After migrations, sign in as a user; optional local demo rows are loaded by [`supabase/seed.sql`](supabase/seed.sql) when you use `supabase db reset` with seeding enabled in [`supabase/config.toml`](supabase/config.toml).
+
+---
+
 ## Troubleshooting
 
 | Issue | Fix |

@@ -1364,6 +1364,67 @@ export async function fetchSupabaseDashboardSnapshot(): Promise<DashboardSnapsho
   }
 }
 
+/** Optional onboarding checklist — each flag is true when the user has real data for that step. */
+export type OnboardingOptionalStepsState = {
+  linkedinConnected: boolean
+  emailConnected: boolean
+  marketplaceEngaged: boolean
+  governanceHasTribes: boolean
+  authenticityEngaged: boolean
+  handcuffAuditStarted: boolean
+  autoResearchLaunched: boolean
+}
+
+function rowPresent(res: { data: unknown; error: { code?: string } | null }): boolean {
+  if (res.error) return false
+  return res.data != null
+}
+
+/**
+ * Loads completion state for optional dashboard onboarding steps (RLS-scoped).
+ * Returns null when Supabase is not configured or the user has no session.
+ */
+export async function fetchOnboardingOptionalStepsState(): Promise<OnboardingOptionalStepsState | null> {
+  const supabase = getSupabaseClient()
+  if (!supabase) return null
+
+  const {
+    data: { session },
+  } = await supabase.auth.getSession()
+  const uid = session?.user?.id
+  if (!uid) return null
+
+  const [
+    li,
+    em,
+    mktSell,
+    mktBuy,
+    tr,
+    sen,
+    dec,
+    ar,
+  ] = await Promise.all([
+    supabase.from("linkedin_identities").select("user_id").eq("user_id", uid).maybeSingle(),
+    supabase.from("email_integrations").select("id").eq("owner_user_id", uid).limit(1).maybeSingle(),
+    supabase.from("marketplace_listings").select("id").eq("seller_user_id", uid).limit(1).maybeSingle(),
+    supabase.from("marketplace_orders").select("id").or(`buyer_user_id.eq.${uid},seller_user_id.eq.${uid}`).limit(1).maybeSingle(),
+    supabase.from(TABLES.tribes).select("id").limit(1).maybeSingle(),
+    supabase.from("sentinel_incidents").select("id").eq("owner_user_id", uid).limit(1).maybeSingle(),
+    supabase.from("decoupling_audits").select("id").eq("user_id", uid).limit(1).maybeSingle(),
+    supabase.from("tribal_auto_research_campaigns").select("id").eq("initiator_user_id", uid).limit(1).maybeSingle(),
+  ])
+
+  return {
+    linkedinConnected: rowPresent(li),
+    emailConnected: rowPresent(em),
+    marketplaceEngaged: rowPresent(mktSell) || rowPresent(mktBuy),
+    governanceHasTribes: rowPresent(tr),
+    authenticityEngaged: rowPresent(sen),
+    handcuffAuditStarted: rowPresent(dec),
+    autoResearchLaunched: rowPresent(ar),
+  }
+}
+
 export function subscribeToSupabaseTable(table: string, onChange: () => void, debounceMs = 300): (() => void) | null {
   const supabase = getSupabaseClient()
   if (!supabase) {

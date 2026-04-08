@@ -30,6 +30,9 @@ export type RedisRateLimitOptions = {
 type RedisLikeClient = {
   incr: (key: string) => Promise<number>
   pexpire: (key: string, ttlMs: number) => Promise<number>
+  get?: (key: string) => Promise<string | null>
+  set?: (key: string, value: string, ...args: unknown[]) => Promise<unknown>
+  del?: (...keys: string[]) => Promise<number>
 }
 
 type RedisCtor = new (
@@ -92,6 +95,31 @@ export function isRedisRateLimitAvailable(): boolean {
     return false
   }
   return getRedisClient() !== null
+}
+
+/** String GET for marketplace cache tools (ioredis supports get/set/del). */
+export async function redisStringGet(key: string): Promise<string | null> {
+  const client = getRedisClient()
+  if (!client || typeof client.get !== "function") return null
+  return client.get(key)
+}
+
+export async function redisStringSet(key: string, value: string, ttlSeconds?: number): Promise<boolean> {
+  const client = getRedisClient()
+  if (!client || typeof client.set !== "function") return false
+  const raw = client as RedisLikeClient & { set: (...a: unknown[]) => Promise<unknown> }
+  if (ttlSeconds != null && ttlSeconds > 0) {
+    await raw.set(key, value, "EX", ttlSeconds)
+  } else {
+    await raw.set(key, value)
+  }
+  return true
+}
+
+export async function redisDel(...keys: string[]): Promise<number> {
+  const client = getRedisClient()
+  if (!client || typeof client.del !== "function" || keys.length === 0) return 0
+  return client.del(...keys)
 }
 
 /**

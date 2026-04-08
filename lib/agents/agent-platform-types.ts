@@ -21,6 +21,8 @@ export interface AgentModelOption {
   costTier: "low" | "medium" | "high"
   latencyTier: "low" | "medium" | "high"
   strengths: string[]
+  /** Shown in UI when the runtime may route to another backend (e.g. OpenAI fallback). */
+  routingNote?: string
 }
 
 export interface AgentWorkflowTemplate {
@@ -224,6 +226,8 @@ export const DEFAULT_AGENT_MODELS: AgentModelOption[] = [
     costTier: "medium",
     latencyTier: "medium",
     strengths: ["planning", "writing", "long context reasoning"],
+    routingNote:
+      "Uses Anthropic (AI Gateway or @ai-sdk/anthropic) when configured; otherwise OpenAI gpt-4.1-mini.",
   },
   {
     id: "kimi-2.5",
@@ -232,6 +236,7 @@ export const DEFAULT_AGENT_MODELS: AgentModelOption[] = [
     costTier: "low",
     latencyTier: "medium",
     strengths: ["web-heavy research", "cost efficiency"],
+    routingNote: "Native Moonshot not wired yet — requests route to OpenAI gpt-4.1-mini.",
   },
   {
     id: "llama-3.3-70b",
@@ -240,6 +245,7 @@ export const DEFAULT_AGENT_MODELS: AgentModelOption[] = [
     costTier: "low",
     latencyTier: "high",
     strengths: ["self-hosted option", "private inference"],
+    routingNote: "Native Llama/Meta endpoint not wired yet — requests route to OpenAI gpt-4.1-mini.",
   },
   {
     id: "local-macstudio",
@@ -248,6 +254,7 @@ export const DEFAULT_AGENT_MODELS: AgentModelOption[] = [
     costTier: "low",
     latencyTier: "low",
     strengths: ["on-prem privacy", "no egress", "predictable cost"],
+    routingNote: "Local runtime not wired in agent path — requests route to OpenAI gpt-4.1-mini.",
   },
 ]
 

@@ -6,8 +6,14 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Textarea } from "@/components/ui/textarea"
+import {
+  deriveActorProfilesFromActivities,
+  isActivityAuditCsv,
+  parseActivityCsv,
+} from "@/lib/csv/activity-csv-parser"
 import { parseLinkedInCsv } from "@/lib/csv/csv-parser"
 import type { ImportSourceInput } from "@/lib/csv/import-session"
+import { serializeProfilesToCanonicalCsv } from "@/lib/csv/import-session"
 import { importLinkedInPdf } from "@/lib/linkedin/linkedin-pdf-parser"
 import { importFile } from "@/lib/import/import-pipeline"
 import { importLinkedInDataExport } from "@/lib/import/linkedin-data-export"
@@ -672,6 +678,27 @@ export function ChatPanel({ activeView = "chat", csvData, importLabel, onImportP
         // CSV: use existing parser (preserves rawCsv for downstream consumers)
         if (isCsv) {
           const text = await readTextFromFile(file)
+          if (isActivityAuditCsv(text)) {
+            const activities = parseActivityCsv(text)
+            if (activities.length === 0) {
+              toast.error("No activity rows found in CSV (expected Activity ID / Type / Date headers).")
+              return
+            }
+            const profiles = deriveActorProfilesFromActivities(activities)
+            onImportProfiles({
+              type: "csv",
+              fileName: file.name,
+              profiles,
+              rawCsv: serializeProfilesToCanonicalCsv(profiles),
+              activities,
+              rawActivityCsv: text,
+            })
+            toast.success(`Activity audit loaded: ${file.name}`, {
+              description: `${activities.length} events · ${profiles.length} unique actors mapped for Tribes & analytics`,
+            })
+            return
+          }
+
           const profiles = parseLinkedInCsv(text)
           if (profiles.length === 0) {
             toast.error("No profiles found in CSV.")

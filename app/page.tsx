@@ -26,6 +26,7 @@ import SovereignMindPanel from "@/components/sovereign-mind-panel"
 import GenesisPanel from "@/components/genesis-panel"
 import CommandCenterPanel from "@/components/command-center-panel"
 import CreatorsPanel from "@/components/creators-panel"
+import PortfolioPanel from "@/components/portfolio-panel"
 import { CommandPalette } from "@/components/command-palette"
 import { KeyboardHelp } from "@/components/keyboard-help"
 import { AppProvider, useApp, isActiveView } from "@/lib/shared/app-context"
@@ -77,12 +78,19 @@ const PANEL_COMPONENTS: Record<string, ComponentType> = {
   genesis: GenesisPanel,
   "command-center": CommandCenterPanel,
   creators: CreatorsPanel,
+  portfolio: PortfolioPanel,
 }
 
 // Wrapper components that bridge context to prop-based panels
 function DashboardPanelWrapper() {
-  const { setActiveView, csvData } = useApp()
-  return <DashboardPanel onNavigate={setActiveView} csvData={csvData} />
+  const { setActiveView, csvData, activityAuditRows } = useApp()
+  return (
+    <DashboardPanel
+      onNavigate={setActiveView}
+      csvData={csvData}
+      activityAuditRows={activityAuditRows}
+    />
+  )
 }
 
 function ChatPanelWrapper() {
@@ -130,8 +138,8 @@ function DataHubPanelWrapper() {
 }
 
 function AnalyticsPanelWrapper() {
-  const { csvData } = useApp()
-  return <AnalyticsPanel csvData={csvData} />
+  const { csvData, activityAuditRows } = useApp()
+  return <AnalyticsPanel csvData={csvData} activityAuditRows={activityAuditRows} />
 }
 
 function LinkedOutPanelWrapper() {

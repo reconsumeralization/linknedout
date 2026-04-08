@@ -602,7 +602,14 @@ export async function POST(req: Request): Promise<Response> {
     const connectors = snapshot.connectors.filter((c) =>
       agent.connectors?.includes(c.id)
     )
-    const result = await executeAgent(agent, connectors, { task: input.input })
+    const result = await executeAgent(agent, connectors, {
+      task: input.input,
+      marketplaceContext: {
+        userId: authResult.auth.userId,
+        accessToken: authResult.auth.accessToken,
+        agentId: agent.id,
+      },
+    })
 
     if (result.success) {
       await publishAgentMessage({

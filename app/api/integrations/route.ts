@@ -9,6 +9,14 @@ import {
 } from "@/lib/shared/request-rate-limit"
 import { createClient } from "@supabase/supabase-js"
 import { INTEGRATION_CATALOG } from "@/lib/connectors/integration-catalog"
+import { isIntegrationRuntimeWired } from "@/lib/connectors/integration-runtime"
+import {
+  deriveImplementationStatus,
+  partialIntegrationHint,
+  providerSupportsMarketplaceExecute,
+} from "@/lib/integrations/execute"
+import { runIntegrationHealthCheck } from "@/lib/integrations/integration-health"
+import { validateProviderEnv } from "@/lib/integrations/validate-provider-env"
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
@@ -70,8 +78,26 @@ export async function GET(req: Request) {
 
     const catalog = INTEGRATION_CATALOG.map((entry) => {
       const userConfig = configMap.get(entry.id) as Record<string, unknown> | undefined
+      const envV = validateProviderEnv(entry.id)
+      const runtimeWired = isIntegrationRuntimeWired(entry.id)
+      const marketplaceExecute = providerSupportsMarketplaceExecute(entry.id)
+      const implementationStatus = deriveImplementationStatus(entry.id, runtimeWired)
       return {
         ...entry,
+        runtimeWired,
+        marketplaceExecute,
+        implementationStatus,
+        partialHint:
+          implementationStatus === "partial" ? partialIntegrationHint(entry.id) : null,
+        envValidation: envV
+          ? {
+              configured: envV.configured,
+              missingEnvKeys: envV.missingEnvKeys,
+              oauth: envV.oauth,
+              docsUrl: envV.docsUrl,
+              envKeys: envV.envKeys,
+            }
+          : null,
         installed: !!userConfig,
         status: (userConfig?.status as string) ?? "disconnected",
         enabled: (userConfig?.enabled as boolean) ?? false,
@@ -98,6 +124,14 @@ export async function GET(req: Request) {
 
     if (error) console.error("[API]", error.message); return jsonResponse({ error: "Operation failed" }, 500, rl)
     return jsonResponse({ ok: true, integrations: configs }, 200, rl)
+  }
+
+  if (action === "health") {
+    const provider = url.searchParams.get("provider")
+    if (!provider?.trim()) return jsonResponse({ error: "Missing provider query param" }, 400, rl)
+    const health = await runIntegrationHealthCheck(provider.trim())
+    if (!health) return jsonResponse({ error: "Unknown provider" }, 404, rl)
+    return jsonResponse({ ok: true, health }, 200, rl)
   }
 
   if (action === "usage") {

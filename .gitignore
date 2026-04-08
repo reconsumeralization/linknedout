@@ -26,3 +26,9 @@ branded-supabase/logs/
 .DS_Store
 
 .vercel
+
+# Tooling / test artifacts (some runners write under repo root or cache dirs)
+.vite/
+coverage/
+test-results/
+playwright-report/

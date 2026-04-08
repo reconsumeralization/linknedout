@@ -73,3 +73,8 @@ enabled = false
 
 [experimental]
 orioledb_version = ""
+
+# Runs after migrations on `supabase db reset` (local CLI). See supabase/seed.sql.
+[db.seed]
+enabled = true
+sql_paths = ["./seed.sql"]
