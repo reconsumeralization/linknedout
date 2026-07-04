@@ -29,8 +29,8 @@ importers:
         specifier: ^9.2.10
         version: 9.2.10(@deck.gl/core@9.2.10)(@loaders.gl/core@4.3.4)(@luma.gl/core@9.2.6(patch_hash=42lmrmeft33wz6amzrhlqrklsy))(@luma.gl/engine@9.2.6(@luma.gl/core@9.2.6(patch_hash=42lmrmeft33wz6amzrhlqrklsy))(@luma.gl/shadertools@9.2.6(@luma.gl/core@9.2.6(patch_hash=42lmrmeft33wz6amzrhlqrklsy))))
       '@deck.gl/react':
-        specifier: ^9.2.10
-        version: 9.2.10(@deck.gl/core@9.2.10)(@deck.gl/widgets@9.2.10(@deck.gl/core@9.2.10)(@luma.gl/core@9.2.6(patch_hash=42lmrmeft33wz6amzrhlqrklsy)))(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
+        specifier: ^9.3.6
+        version: 9.3.6(@deck.gl/core@9.2.10)(@deck.gl/widgets@9.2.10(@deck.gl/core@9.2.10)(@luma.gl/core@9.2.6(patch_hash=42lmrmeft33wz6amzrhlqrklsy)))(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
       '@hookform/resolvers':
         specifier: ^3.9.1
         version: 3.10.0(react-hook-form@7.71.1(react@19.2.4))
@@ -382,11 +382,11 @@ packages:
       '@luma.gl/gltf': ~9.2.6
       '@luma.gl/shadertools': ~9.2.6
 
-  '@deck.gl/react@9.2.10':
-    resolution: {integrity: sha512-TBbGFEKxP+nNQ+/n1B8UAmlyYdvbC63zBffKvY77ivFAJexPDWVq5bzuBmx2nqYV7y0s3QhdJpK3P6YYb14GIQ==}
+  '@deck.gl/react@9.3.6':
+    resolution: {integrity: sha512-oZ8Bvj8GzTU50864X4aujrlzeGytf60Azd7pAeotQO+8vZkIw8e9pxoZo6S4NM2NOtHKHWkGVCy08Fx9482lpA==}
     peerDependencies:
-      '@deck.gl/core': ~9.2.0
-      '@deck.gl/widgets': ~9.2.0
+      '@deck.gl/core': ~9.3.0
+      '@deck.gl/widgets': ~9.3.0
       react: '>=16.3.0'
       react-dom: '>=16.3.0'
 
@@ -3094,6 +3094,7 @@ packages:
   recharts@2.15.0:
     resolution: {integrity: sha512-cIvMxDfpAmqAmVgc4yb7pgm/O1tmmkl/CjrvXuW+62/+7jj/iF9Ykm+hb/UJt42TREHMyd3gb+pkgoa2MxgDIw==}
     engines: {node: '>=14'}
+    deprecated: 1.x and 2.x branches are no longer active. Bump to Recharts v3 to receive latest features and bugfixes. See https://github.com/recharts/recharts/wiki/3.0-migration-guide
     peerDependencies:
       react: ^16.0.0 || ^17.0.0 || ^18.0.0 || ^19.0.0
       react-dom: ^16.0.0 || ^17.0.0 || ^18.0.0 || ^19.0.0
@@ -3689,7 +3690,7 @@ snapshots:
     transitivePeerDependencies:
       - '@loaders.gl/core'
 
-  '@deck.gl/react@9.2.10(@deck.gl/core@9.2.10)(@deck.gl/widgets@9.2.10(@deck.gl/core@9.2.10)(@luma.gl/core@9.2.6(patch_hash=42lmrmeft33wz6amzrhlqrklsy)))(react-dom@19.2.4(react@19.2.4))(react@19.2.4)':
+  '@deck.gl/react@9.3.6(@deck.gl/core@9.2.10)(@deck.gl/widgets@9.2.10(@deck.gl/core@9.2.10)(@luma.gl/core@9.2.6(patch_hash=42lmrmeft33wz6amzrhlqrklsy)))(react-dom@19.2.4(react@19.2.4))(react@19.2.4)':
     dependencies:
       '@deck.gl/core': 9.2.10
       '@deck.gl/widgets': 9.2.10(@deck.gl/core@9.2.10)(@luma.gl/core@9.2.6(patch_hash=42lmrmeft33wz6amzrhlqrklsy))
